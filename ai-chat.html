@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Advisor AI — диалог по кейсу</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#edf3ff;background:#090f1e;color-scheme:dark}*{box-sizing:border-box}body{margin:0}
+a{color:#a9c6ff}button,textarea{font:inherit}button{cursor:pointer;border:1px solid #3c5374;background:#223656;color:#ecf3ff;border-radius:11px;padding:11px 15px;font-weight:650}button:disabled{opacity:.5;cursor:wait}button.primary{background:#6286ee;border-color:#6286ee;color:white}
+main{max-width:1140px;margin:0 auto;padding:26px 20px 56px;min-height:100dvh}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;margin-bottom:24px}
+.brand{font-weight:850;font-size:24px}.brand span{color:#8cabff}.muted{color:#9daecc}.crumb{font-size:11px;letter-spacing:1.8px;font-weight:700;color:#8cadfb}
+h1{font-size:clamp(23px,4vw,35px);margin:9px 0 7px;overflow-wrap:anywhere;line-height:1.15}p{line-height:1.5}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 275px;gap:17px;align-items:start}.card{border:1px solid #304260;background:#151f34;border-radius:16px;padding:18px;min-width:0}
+.chat{display:flex;flex-direction:column;min-height:66dvh;max-height:80dvh}
+#messages{flex:1;min-height:200px;overflow:auto;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain;padding:5px 2px 17px}
+.bubble{max-width:90%;width:max-content;min-width:90px;padding:12px 15px;border-radius:14px;background:#223249;border:1px solid #334563;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:14px}
+.bubble.user{align-self:flex-end;background:#244171;border-color:#3d6297}.sender{font-size:11px;color:#afc9ef;font-weight:750;margin-bottom:7px}
+.composer{border-top:1px solid #334561;padding-top:15px;display:flex;gap:10px;align-items:end}
+textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12px;border:1px solid #3c5070;border-radius:10px;background:#0c1528;color:white;outline-offset:2px}
+.notice{padding:12px 14px;border:1px solid #3c5374;border-radius:10px;background:#1a2a45;font-size:13px;line-height:1.55;margin:12px 0;overflow-wrap:anywhere}
+.info h2{font-size:16px;margin:0 0 15px}.info p{font-size:13px;color:#adc0dc}.action{width:100%;margin:6px 0;text-align:center}.hidden{display:none!important}
+#error{color:#ffcd9e;min-height:18px;font-size:13px;margin:9px 0}
+@media(max-width:780px){main{padding:17px 13px 28px}.layout{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.chat{min-height:63dvh;max-height:none}.info{order:2}header{margin-bottom:17px}.composer{flex-direction:column;align-items:stretch}textarea{min-height:80px} .bubble{max-width:98%}}
+</style></head><body>
+<main><header><div class="brand">◈ Advisor <span>AI</span></div><a href="./workspace.html" aria-label="В рабочий кабинет">← Мой кабинет</a></header>
+<div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
+<div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
+ <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
+ <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
+ <div id="error" role="alert"></div>
+ <div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос по этому кейсу…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+ </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
+ <button id="retry" class="action hidden">Повторить ответ AI</button>
+ <button id="refresh" class="action">Обновить историю</button>
+ <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть ChatGPT ↗</a>
+ <div class="notice">Переписка в этом окне сохраняется отдельно от личных чатов ChatGPT. Секретный ключ OpenAI хранится на сервере. Не загружай конфиденциальные сведения клиентов без корпоративного согласования.</div>
+ </aside></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+const URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
+const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
+let db=null,caseData=null,user=null,working=false;
+const error=s=>$('error').textContent=s||'';
+function bubble(role,content){const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';const text=document.createElement('div');text.textContent=content;el.append(who,text);return el}
+function setStatus(s){$('case-sub').textContent=s}
+function ready(active){$('question').disabled=!active;$('send').disabled=!active}
+function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('send').textContent=v?'Думаю…':'Отправить →'}
+async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}const list=$('messages');list.textContent='';for(const m of (data||[]).reverse())list.append(bubble(m.role,m.content));if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
+async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
+async function send(){if(working)return;const content=$('question').value.trim();if(!content)return;waiting(true);error('');try{const {error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content});if(err)throw Error(err.message);$('question').value='';await history()}catch(e){error('Не удалось сохранить сообщение: '+e.message);waiting(false);return}waiting(false);await requestAI()}
+async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('Открой AI-чат из карточки нужного кейса.');setStatus('Некорректная ссылка на кейс.');return}if(!window.supabase?.createClient){error('Библиотека Supabase не загрузилась. Проверь интернет.');return}
+ db=window.supabase.createClient(URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ const {data:session,error:sessionError}=await db.auth.getSession();
+ if(sessionError||!session.session){$('login-note').classList.remove('hidden');$('case-title').textContent='Нужен вход в аккаунт';$('messages').textContent='';setStatus('Войди на сайте, затем вернись по этой ссылке.');return}
+ const check=await db.auth.getUser();if(check.error||!check.data.user){$('login-note').classList.remove('hidden');error('Войди повторно в личный кабинет.');return}
+ user=check.data.user;
+ const {data,error:err}=await db.from('workspace_items').select('id,kind,title,notes,prompt,chat_url').eq('id',caseId).single();
+ if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
+ caseData=data;$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
+ ready(true);await history();
+}
+$('send').addEventListener('click',send);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
+init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
+</script></body></html>
