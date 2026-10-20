@@ -36,7 +36,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
 <script>
 'use strict';
-const URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
+const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false;
 const error=s=>$('error').textContent=s||'';
@@ -48,7 +48,7 @@ async function history(){if(!db||!caseData)return;const {data,error:err}=await d
 async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
 async function send(){if(working)return;const content=$('question').value.trim();if(!content)return;waiting(true);error('');try{const {error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content});if(err)throw Error(err.message);$('question').value='';await history()}catch(e){error('Не удалось сохранить сообщение: '+e.message);waiting(false);return}waiting(false);await requestAI()}
 async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('Открой AI-чат из карточки нужного кейса.');setStatus('Некорректная ссылка на кейс.');return}if(!window.supabase?.createClient){error('Библиотека Supabase не загрузилась. Проверь интернет.');return}
- db=window.supabase.createClient(URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ db=window.supabase.createClient(SUPABASE_PROJECT_URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data:session,error:sessionError}=await db.auth.getSession();
  if(sessionError||!session.session){$('login-note').classList.remove('hidden');$('case-title').textContent='Нужен вход в аккаунт';$('messages').textContent='';setStatus('Войди на сайте, затем вернись по этой ссылке.');return}
  const check=await db.auth.getUser();if(check.error||!check.data.user){$('login-note').classList.remove('hidden');error('Войди повторно в личный кабинет.');return}
