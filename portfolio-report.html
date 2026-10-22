@@ -17,7 +17,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
 <section class="panel"><h2>Целевой состав и перераспределение</h2><div id="r-target"></div></section>
-<section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
+<section class="panel"><h2>Сравнение текущего и целевого портфеля</h2><div id="r-comparison"></div><p class="foot">Сценарий: пропорциональное изменение позиций внутри каждого класса. Без новых инструментов, изменения цен, комиссий и налогов. Не является торговым планом.</p></section><section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
 <section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
 <div class="notice">Все суммы рассчитаны на основе пользовательских цен в USD. Предполагаются длинные позиции и отсутствие денежного остатка, обязательств, валютных пересчётов, комиссий и налогов. Концентрационные показатели не измеряют корреляции и кредитный риск. Дюрационный сценарий — линейная оценка движения цены облигаций при параллельном изменении их доходностей, без учёта выпуклости. Отчёт не является индивидуальной инвестиционной рекомендацией.</div>
 <p class="foot">Advisor AI · Автоматически рассчитанный отчёт. Перед передачей клиенту проверь исходные цены, количество бумаг, валюты, дюрацию и полноту исходного портфеля.</p>
@@ -54,6 +54,36 @@ function parseSaved(notes){
  const target=tm?Number(tm[1]):null;
  return {rows,total,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
 }
+function projectAllocation(data,targetBondPercent){
+ const targetBond=targetBondPercent/100,targetEquity=1-targetBond;
+ const currentBond=data.bondValue/data.total,currentEquity=data.equityValue/data.total;
+ if((targetBond>0&&currentBond===0)||(targetEquity>0&&currentEquity===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
+ const rows=data.rows.map(r=>({...r,projectedValue:r.value*(r.bond?(currentBond?targetBond/currentBond:0):(currentEquity?targetEquity/currentEquity:0))}));
+ const weights=rows.map(r=>r.projectedValue/data.total),hhi=weights.reduce((a,x)=>a+x*x,0);
+ const targetRateShock=-rows.filter(r=>r.bond).reduce((a,r)=>a+r.projectedValue*r.duration,0)/data.total*0.01;
+ return {possible:true,rows,hhi,top1:Math.max(...weights),top3:[...weights].sort((a,b)=>b-a).slice(0,3).reduce((a,x)=>a+x,0),targetRateShock};
+}
+function renderComparison(data){
+ const out=$('r-comparison');
+ if(data.target===null){addLine('r-comparison','Целевая доля облигаций не задана. Укажи её в карточке кейса и сохрани структуру.');return}
+ const comparison=projectAllocation(data,data.target);
+ if(!comparison.possible){addLine('r-comparison',comparison.reason);return}
+ const currentRateShock=-data.bondValue/data.total*data.duration*0.01;
+ const rows=[
+ ['Доля облигаций',pct(data.bondValue/data.total),data.target.toFixed(1)+'%'],
+ ['Доля акций',pct(data.equityValue/data.total),pct(1-data.target/100)],
+ ['Крупнейшая позиция',pct(data.top1),pct(comparison.top1)],
+ ['Топ-3',pct(data.top3),pct(comparison.top3)],
+ ['HHI',data.hhi.toFixed(4),comparison.hhi.toFixed(4)],
+ ['Эффективное число позиций',(1/data.hhi).toFixed(2),(1/comparison.hhi).toFixed(2)],
+ ['Шок доходностей облигаций +100 б.п.',pct(currentRateShock),pct(comparison.targetRateShock)]
+ ];
+ const table=document.createElement('table'),head=document.createElement('thead'),heading=document.createElement('tr');
+ for(const v of ['Показатель','Сейчас','После перераспределения']){const th=document.createElement('th');th.textContent=v;heading.append(th)}head.append(heading);table.append(head);
+ const tbody=document.createElement('tbody');for(const items of rows){const tr=document.createElement('tr');for(const val of items){const td=document.createElement('td');td.textContent=val;tr.append(td)}tbody.append(tr)}table.append(tbody);
+ const wrapper=document.createElement('div');wrapper.className='tablewrap';wrapper.append(table);out.append(wrapper);
+ addLine('r-comparison','Сравнение рассчитано при сохранении пропорций инструментов внутри каждого класса активов.');
+}
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Сформирован: '+new Date().toLocaleString('ru-RU')+' · Стоимость на основе введённых данных';
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
@@ -64,6 +94,7 @@ function renderReport(data,title){
   addLine('r-duration','Взвешенная модифицированная дюрация облигаций: '+data.duration.toFixed(2)+' года.');
   addLine('r-duration','Сценарий +100 б.п. доходности облигаций: приблизительно '+pct(-data.bondValue/data.total*data.duration*0.01)+' по всему портфелю при прочих равных.');
  }else addLine('r-duration','Облигации не указаны, процентный риск облигационного сегмента не рассчитан.');
+ renderComparison(data);
  if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
  else{
   const delta=data.total*data.target/100-data.bondValue;
