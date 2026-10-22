@@ -19,6 +19,8 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
 .info h2{font-size:16px;margin:0 0 15px}.info p{font-size:13px;color:#adc0dc}.action{width:100%;margin:6px 0;text-align:center}.hidden{display:none!important}
 #error{color:#ffcd9e;min-height:18px;font-size:13px;margin:9px 0}
 @media(max-width:780px){main{padding:17px 13px 28px}.layout{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.chat{min-height:63dvh;max-height:none}.info{order:2}header{margin-bottom:17px}.composer{flex-direction:column;align-items:stretch}textarea{min-height:80px} .bubble{max-width:98%}}
+#print-report{display:none}
+@media print{body{background:white!important;color:#111!important}main>*:not(#print-report){display:none!important}#print-report{display:block!important;font-family:Arial,sans-serif;font-size:11pt;color:#111;line-height:1.5}#print-report h1{font-size:20pt;margin-bottom:8px}#print-report p{color:#555}.print-content{white-space:pre-wrap;overflow-wrap:anywhere}}
 </style></head><body>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><a href="./workspace.html" aria-label="В рабочий кабинет">← Мой кабинет</a></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
@@ -29,24 +31,50 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос по этому кейсу…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
+ <button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
+ <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
+ <button id="download-result" class="action" disabled>Скачать ответ .txt</button>
+ <button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
  <button id="refresh" class="action">Обновить историю</button>
+ <div id="result-status" class="muted" role="status" style="font-size:12px;line-height:1.5;margin-top:8px">Итог можно сохранить в карточке кейса или скачать.</div>
  <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть ChatGPT ↗</a>
  <div class="notice">Переписка в этом окне сохраняется отдельно от личных чатов ChatGPT. Секретный ключ OpenAI хранится на сервере. Не загружай конфиденциальные сведения клиентов без корпоративного согласования.</div>
- </aside></div></main>
+ </aside></div><section id="print-report" aria-label="Печатный отчет"></section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
 <script>
 'use strict';
 const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
-let db=null,caseData=null,user=null,working=false;
+let db=null,caseData=null,user=null,working=false,lastAnswer='';
 const error=s=>$('error').textContent=s||'';
 function bubble(role,content){const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';const text=document.createElement('div');text.textContent=content;el.append(who,text);return el}
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active}
-function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('send').textContent=v?'Думаю…':'Отправить →'}
-async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}const list=$('messages');list.textContent='';for(const m of (data||[]).reverse())list.append(bubble(m.role,m.content));if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
+function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
+async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';for(const m of (data||[]).reverse())list.append(bubble(m.role,m.content));if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
 async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
 async function send(){if(working)return;const content=$('question').value.trim();if(!content)return;waiting(true);error('');try{const {error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content});if(err)throw Error(err.message);$('question').value='';await history()}catch(e){error('Не удалось сохранить сообщение: '+e.message);waiting(false);return}waiting(false);await requestAI()}
+
+const summaryPrompts={
+ portfolio:'Сформируй итоговый отчёт по обсуждаемому портфелю только на основе информации этого кейса. Структура: 1) исходные данные и допущения; 2) структура и концентрации; 3) основные риски; 4) аргументированные варианты ребалансировки; 5) конкретные следующие шаги; 6) какие данные ещё нужны. Отделяй установленные факты от гипотез. Не придумывай доли, цены и тикеры.',
+ ideas:'Сформируй инвестиционное резюме по этому кейсу: бизнес и тезис, доступные факты, катализаторы, риски, альтернативные сценарии, данные для проверки и дальнейшие действия. Не придумывай котировки и оценки.',
+ academy:'Подготовь итог изученной темы: объяснение механики простым языком, ключевые термины, причинно-следственные связи, примеры, исключения, типичные ошибки и 3 вопроса для проверки понимания.',
+ markets:'Подготовь итоговый макрообзор по этому кейсу: подтверждённые факты и даты, механика влияния на ставки, валюты, акции и облигации, сценарии, риски и индикаторы для дальнейшего наблюдения. Не выдавай предположения за актуальные данные.',
+ tasks:'Сформируй итоговый план по этой задаче: цель, подтверждённый контекст, список действий по приоритету, зависимости, риски, критерии завершения и следующие шаги.'
+};
+async function makeSummary(){if(working||!caseData)return;$('question').value=summaryPrompts[caseData.kind]||summaryPrompts.tasks;await send()}
+async function saveResult(){if(working||!lastAnswer||!caseData)return;const btn=$('save-result');btn.disabled=true;$('result-status').textContent='Сохраняю итог в карточке…';try{
+ const {data:fresh,error:readError}=await db.from('workspace_items').select('notes').eq('id',caseId).single();if(readError)throw readError;
+ const prior=fresh.notes||'';if(prior.includes(lastAnswer.trim())){ $('result-status').textContent='Этот ответ уже сохранён в заметках кейса.';return }const header='Итог Advisor AI · '+new Date().toLocaleString('ru-RU');
+ const addition='\n\n──── '+header+' ────\n'+lastAnswer.trim();
+ const notes=(prior+addition).trim();if(notes.length>50000)throw Error('В карточке уже слишком много текста. Скачай итог файлом.');
+ const {error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId);if(updateError)throw updateError;
+ caseData.notes=notes;$('result-status').textContent='Итог сохранён в заметках карточки. Открой кабинет, чтобы посмотреть и отредактировать.';}
+ catch(e){$('result-status').textContent='Не удалось сохранить итог: '+(e.message||'ошибка доступа');}
+ finally{btn.disabled=working||!lastAnswer}}
+function printResult(){if(!lastAnswer||!caseData)return;const area=$('print-report');area.textContent='';const title=document.createElement('h1');title.textContent='Advisor AI — '+caseData.title;const date=document.createElement('p');date.textContent='Дата: '+new Date().toLocaleString('ru-RU');const body=document.createElement('div');body.className='print-content';body.textContent=lastAnswer;area.append(title,date,body);window.print()}
+function downloadResult(){if(!lastAnswer||!caseData)return;const safeTitle=(caseData.title||'case').replace(/[\\/:*?"<>|]/g,' ').slice(0,65).trim();const content='Advisor AI — '+caseData.title+'\nДата: '+new Date().toLocaleString('ru-RU')+'\n\n'+lastAnswer;const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AdvisorAI-'+(safeTitle||'report')+'.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);$('result-status').textContent='Текст отчёта скачан. Перед отправкой клиенту проверь факты, цифры и формулировки.'}
+
 async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('Открой AI-чат из карточки нужного кейса.');setStatus('Некорректная ссылка на кейс.');return}if(!window.supabase?.createClient){error('Библиотека Supabase не загрузилась. Проверь интернет.');return}
  db=window.supabase.createClient(SUPABASE_PROJECT_URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data:session,error:sessionError}=await db.auth.getSession();
@@ -56,9 +84,9 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  const {data,error:err}=await db.from('workspace_items').select('id,kind,title,notes,prompt,chat_url').eq('id',caseId).single();
  if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
  caseData=data;$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
- ready(true);await history();
+ ready(true);waiting(false);await history();
 }
-$('send').addEventListener('click',send);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script></body></html>
