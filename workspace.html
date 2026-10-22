@@ -125,7 +125,67 @@ function buildPortfolioText(summary){const f=n=>n.toLocaleString('en-US',{maximu
  return PORT_START+'\nКРАТКАЯ СВОДКА ДЛЯ AI:\n'+primary+'\n'+risk+'\n'+bondMetrics+'\n'+top+'\nБез верификации котировок и полноты портфеля.\nСписок позиций (тикер; количество; цена в USD):\n'+summary.rows.map(r=>r.ticker+'; '+r.qty+'; '+r.price+(r.isBond?'; '+r.duration:'')).join('\n')+'\nИтого: '+f(summary.total)+' USD\n'+PORT_END;
 }
 function summarizeHoldings(summary){const fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});const pct=n=>(n*100).toFixed(1)+'%';return 'Стоимость по введённым ценам: '+fmt(summary.total)+' USD.\nПозиций: '+summary.rows.length+'. Крупнейшая: '+summary.rows[0].ticker+' ('+pct(summary.top1)+'). Топ-3: '+pct(summary.top3)+'. Топ-5: '+pct(summary.top5)+'.\nHHI: '+summary.hhi.toFixed(4)+'. Эффективное число позиций: '+summary.effectiveCount.toFixed(2)+'.\nАкции: '+pct(summary.equityValue/summary.total)+'. Облигации: '+pct(summary.bondValue/summary.total)+'. Взвешенная дюрация облигаций: '+summary.bondDuration.toFixed(2)+' года. Сдвиг доходностей облигаций +100 б.п. при прочих равных: портфель '+pct(summary.rateShock100bp)+' (первый порядок).\nУсловный стресс: '+summary.rows[0].ticker+' -20% при прочих равных → портфель '+pct(summary.largestShock)+'. Все позиции -10% → портфель -10.0%.\n\n'+summary.rows.slice(0,30).map(r=>r.ticker+' · '+fmt(r.value)+' USD · '+pct(r.value/summary.total)).join('\n')+(summary.rows.length>30?'\n… и ещё '+(summary.rows.length-30)+' позиций.':'')}
-async function importHoldingsFile(file){if(!file)return;const preview=document.getElementById('portfolio-preview');if(file.size>50000){if(preview)preview.textContent='Файл слишком большой. Максимум 50 КБ.';return}try{let raw=await file.text();raw=raw.replace(/^\uFEFF/,'').trim();if(!raw)throw Error('Файл пустой.');const lines=raw.split(/\r?\n/);if(!raw.includes(';')&&!raw.includes('\t'))raw=lines.map(l=>l.split(',').join(';')).join('\n');const input=document.getElementById('holdings-input');if(!input)return;const check=parseHoldings(raw);input.value=raw;if(preview)preview.textContent='Файл загружен. '+summarizeHoldings(check)+'\nНажми «Сохранить позиции и расчёт», чтобы сохранить результат в кейсе.'}catch(e){if(preview)preview.textContent='Не удалось прочитать CSV/TSV: '+e.message}}
+function splitCsvLine(line,delimiter){
+ const result=[];let field='',quoted=false;
+ for(let i=0;i<line.length;i++){const c=line[i];
+  if(c==='"'){if(quoted&&line[i+1]==='"'){field+='"';i++}else quoted=!quoted}
+  else if(c===delimiter&&!quoted){result.push(field.trim());field=''}
+  else field+=c;
+ }
+ if(quoted)throw Error('Незакрытая кавычка в CSV.');
+ result.push(field.trim());return result;
+}
+function normalizeHoldingsFile(text){
+ const raw=String(text||'').replace(/^\uFEFF/,'').trim();
+ if(!raw)throw Error('Файл пустой.');
+ const lines=raw.split(/\r?\n/).filter(x=>x.trim().length);
+ if(lines.length>151)throw Error('Максимум 150 позиций.');
+ const first=lines[0];const delimiter=first.includes('\t')?'\t':first.includes(';')?';':',';
+ const decoded=lines.map(line=>splitCsvLine(line,delimiter));
+ const norm=x=>String(x||'').toLowerCase().replace(/[\s_-]+/g,'');
+ const key=decoded[0].map(norm);
+ const lookup=(aliases)=>key.findIndex(k=>aliases.includes(k));
+ const ti=lookup(['тикер','ticker','symbol','asset','instrument','инструмент','код']);
+ const qi=lookup(['quantity','qty','количество','shares','units','шт']);
+ const pi=lookup(['price','unitprice','цена','ценаusd','ценаединицы']);
+ const di=lookup(['duration','modifiedduration','modduration','дюрация']);
+ const typei=lookup(['type','тип','assettype','класс','вид']);
+ const hasHeader=ti>=0&&qi>=0&&pi>=0;
+ const start=hasHeader?1:0;
+ if(hasHeader&&decoded[0].length>20)throw Error('Слишком много столбцов в CSV.');
+ const out=[];
+ for(let i=start;i<decoded.length;i++){
+  const cells=decoded[i];
+  let symbol,quantity,price,duration,isBond;
+  if(hasHeader){
+   symbol=cells[ti]||'';quantity=cells[qi]||'';price=cells[pi]||'';
+   duration=di>=0?cells[di]||'':'';
+   isBond=/^bond:|^облигац|^bond$|^fixed.?income$|^fi$/i.test((typei>=0?cells[typei]:'')||symbol);
+   if(isBond&&!/^BOND:/i.test(symbol))symbol='BOND:'+symbol;
+  }else{
+   symbol=cells[0]||'';quantity=cells[1]||'';price=cells[2]||'';duration=cells[3]||'';
+   isBond=/^BOND:/i.test(symbol);
+   if(cells.length!==(isBond?4:3))throw Error('Строка '+(i+1)+': ожидается '+(isBond?4:3)+' столбца.');
+  }
+  const line=[symbol,quantity,price,...(isBond?[duration]:[])].join('; ');
+  out.push(line);
+ }
+ if(!out.length)throw Error('В файле не найдено позиций.');
+ const result=out.join('\n');
+ parseHoldings(result);
+ return result;
+}
+async function importHoldingsFile(file){
+ if(!file)return;const preview=document.getElementById('portfolio-preview');
+ if(file.size>50000){if(preview)preview.textContent='Файл слишком большой. Максимум 50 КБ.';return}
+ try{
+  const text=await file.text(),normalized=normalizeHoldingsFile(text);
+  const check=parseHoldings(normalized),input=document.getElementById('holdings-input');if(!input)return;
+  input.value=normalized;
+  if(preview)preview.textContent='Файл прочитан: '+check.rows.length+' позиций.\n'+summarizeHoldings(check)+'\nНажми «Сохранить позиции и расчёт», чтобы сохранить результат в кейсе.';
+ }catch(e){if(preview)preview.textContent='Ошибка импорта: '+e.message}
+ finally{const fileInput=document.getElementById('holdings-file');if(fileInput)fileInput.value=''}
+}
 function calculatePortfolio(){const el=document.getElementById('portfolio-preview');if(!el)return null;try{const data=parseHoldings(document.getElementById('holdings-input').value);const goal=document.getElementById('target-bonds')?.value.trim()||'';if(goal!==''){const target=Number(goal);if(!Number.isFinite(target)||target<0||target>100)throw Error('Целевая доля облигаций должна быть в пределах 0–100%.');data.targetBondPct=target;data.bondTradeValue=data.total*target/100-data.bondValue;}el.textContent=summarizeHoldings(data)+(data.targetBondPct===undefined?'':'\n\nЦель: облигации '+data.targetBondPct.toFixed(1)+'%. '+(data.bondTradeValue>=0?'Увеличить облигационную часть на ':'Сократить облигационную часть на ')+Math.abs(data.bondTradeValue).toFixed(2)+' USD, акции изменить на обратную сумму. Без издержек и изменения стоимости портфеля.');return data}catch(e){el.textContent='Ошибка: '+e.message;return null}}
 async function savePortfolio(){const data=calculatePortfolio();if(!data)return;const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
  const currentNotes=document.getElementById('f-notes').value;const a=currentNotes.indexOf(PORT_START),b=currentNotes.indexOf(PORT_END,a+PORT_START.length);
