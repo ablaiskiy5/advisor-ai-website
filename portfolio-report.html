@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Advisor AI · Аналитический отчёт портфеля</title>
+<style>
+:root{font:14px Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaf0fa;background:#0a1020;color-scheme:dark}*{box-sizing:border-box}body{margin:0}
+main{max-width:1000px;padding:28px 18px 70px;margin:auto}a{color:#abc5ff}.header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:800}.brand span{color:#81a9ff}
+h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color:#a6b9d5;line-height:1.6}.panel{border:1px solid #354867;background:#152037;border-radius:14px;padding:22px;margin:17px 0;overflow-wrap:anywhere}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.tile{border:1px solid #374e75;background:#1b2d4b;border-radius:12px;padding:15px}.tile small{color:#aabddd}.tile strong{display:block;font-size:21px;margin-top:9px;overflow-wrap:anywhere}.button{font:inherit;display:inline-block;border:1px solid #445d87;border-radius:10px;background:#24406b;color:white;padding:11px 17px;cursor:pointer;font-weight:700;text-decoration:none}.button.primary{background:#5a82ef}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.notice{border:1px solid #755d40;background:#30281e;padding:14px;border-radius:10px;font-size:12px;line-height:1.6;color:#f1d7ac}.error{color:#ffc1aa}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #334663;padding:11px 8px;text-align:left;white-space:nowrap}th{color:#aabedc;font-size:12px}td.num,th.num{text-align:right}ul{line-height:1.8;padding-left:20px}#report{display:none}.foot{font-size:12px;color:#a6b8d0;line-height:1.6}
+@media(max-width:720px){main{padding:19px 12px 45px}h1{font-size:25px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:15px}.tile strong{font-size:17px}}
+@media print{@page{size:A4;margin:16mm} :root{font:10pt Arial,sans-serif;color:#101827;background:white;color-scheme:light}body{background:white;color:#101827}main{width:auto;max-width:none;padding:0}.no-print{display:none!important}#report{display:block!important}.panel{border:1px solid #ced5df;background:white;break-inside:avoid;margin:14px 0;padding:13px}.grid{gap:6px}.tile{background:white;border:1px solid #c8d0dd;padding:10px}.tile small{color:#526278}.tile strong{font-size:16px}th,td{border-color:#d7dee8;color:#111}th{color:#35445d}h1{font-size:23px;margin:10px 0}.sub,.foot{color:#526278}.notice{background:white;color:#333;border:1px solid #bbb}.tablewrap{overflow:visible}table{font-size:9pt}tr{break-inside:avoid}}
+</style></head><body><main>
+<div class="header no-print"><div class="brand">◈ Advisor <span>AI</span></div><a id="back" href="./workspace.html">← К карточке кейса</a></div>
+<div class="no-print"><h1>Отчёт по портфелю</h1><p class="sub">Отчёт строится только по сохранённым позициям. Никаких онлайн-котировок, скрытых допущений или дополнительных AI-запросов.</p><p id="status">Загружаю портфель…</p><div class="actions"><button id="print" class="button primary" disabled>Печать / сохранить PDF</button><button id="download" class="button" disabled>Скачать CSV позиций</button></div></div>
+<article id="report" aria-label="Аналитический отчёт">
+<div class="brand">Advisor <span>AI</span> · Investment Intelligence</div>
+<h1 id="r-title">Портфель</h1><p id="r-date" class="sub"></p>
+<div class="grid"><div class="tile"><small>Стоимость</small><strong id="r-total">—</strong></div><div class="tile"><small>Акции</small><strong id="r-equity">—</strong></div><div class="tile"><small>Облигации</small><strong id="r-bonds">—</strong></div><div class="tile"><small>Количество позиций</small><strong id="r-count">—</strong></div></div>
+<section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
+<section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
+<section class="panel"><h2>Целевой состав и перераспределение</h2><div id="r-target"></div></section>
+<section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
+<section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
+<div class="notice">Все суммы рассчитаны на основе пользовательских цен в USD. Предполагаются длинные позиции и отсутствие денежного остатка, обязательств, валютных пересчётов, комиссий и налогов. Концентрационные показатели не измеряют корреляции и кредитный риск. Дюрационный сценарий — линейная оценка движения цены облигаций при параллельном изменении их доходностей, без учёта выпуклости. Отчёт не является индивидуальной инвестиционной рекомендацией.</div>
+<p class="foot">Advisor AI · Автоматически рассчитанный отчёт. Перед передачей клиенту проверь исходные цены, количество бумаг, валюты, дюрацию и полноту исходного портфеля.</p>
+</article></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+const URL_SUPA='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
+const $=x=>document.getElementById(x),caseId=new URLSearchParams(location.search).get('case');
+const PORT_START='[ADVISOR_AI_PORTFOLIO_BEGIN]',PORT_END='[ADVISOR_AI_PORTFOLIO_END]';
+let exportedRows=null;
+const cash=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>(100*n).toFixed(1)+'%';
+function addLine(id,text){const p=document.createElement('p');p.textContent=text;$(id).append(p)}
+function parseSaved(notes){
+ const text=String(notes||''),a=text.indexOf(PORT_START),b=text.indexOf(PORT_END,a+PORT_START.length);
+ if(a<0||b<0)throw Error('В этом кейсе пока нет сохранённой структуры портфеля. Сначала сохрани позиции в карточке.');
+ const segment=text.slice(a,b),m=segment.match(/Список позиций \(тикер; количество; цена в USD\):\n([\s\S]*?)\nИтого:/);
+ if(!m)throw Error('Не удалось извлечь позиции. Сохрани структуру портфеля повторно.');
+ const rows=[],seen=new Set();
+ for(const [index,line] of m[1].trim().split(/\r?\n/).entries()){
+  const v=line.split(';').map(x=>x.trim()),bond=/^BOND:/i.test(v[0]);
+  if(v.length!==(bond?4:3)||!/^(?:BOND:)?[A-Za-z0-9.^_-]{1,24}$/i.test(v[0]))throw Error('Некорректная позиция '+(index+1));
+  const qty=Number(v[1]),price=Number(v[2]),duration=bond?Number(v[3]):null;
+  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0||(bond&&(!v[3]||!Number.isFinite(duration)||duration<0||duration>100)))throw Error('Некорректные данные позиции '+(index+1));
+  const name=v[0].toUpperCase();if(seen.has(name))throw Error('Повторяющийся инструмент '+name);seen.add(name);
+  rows.push({name,bond,qty,price,duration,value:qty*price});
+ }
+ const total=rows.reduce((a,r)=>a+r.value,0);if(!(total>0)||!Number.isFinite(total))throw Error('Неверная общая стоимость портфеля.');
+ rows.sort((a,b)=>b.value-a.value);
+ const bonds=rows.filter(x=>x.bond),bondValue=bonds.reduce((a,x)=>a+x.value,0),equityValue=total-bondValue;
+ const weights=rows.map(x=>x.value/total),hhi=weights.reduce((a,x)=>a+x*x,0);
+ const dur=bondValue?bonds.reduce((a,x)=>a+x.value*x.duration,0)/bondValue:0;
+ const tm=segment.match(/Целевая доля облигаций\s+(\d+(?:\.\d+)?)%/);
+ const target=tm?Number(tm[1]):null;
+ return {rows,total,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
+}
+function renderReport(data,title){
+ $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Сформирован: '+new Date().toLocaleString('ru-RU')+' · Стоимость на основе введённых данных';
+ $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
+ addLine('r-concentration','Топ-1: '+pct(data.top1)+'; топ-3: '+pct(data.top3)+'; топ-5: '+pct(data.top5)+'.');
+ addLine('r-concentration','HHI: '+data.hhi.toFixed(4)+'; эффективное число позиций: '+(1/data.hhi).toFixed(2)+'.');
+ addLine('r-concentration','Сценарий: если крупнейшая позиция потеряет 20% стоимости при неизменности остальных, стоимость портфеля изменится на '+pct(-0.2*data.top1)+'.');
+ if(data.bondValue){
+  addLine('r-duration','Взвешенная модифицированная дюрация облигаций: '+data.duration.toFixed(2)+' года.');
+  addLine('r-duration','Сценарий +100 б.п. доходности облигаций: приблизительно '+pct(-data.bondValue/data.total*data.duration*0.01)+' по всему портфелю при прочих равных.');
+ }else addLine('r-duration','Облигации не указаны, процентный риск облигационного сегмента не рассчитан.');
+ if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
+ else{
+  const delta=data.total*data.target/100-data.bondValue;
+  addLine('r-target','Текущая доля облигаций: '+pct(data.bondValue/data.total)+'. Целевая: '+data.target.toFixed(1)+'%.');
+  addLine('r-target',Math.abs(delta)<0.005?'Распределение соответствует заданной цели.':(delta>0?'Для достижения цели требуется арифметически увеличить облигационную часть на ':'Для достижения цели требуется арифметически уменьшить облигационную часть на ')+cash(Math.abs(delta))+' USD и изменить долю акций на обратную сумму.');
+ }
+ const tbody=$('r-rows');tbody.textContent='';
+ for(const r of data.rows){const tr=document.createElement('tr');const columns=[r.name,r.bond?'Облигация':'Акция',String(r.qty),cash(r.price),cash(r.value),pct(r.value/data.total),r.bond?r.duration.toFixed(2):'—'];
+  columns.forEach((c,i)=>{const td=document.createElement('td');td.textContent=c;if(i>1)td.className='num';tr.append(td)});tbody.append(tr);}
+ const issues=[];
+ if(data.top1>.35)issues.push('Крупнейшая позиция превышает 35% портфеля. Проверь допустимость концентрации.');
+ if(data.top5>.8&&data.rows.length>5)issues.push('Пять крупнейших позиций составляют более 80%. Рассмотри риск концентрации.');
+ if(data.bondValue&&data.duration>7)issues.push('Взвешенная дюрация облигаций выше 7 лет: портфель чувствителен к изменению доходности.');
+ issues.push('Сверь позиции и цены с актуальными обезличенными данными брокера.');
+ issues.push('Оцени корреляции, кредитное качество, ликвидность, валюты, сроки и индивидуальный риск-профиль. Эти показатели не выводятся из введённых строк.');
+ for(const text of issues){const li=document.createElement('li');li.textContent=text;$('r-checks').append(li)}
+ exportedRows=data.rows;
+ $('print').disabled=false;$('download').disabled=false;
+ $('status').textContent='Отчёт готов: '+data.rows.length+' позиций. Можно распечатать или сохранить PDF.';
+}
+async function init(){
+ if(!caseId||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId))throw Error('Открой отчёт из карточки портфеля.');
+ $('back').href='./workspace.html?case='+encodeURIComponent(caseId);
+ if(!window.supabase?.createClient)throw Error('Модуль входа не загрузился.');
+ const db=window.supabase.createClient(URL_SUPA,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ const {data:{user},error:authError}=await db.auth.getUser();
+ if(authError||!user)throw Error('Нужен вход в личный кабинет. Войди и открой отчёт повторно.');
+ const {data,error}=await db.from('workspace_items').select('id,kind,title,notes').eq('id',caseId).eq('user_id',user.id).single();
+ if(error||!data||data.kind!=='portfolio')throw Error('Портфель не найден или доступ запрещён.');
+ renderReport(parseSaved(data.notes),data.title);
+}
+$('print').addEventListener('click',()=>window.print());
+$('download').addEventListener('click',()=>{
+ if(!exportedRows)return;
+ const csv='Инструмент;Класс;Количество;Цена USD;Стоимость USD;Доля %;Мод. дюрация\n'+exportedRows.map(r=>[r.name,r.bond?'Облигация':'Акция',r.qty,r.price,r.value,100*r.value/exportedRows.reduce((a,x)=>a+x.value,0),r.bond?r.duration:''].join(';')).join('\n');
+ const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='advisor-ai-portfolio-report.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+});
+init().catch(e=>{$('status').className='error';$('status').textContent=e.message});
+</script></body></html>
