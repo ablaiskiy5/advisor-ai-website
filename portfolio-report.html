@@ -82,6 +82,16 @@ function renderComparison(data){
  for(const v of ['Показатель','Сейчас','После перераспределения']){const th=document.createElement('th');th.textContent=v;heading.append(th)}head.append(heading);table.append(head);
  const tbody=document.createElement('tbody');for(const items of rows){const tr=document.createElement('tr');for(const val of items){const td=document.createElement('td');td.textContent=val;tr.append(td)}tbody.append(tr)}table.append(tbody);
  const wrapper=document.createElement('div');wrapper.className='tablewrap';wrapper.append(table);out.append(wrapper);
+
+ const heading2=document.createElement('h3');heading2.textContent='Модельные изменения по инструментам (USD)';out.append(heading2);
+ const table2=document.createElement('table'),head2=document.createElement('thead'),tr2=document.createElement('tr');
+ for(const col of ['Инструмент','Текущая стоимость','Целевая стоимость','Изменение']){const th=document.createElement('th');th.textContent=col;tr2.append(th)}
+ head2.append(tr2);table2.append(head2);
+ const body2=document.createElement('tbody');
+ for(const row of comparison.rows){const tr=document.createElement('tr');const delta=row.projectedValue-row.value;
+  for(const value of [row.name,cash(row.value),cash(row.projectedValue),(delta>=0?'+':'')+cash(delta)]){const td=document.createElement('td');td.textContent=value;tr.append(td)}
+  body2.append(tr)}
+ table2.append(body2);const wrap2=document.createElement('div');wrap2.className='tablewrap';wrap2.append(table2);out.append(wrap2);
  addLine('r-comparison','Сравнение рассчитано при сохранении пропорций инструментов внутри каждого класса активов.');
 }
 function renderReport(data,title){
