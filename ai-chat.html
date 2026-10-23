@@ -219,16 +219,32 @@ function printableContent(){
  const body=document.createElement('div');body.textContent=lastAnswer;body.style.cssText='white-space:pre-wrap;font-size:11px;';
  root.append(h,p,body);return root;
 }
+// Preserve every character when turning an AI report into slides.
+function splitPresentationText(value,maxChars=750){
+ if(!Number.isInteger(maxChars)||maxChars<2)throw Error('Некорректный размер слайда');
+ const chunks=[];let rest=String(value||'');
+ while(rest.length){
+  if(rest.length<=maxChars){chunks.push(rest);break}
+  let cut=rest.lastIndexOf('\n',maxChars-1);
+  if(cut<Math.floor(maxChars/3))cut=rest.lastIndexOf(' ',maxChars-1);
+  cut=cut<Math.floor(maxChars/3)?maxChars:cut+1;
+  // Keep UTF-16 surrogate pairs (e.g. emoji) on the same slide.
+  if(cut<rest.length&&cut>0&&/[\uD800-\uDBFF]/.test(rest[cut-1])&&/[\uDC00-\uDFFF]/.test(rest[cut]))cut--;
+  chunks.push(rest.slice(0,cut));rest=rest.slice(cut);
+ }
+ return chunks;
+}
 async function downloadPresentation(){
  if(!lastAnswer||!caseData)return;const btn=$('download-pptx');btn.disabled=true;btn.textContent='Создаю слайды…';
  try{
   const P=window.pptxgen||window.PptxGenJS;if(!P)throw Error('Библиотека PowerPoint не загрузилась');
   const pptx=new P();pptx.layout='LAYOUT_WIDE';
-  const content=lastAnswer.trim(),sections=content.match(/[\s\S]{1,750}/g)||[];
+  const content=lastAnswer.trim(),sections=splitPresentationText(content);
+  if(sections.length>40)throw Error('Отчёт требует '+sections.length+' слайдов. Лимит 40: сократи текст или скачай полный PDF/Word. Презентация не создана, чтобы не потерять часть анализа.');
   const cover=pptx.addSlide();cover.background={color:'13243E'};
   cover.addText('ADVISOR AI  /  INVESTMENT INTELLIGENCE',{x:0.8,y:0.9,w:11.7,h:0.5,fontSize:16,color:'95B5FF',bold:true});
   cover.addText(caseData.title,{x:0.8,y:2,w:11.7,h:2.8,fontSize:30,color:'FFFFFF',bold:true,fit:'shrink'});
-  for(let i=0;i<Math.min(sections.length,40);i++){
+  for(let i=0;i<sections.length;i++){
    const slide=pptx.addSlide();slide.background={color:'F8FAFE'};
    slide.addText(caseData.title,{x:0.75,y:0.32,w:11.6,h:0.5,fontSize:16,color:'244D88',bold:true,fit:'shrink'});
    slide.addText(sections[i],{x:0.85,y:1.05,w:11.4,h:5.7,fontSize:18,color:'1B2940',valign:'top',fit:'shrink',margin:0.06});
