@@ -1,0 +1,30 @@
+name: Advisor AI Portfolio Snapshot Checks
+
+on:
+  pull_request:
+    paths:
+      - 'workspace.html'
+      - 'tests/portfolio-snapshots.test.mjs'
+      - '.github/workflows/portfolio-snapshots.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'workspace.html'
+      - 'tests/portfolio-snapshots.test.mjs'
+      - '.github/workflows/portfolio-snapshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot-math:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate portfolio snapshot math and inline JavaScript
+        run: node --test tests/portfolio-snapshots.test.mjs
