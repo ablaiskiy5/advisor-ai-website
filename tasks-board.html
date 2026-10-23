@@ -32,7 +32,7 @@ function render(){
    if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
    if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
    if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
-   button('Дата / правка',()=>editTask(row));
+   button('Перенести +1 день',()=>{const base=row.due_date?new Date(row.due_date+'T12:00:00'):new Date();base.setDate(base.getDate()+1);change(row,{due_date:base.toLocaleDateString('en-CA',{timeZone:'Asia/Almaty'})})});button('Дата / правка',()=>editTask(row));
    card.append(actions);el.append(card);
   }
  }
@@ -48,7 +48,8 @@ async function editTask(item){
  const title=prompt('Название задачи',item.title);if(title===null)return;if(!title.trim()||title.length>220){feedback('Название от 1 до 220 символов');return}
  const due=prompt('Срок YYYY-MM-DD (пусто — без даты)',item.due_date||'');if(due===null)return;if(!validDate(due)){feedback('Неверная дата');return}
  const priority=prompt('Приоритет: high, normal, low',item.priority);if(priority===null)return;if(!priorities[priority]){feedback('Неверный приоритет');return}
- await change(item,{title:title.trim(),due_date:due||null,priority});
+ const area=prompt('Область: work, personal, study, health, sport, projects, other',item.area);if(area===null)return;if(!areas[area]){feedback('Неверная область');return}
+ await change(item,{title:title.trim(),due_date:due||null,priority,area});
 }
 function review(data){
  proposals=data.slice(0,30).map(x=>({title:String(x.title||'').slice(0,220),area:areas[x.area]?x.area:'other',priority:priorities[x.priority]?x.priority:'normal',due_date:validDate(x.due_date)?x.due_date||'':'',description:String(x.description||'').slice(0,3000)}));
@@ -91,6 +92,7 @@ async function manual(){
 }
 function filters(){const el=$('filters');for(const [id,name] of [['all','Все'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1'}
 async function init(){
+ try{const transfer=sessionStorage.getItem('advisor_ai_task_brain_dump');if(transfer){$('brain').value=transfer;sessionStorage.removeItem('advisor_ai_task_brain_dump');feedback('Текст из чата перенесён. Нажми «Разобрать с AI».')}}catch{}
  if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
  db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
