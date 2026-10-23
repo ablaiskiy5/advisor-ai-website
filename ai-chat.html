@@ -216,7 +216,16 @@ function printableContent(){
  const root=document.createElement('article');root.style.cssText='background:#fff;color:#162033;font-family:Arial,sans-serif;padding:24px;width:730px;line-height:1.45;overflow-wrap:break-word;';
  const h=document.createElement('h1');h.textContent='Advisor AI · '+caseData.title;h.style.cssText='font-size:20px;line-height:1.2;margin:0 0 12px;';
  const p=document.createElement('p');p.textContent='Дата: '+new Date().toLocaleDateString('ru-RU');p.style.cssText='font-size:11px;color:#607089;border-bottom:1px solid #ccd5e3;padding-bottom:9px;';
- const body=document.createElement('div');body.textContent=lastAnswer;body.style.cssText='white-space:pre-wrap;font-size:11px;';
+ const body=document.createElement('div');body.style.cssText='font-size:12px;line-height:1.55;';
+ renderAnswerSafe(body,lastAnswer);
+ // Explicit inline styles survive html2pdf's temporary cloned container.
+ body.querySelectorAll('h3').forEach(el=>el.style.cssText='font-size:16px;color:#162f57;margin:16px 0 8px;break-after:avoid;');
+ body.querySelectorAll('p,.line-item').forEach(el=>el.style.cssText='margin:7px 0;white-space:pre-wrap;');
+ body.querySelectorAll('strong').forEach(el=>el.style.fontWeight='700');
+ body.querySelectorAll('.table-scroll').forEach(el=>el.style.cssText='width:100%;overflow:visible;margin:10px 0;');
+ body.querySelectorAll('table').forEach(el=>el.style.cssText='width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;');
+ body.querySelectorAll('td,th').forEach(el=>el.style.cssText='border:1px solid #bdc8d8;padding:6px;overflow-wrap:anywhere;');
+ body.querySelectorAll('th').forEach(el=>el.style.background='#e9eef8');
  root.append(h,p,body);return root;
 }
 // Preserve every character when turning an AI report into slides.
@@ -258,13 +267,14 @@ async function downloadPresentation(){
 async function downloadPdf(){
  if(!lastAnswer||!caseData)return;
  const button=$('download-pdf');button.disabled=true;button.textContent='Создаю PDF…';
- const documentNode=printableContent();documentNode.style.position='fixed';documentNode.style.top='0';documentNode.style.left='-10000px';document.body.append(documentNode);
+ // html2pdf clones the source into its own visible capture container; do not move it off-screen.
+ const documentNode=printableContent();
  try{
   if(typeof window.html2pdf!=='function')throw Error('Библиотека создания PDF не загрузилась. Проверь соединение.');
   await window.html2pdf().set({margin:9,filename:'AdvisorAI-'+fileName()+'.pdf',image:{type:'jpeg',quality:.95},html2canvas:{scale:1.8,backgroundColor:'#ffffff',windowWidth:850},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(documentNode).save();
   $('result-status').textContent='PDF сохранён. Проверь его перед отправкой клиенту.';
  }catch(e){$('result-status').textContent='Не удалось создать PDF: '+e.message+'. Используй кнопку «Печать / сохранить PDF».'}
- finally{documentNode.remove();button.disabled=false;button.textContent='⬇ Скачать PDF'}
+ finally{button.disabled=false;button.textContent='⬇ Скачать PDF'}
 }
 function downloadWord(){
  if(!lastAnswer||!caseData)return;
