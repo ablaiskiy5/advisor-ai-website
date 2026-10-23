@@ -51,11 +51,23 @@ function bubble(role,content){const el=document.createElement('div');el.classNam
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
-async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';for(const m of (data||[]).reverse())list.append(bubble(m.role,m.content));if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
+async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
+ const {data:attachments,error:attachmentErr}=await db.from('advisor_ai_attachments').select('message_id,filename,mime_type,object_path').eq('case_id',caseId).order('created_at',{ascending:true}).limit(200);
+ if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
+ const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
+ for(const m of (data||[]).reverse()){
+  const node=bubble(m.role,m.content);
+  for(const f of (grouped.get(m.id)||[])){const btn=document.createElement('button');btn.className='filetag';btn.textContent='📎 '+f.filename;btn.title='Открыть вложение';btn.style.marginTop='8px';
+   btn.addEventListener('click',async()=>{btn.disabled=true;try{const {data:link,error:linkErr}=await db.storage.from('advisor-chat-attachments').createSignedUrl(f.object_path,60);if(linkErr)throw linkErr;window.open(link.signedUrl,'_blank','noopener')}catch(e){error('Не удалось открыть файл: '+e.message)}finally{btn.disabled=false}});
+   node.append(btn)
+  }
+  list.append(node)
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
 async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
+function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?.toLowerCase()||'';if(name.endsWith('.png'))return 'image/png';if(/\.jpe?g$/.test(name))return 'image/jpeg';if(name.endsWith('.webp'))return 'image/webp';if(name.endsWith('.pdf'))return 'application/pdf';return ''}
 function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
-function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!allowedFiles[f.type]){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
+function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!mimeForFile(f)){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
 async function send(){
  if(working)return;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
  const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
@@ -65,11 +77,11 @@ async function send(){
   const {data:msg,error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content}).select('id').single();if(err)throw Error(err.message);messageId=msg.id;
   for(let i=0;i<files.length;i++){
    const f=files[i];$('file-status').textContent='Загрузка файла '+(i+1)+' из '+files.length+': '+f.name;
-   const ext=allowedFiles[f.type],path=user.id+'/'+caseId+'/'+crypto.randomUUID()+ext;
-   const {error:uploadError}=await db.storage.from('advisor-chat-attachments').upload(path,f,{contentType:f.type,upsert:false,cacheControl:'3600'});
+   const mime=mimeForFile(f),ext=allowedFiles[mime],path=user.id+'/'+caseId+'/'+crypto.randomUUID()+ext;
+   const {error:uploadError}=await db.storage.from('advisor-chat-attachments').upload(path,f,{contentType:mime,upsert:false,cacheControl:'3600'});
    if(uploadError)throw Error('Не удалось загрузить '+f.name+': '+uploadError.message);
    uploaded.push(path);
-   const {error:recordError}=await db.from('advisor_ai_attachments').insert({user_id:user.id,case_id:caseId,message_id:messageId,object_path:path,filename:f.name.slice(0,180),mime_type:f.type,bytes:f.size});
+   const {error:recordError}=await db.from('advisor_ai_attachments').insert({user_id:user.id,case_id:caseId,message_id:messageId,object_path:path,filename:f.name.slice(0,180),mime_type:mime,bytes:f.size});
    if(recordError)throw Error('Не удалось привязать файл к сообщению: '+recordError.message);
   }
   $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();
@@ -113,7 +125,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  caseData=data;$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
  ready(true);waiting(false);await history();
 }
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script></body></html>
