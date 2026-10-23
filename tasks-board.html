@@ -22,10 +22,12 @@ const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option 
 function feedback(text){$('info').textContent=text}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function dateLabel(date){if(!date)return 'Без срока';const d=new Date(date+'T12:00:00');return Number.isNaN(+d)?'Без срока':d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'})}
-function validDate(date){if(!date)return true;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const d=new Date(date+'T12:00:00');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===date}
+function validDate(date){if(!date)return true;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const d=new Date(date+'T00:00:00Z');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===date}
+function addCalendarDays(date,days){const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
+function almatyToday(now=new Date()){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Almaty',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return parts.year+'-'+parts.month+'-'+parts.day}
 function render(){
- const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Almaty'});
- const weekEnd=new Date(today+'T12:00:00');weekEnd.setDate(weekEnd.getDate()+7);const week=weekEnd.toISOString().slice(0,10);
+ const today=almatyToday();
+ const week=addCalendarDays(today,7);
  const areaList=items.filter(x=>filter==='all'||x.area===filter);
  const list=areaList.filter(x=>scope==='all'||(scope==='active'&&x.status!=='done')||(scope==='today'&&x.status!=='done'&&x.due_date&&x.due_date<=today)||(scope==='week'&&x.status!=='done'&&x.due_date&&x.due_date<=week)||(scope==='done'&&x.status==='done'));
  renderFocus(areaList,today);
@@ -43,7 +45,7 @@ function render(){
    if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
    if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
    if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
-   button('Перенести +1 день',()=>{const base=row.due_date?new Date(row.due_date+'T12:00:00'):new Date();base.setDate(base.getDate()+1);change(row,{due_date:base.toLocaleDateString('en-CA',{timeZone:'Asia/Almaty'})})});button('Дата / правка',()=>editTask(row));
+   button('Перенести +1 день',()=>change(row,{due_date:addCalendarDays(row.due_date||almatyToday(),1)}));button('Дата / правка',()=>editTask(row));
    card.append(actions);el.append(card);
   }
  }
