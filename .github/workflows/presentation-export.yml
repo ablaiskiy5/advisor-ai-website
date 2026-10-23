@@ -1,0 +1,32 @@
+name: Advisor AI Presentation Export Checks
+
+on:
+  pull_request:
+    paths:
+      - 'ai-chat.html'
+      - 'scripts/test-presentation-export.mjs'
+      - '.github/workflows/presentation-export.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ai-chat.html'
+      - 'scripts/test-presentation-export.mjs'
+      - '.github/workflows/presentation-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  presentation-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check presentation test syntax
+        run: node --check scripts/test-presentation-export.mjs
+      - name: Verify full-text slides and truncation safeguards
+        run: node scripts/test-presentation-export.mjs
