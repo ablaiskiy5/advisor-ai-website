@@ -1,0 +1,30 @@
+name: Advisor AI Task Board Checks
+
+on:
+  pull_request:
+    paths:
+      - 'tasks-board.html'
+      - 'tests/task-dates.test.mjs'
+      - '.github/workflows/task-board-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tasks-board.html'
+      - 'tests/task-dates.test.mjs'
+      - '.github/workflows/task-board-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  task-board:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify date logic and inline JavaScript
+        run: node --test tests/task-dates.test.mjs
