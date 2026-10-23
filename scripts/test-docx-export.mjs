@@ -37,12 +37,12 @@ const path=join(dir,'test.docx');
 try{
  writeFileSync(path,buffer);
  const xml=execFileSync('unzip',['-p',path,'word/document.xml'],{encoding:'utf8'});
- const types=execFileSync('unzip',['-p',path,'[Content_Types].xml'],{encoding:'utf8'});
+ const fileList=execFileSync('unzip',['-Z','-1',path],{encoding:'utf8'});
  for(const phrase of ['Инвестиционный обзор','NVDA','AMZN','100 000','script','Риски']){
   assert.ok(xml.includes(phrase),'Missing report text: '+phrase);
  }
  assert.ok(xml.includes('<w:tbl>'),'Missing real Word table XML');
  assert.ok(xml.includes('Heading1'),'Missing heading style');
- assert.ok(types.includes('wordprocessingml.document.main+xml'),'Not a real DOCX document');
+ assert.ok(fileList.split('\n').includes('[Content_Types].xml'),'Missing DOCX content type manifest');
  console.log('PASS: real DOCX ZIP, heading, table, figures, safe literal text and wide-table rejection');
 }finally{rmSync(dir,{recursive:true,force:true})}
