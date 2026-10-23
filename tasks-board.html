@@ -27,7 +27,7 @@ function addCalendarDays(date,days){const d=new Date(date+'T00:00:00Z');d.setUTC
 function almatyToday(now=new Date()){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Almaty',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return parts.year+'-'+parts.month+'-'+parts.day}
 function render(){
  const today=almatyToday();
- const week=addCalendarDays(today,7);
+ const week=addCalendarDays(today,6);
  const areaList=items.filter(x=>filter==='all'||x.area===filter);
  const list=areaList.filter(x=>scope==='all'||(scope==='active'&&x.status!=='done')||(scope==='today'&&x.status!=='done'&&x.due_date&&x.due_date<=today)||(scope==='week'&&x.status!=='done'&&x.due_date&&x.due_date<=week)||(scope==='done'&&x.status==='done'));
  renderFocus(areaList,today);
