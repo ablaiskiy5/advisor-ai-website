@@ -159,7 +159,7 @@ async function downloadPresentation(){
  try{
   const P=window.pptxgen||window.PptxGenJS;if(!P)throw Error('Библиотека PowerPoint не загрузилась');
   const pptx=new P();pptx.layout='LAYOUT_WIDE';
-  const content=lastAnswer.trim(),sections=content.match(/[\\s\\S]{1,750}/g)||[];
+  const content=lastAnswer.trim(),sections=content.match(/[\s\S]{1,750}/g)||[];
   const cover=pptx.addSlide();cover.background={color:'13243E'};
   cover.addText('ADVISOR AI  /  INVESTMENT INTELLIGENCE',{x:0.8,y:0.9,w:11.7,h:0.5,fontSize:16,color:'95B5FF',bold:true});
   cover.addText(caseData.title,{x:0.8,y:2,w:11.7,h:2.8,fontSize:30,color:'FFFFFF',bold:true,fit:'shrink'});
