@@ -87,7 +87,20 @@ function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
- const {data:attachments,error:attachmentErr}=await db.from('advisor_ai_attachments').select('message_id,filename,mime_type,object_path').eq('case_id',caseId).order('created_at',{ascending:true}).limit(200);
+ // Only load attachments belonging to the 80 messages currently displayed.
+ // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
+ const visibleMessageIds=(data||[]).map(m=>m.id);
+ let attachments=[],attachmentErr=null;
+ if(visibleMessageIds.length){
+  const files=await db.from('advisor_ai_attachments')
+   .select('message_id,filename,mime_type,object_path')
+   .eq('case_id',caseId)
+   .in('message_id',visibleMessageIds)
+   .order('created_at',{ascending:true})
+   .limit(1000);
+  attachments=files.data||[];
+  attachmentErr=files.error;
+ }
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
  const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
  for(const m of (data||[]).reverse()){
