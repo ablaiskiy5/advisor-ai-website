@@ -296,8 +296,9 @@ function docxParagraphs(content,api){
     rows.push(line.split('|').map(text=>text.trim()));
    }
    i--;
-   const cols=Math.min(12,Math.max(...rows.map(r=>r.length)));
+   const cols=Math.max(...rows.map(r=>r.length));
    if(cols<1)continue;
+   if(cols>12)throw Error('Таблица содержит '+cols+' столбцов. Для сохранения всех данных раздели её на таблицы до 12 столбцов или скачай полный TXT. DOCX не создан во избежание потери колонок.');
    output.push(new api.Table({width:{size:100,type:api.WidthType.PERCENTAGE},rows:rows.map((row,index)=>new api.TableRow({children:Array.from({length:cols},(_,j)=>new api.TableCell({children:[new api.Paragraph({children:docxRichRuns(row[j]||'',api),spacing:{after:40}})],shading:index===0?{fill:'EAF0FA'}:undefined}) )}))}));
    continue;
   }
