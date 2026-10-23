@@ -52,9 +52,33 @@ function parseSaved(notes){
  const dur=bondValue?bonds.reduce((a,x)=>a+x.value*x.duration,0)/bondValue:0;
  const tm=segment.match(/Целевая доля облигаций\s+(\d+(?:\.\d+)?)%/);
  const target=tm?Number(tm[1]):null;
+ if(target!==null&&(!Number.isFinite(target)||target<0||target>100))throw Error('Целевая доля облигаций должна быть от 0 до 100%. Исправь карточку портфеля.');
  return {rows,total,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
 }
+function rateShockScenario(data,basisPoints){
+ if(!Number.isFinite(data.total)||data.total<=0||!Number.isFinite(data.bondValue)||data.bondValue<0||data.bondValue>data.total||!Number.isFinite(data.duration)||data.duration<0||!Number.isFinite(basisPoints))throw Error('Некорректные параметры дюрационного сценария');
+ const changeUsd=-data.bondValue*data.duration*basisPoints/10000;
+ return {basisPoints,changeUsd,portfolioPct:changeUsd/data.total*100,bondPct:-data.duration*basisPoints/100};
+}
+function renderRateStress(data){
+ const host=$('r-duration');if(!data.bondValue)return;
+ const heading=document.createElement('h3');heading.textContent='Процентный стресс-тест портфеля';host.append(heading);
+ const table=document.createElement('table'),head=document.createElement('thead'),tr=document.createElement('tr');
+ for(const name of ['Изменение доходности','Эффект по облигациям, USD','Эффект на весь портфель']){const th=document.createElement('th');th.textContent=name;tr.append(th)}
+ head.append(tr);table.append(head);
+ const body=document.createElement('tbody');
+ for(const bp of [-200,-100,-50,50,100,200]){
+  const r=rateShockScenario(data,bp),line=document.createElement('tr');
+  for(const val of [(bp>0?'+':'')+bp+' б.п.',(r.changeUsd>=0?'+':'−')+cash(Math.abs(r.changeUsd)),(r.portfolioPct>=0?'+':'')+r.portfolioPct.toFixed(2)+'%']){
+   const td=document.createElement('td');td.textContent=val;line.append(td);
+  }
+  body.append(line);
+ }
+ table.append(body);const wrap=document.createElement('div');wrap.className='tablewrap';wrap.append(table);host.append(wrap);
+ addLine('r-duration','Это приближение первого порядка по модифицированной дюрации при параллельном изменении доходностей. Без выпуклости, кредитных спредов, валютного риска, ликвидности и переоценки акций. При больших шоках погрешность может быть существенной.');
+}
 function projectAllocation(data,targetBondPercent){
+ if(!Number.isFinite(targetBondPercent)||targetBondPercent<0||targetBondPercent>100)return {possible:false,reason:'Целевая доля должна быть от 0 до 100%.'};
  const targetBond=targetBondPercent/100,targetEquity=1-targetBond;
  const currentBond=data.bondValue/data.total,currentEquity=data.equityValue/data.total;
  if((targetBond>0&&currentBond===0)||(targetEquity>0&&currentEquity===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
@@ -103,6 +127,7 @@ function renderReport(data,title){
  if(data.bondValue){
   addLine('r-duration','Взвешенная модифицированная дюрация облигаций: '+data.duration.toFixed(2)+' года.');
   addLine('r-duration','Сценарий +100 б.п. доходности облигаций: приблизительно '+pct(-data.bondValue/data.total*data.duration*0.01)+' по всему портфелю при прочих равных.');
+  renderRateStress(data);
  }else addLine('r-duration','Облигации не указаны, процентный риск облигационного сегмента не рассчитан.');
  renderComparison(data);
  if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
