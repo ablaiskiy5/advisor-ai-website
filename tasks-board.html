@@ -65,13 +65,29 @@ async function load(){
  items=data||[];render();feedback('Список актуален');
 }
 async function change(item,fields){const {error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',user.id);if(error){feedback('Ошибка: '+error.message);return}Object.assign(item,fields);render()}
-async function editTask(item){
- const title=prompt('Название задачи',item.title);if(title===null)return;if(!title.trim()||title.length>220){feedback('Название от 1 до 220 символов');return}
- const due=prompt('Срок YYYY-MM-DD (пусто — без даты)',item.due_date||'');if(due===null)return;if(!validDate(due)){feedback('Неверная дата');return}
- const priority=prompt('Приоритет: high, normal, low',item.priority);if(priority===null)return;if(!priorities[priority]){feedback('Неверный приоритет');return}
- const area=prompt('Область: work, personal, study, health, sport, projects, other',item.area);if(area===null)return;if(!areas[area]){feedback('Неверная область');return}
- await change(item,{title:title.trim(),due_date:due||null,priority,area});
+function openTaskEditor(item){
+ editingId=item?.id||null;$('edit-heading').textContent=item?'Редактировать задачу':'Добавить задачу';
+ $('edit-title').value=item?.title||'';$('edit-area').innerHTML=options(areas,item?.area||'work');
+ $('edit-priority').innerHTML=options(priorities,item?.priority||'normal');
+ $('edit-due').value=item?.due_date||'';$('edit-status').value=item?.status||'todo';
+ $('edit-description').value=item?.description||'';$('edit-note').textContent='';
+ $('task-editor').classList.remove('hidden');$('task-editor').scrollIntoView({behavior:'smooth',block:'start'});$('edit-title').focus();
 }
+async function submitTaskEditor(event){
+ event.preventDefault();if(busy)return;
+ const title=$('edit-title').value.trim(),due=$('edit-due').value;
+ if(!title||title.length>220||!validDate(due)){$('edit-note').textContent='Проверь название и дату.';return}
+ const values={title,area:$('edit-area').value,priority:$('edit-priority').value,status:$('edit-status').value,due_date:due||null,description:$('edit-description').value.trim()};
+ if(!areas[values.area]||!priorities[values.priority]||!['todo','doing','done'].includes(values.status))return;
+ busy=true;$('edit-note').textContent='Сохраняю…';
+ try{
+  const result=editingId?await db.from('advisor_tasks').update(values).eq('id',editingId).eq('user_id',user.id):await db.from('advisor_tasks').insert({...values,user_id:user.id});
+  if(result.error)throw result.error;
+  $('task-editor').classList.add('hidden');editingId=null;await load();feedback('Задача сохранена');
+ }catch(err){$('edit-note').textContent='Не удалось сохранить: '+err.message}
+ finally{busy=false}
+}
+async function editTask(item){openTaskEditor(item)}
 function review(data){
  proposals=data.slice(0,30).map(x=>({title:String(x.title||'').slice(0,220),area:areas[x.area]?x.area:'other',priority:priorities[x.priority]?x.priority:'normal',due_date:validDate(x.due_date)?x.due_date||'':'',description:String(x.description||'').slice(0,3000)}));
  const area=$('drafts');area.textContent='';
@@ -106,19 +122,19 @@ async function saveDrafts(){
  catch(e){feedback('Не удалось сохранить: '+e.message)}
  finally{busy=false;$('save-drafts').disabled=false}
 }
-async function manual(){
- const title=prompt('Что нужно сделать?');if(title===null||!title.trim())return;if(title.length>220){feedback('Максимум 220 символов');return}
- const {error}=await db.from('advisor_tasks').insert({user_id:user.id,title:title.trim(),status:'todo',area:'work',priority:'normal'});
- if(error){feedback(error.message);return}await load();
+async function manual(){openTaskEditor(null)}
+function filters(){const el=$('filters');for(const [id,name] of [['all','Все области'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1';
+ const scopeEl=$('scope-filters');for(const [id,label] of [['active','Активные'],['today','Сегодня + просрочено'],['week','7 дней'],['done','Готово'],['all','Все']]){
+  const btn=document.createElement('button');btn.className='btn'+(id===scope?' selected':'');btn.textContent=label;btn.onclick=()=>{scope=id;for(const x of scopeEl.children)x.classList.toggle('selected',x===btn);render()};scopeEl.append(btn)
+ }
 }
-function filters(){const el=$('filters');for(const [id,name] of [['all','Все'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1'}
 async function init(){
  try{const transfer=sessionStorage.getItem('advisor_ai_task_brain_dump');if(transfer){$('brain').value=transfer;sessionStorage.removeItem('advisor_ai_task_brain_dump');feedback('Текст из чата перенесён. Нажми «Разобрать с AI».')}}catch{}
  if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
  db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
  user=data.user;filters();await load();
- $('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
+ $('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('edit-form').addEventListener('submit',submitTaskEditor);$('close-editor').onclick=()=>$('task-editor').classList.add('hidden');$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
 }
 init().catch(e=>feedback('Ошибка: '+e.message));
 </script></body></html>
