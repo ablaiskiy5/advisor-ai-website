@@ -115,7 +115,7 @@ function parseHoldings(text){
 }
 function savedHoldings(notes){const a=(notes||'').indexOf(PORT_START),b=(notes||'').indexOf(PORT_END,a+PORT_START.length);if(a<0||b<0)return '';const body=notes.slice(a+PORT_START.length,b);const match=body.match(/Список позиций \(тикер; количество; цена в USD\):\n([\s\S]*?)\nИтого:/);return match?match[1].trim():''}
 function savedTargetPct(notes){const a=(notes||'').indexOf(PORT_START),b=(notes||'').indexOf(PORT_END,a+PORT_START.length);if(a<0||b<0)return '';const match=notes.slice(a,b).match(/Целевая доля облигаций\s+(\d+(?:\.\d+)?)%/);return match?match[1]:''}
-function portfolioPanel(e){return `<div class="panel" style="margin-top:18px"><h2>Структура портфеля</h2><p class="sub">Введи акции как ТИКЕР; количество; цена за штуку (USD). Для облигаций: BOND:КОД; количество; грязная цена за единицу (USD); модифицированная дюрация в годах. Цены и дюрацию укажи самостоятельно, котировки не обновляются.</p><label class="label" for="holdings-input">Позиции (до 150)</label><textarea id="holdings-input" class="field" style="min-height:160px" placeholder="AAPL; 10; 250&#10;MSFT; 5; 400&#10;BOND:UST2030; 10; 970; 3.5">${esc(savedHoldings(e.notes))}</textarea><label class="label" for="target-bonds">Целевая доля облигаций, % (необязательно)</label><input id="target-bonds" class="field" type="number" min="0" max="100" step="0.1" placeholder="Например, 40" value="${esc(savedTargetPct(e.notes))}"><p class="note">Только арифметический сценарий без учёта комиссий, налогов и ограничений.</p><div class="tools"><button class="btn" data-action="loadholdings">↑ Загрузить CSV/TSV</button><button class="btn" data-action="downloadtemplate">↓ Пример CSV</button><input id="holdings-file" type="file" class="hide" accept=".csv,.tsv,.txt,text/csv,text/plain"><button class="btn" data-action="calcportfolio">Рассчитать структуру</button><button class="btn primary" data-action="saveportfolio">Сохранить позиции и расчёт</button></div><div class="tools"><a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="./portfolio-report.html?case=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">Отчёт по сохранённому портфелю / PDF ↗</a></div><p class="note">Отчёт использует последнюю сохранённую структуру. После изменения позиций сначала нажми «Сохранить позиции и расчёт».</p><p class="note">Облигации: <a href="./bond-analysis.html" target="_blank" rel="noopener">Рассчитать текущую доходность, YTM и дюрацию →</a></p><div id="portfolio-preview" class="notice" aria-live="polite">Показатели появятся после расчёта. Все суммы и доли основаны на введённых ценах. Стресс-тесты гипотетические.</div></div>`}
+function portfolioPanel(e){return `<div class="panel" style="margin-top:18px"><h2>Структура портфеля</h2><p class="sub">Введи акции как ТИКЕР; количество; цена за штуку (USD). Для облигаций: BOND:КОД; количество; грязная цена за единицу (USD); модифицированная дюрация в годах. Цены и дюрацию укажи самостоятельно, котировки не обновляются.</p><label class="label" for="holdings-input">Позиции (до 150)</label><textarea id="holdings-input" class="field" style="min-height:160px" placeholder="AAPL; 10; 250&#10;MSFT; 5; 400&#10;BOND:UST2030; 10; 970; 3.5">${esc(savedHoldings(e.notes))}</textarea><label class="label" for="target-bonds">Целевая доля облигаций, % (необязательно)</label><input id="target-bonds" class="field" type="number" min="0" max="100" step="0.1" placeholder="Например, 40" value="${esc(savedTargetPct(e.notes))}"><p class="note">Только арифметический сценарий без учёта комиссий, налогов и ограничений.</p><div class="tools"><button class="btn" data-action="loadholdings">↑ Загрузить CSV/TSV</button><button class="btn" data-action="downloadtemplate">↓ Пример CSV</button><input id="holdings-file" type="file" class="hide" accept=".csv,.tsv,.txt,text/csv,text/plain"><button class="btn" data-action="calcportfolio">Рассчитать структуру</button><button class="btn primary" data-action="saveportfolio">Сохранить позиции и расчёт</button></div><div class="tools"><a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="./portfolio-report.html?case=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">Отчёт по сохранённому портфелю / PDF ↗</a></div><p class="note">Отчёт использует последнюю сохранённую структуру. После изменения позиций сначала нажми «Сохранить позиции и расчёт».</p><p class="note">Облигации: <a href="./bond-analysis.html" target="_blank" rel="noopener">Рассчитать текущую доходность, YTM и дюрацию →</a></p><div class="tools"><button class="btn" data-action="savesnapshot">Сохранить снимок портфеля</button><button class="btn" data-action="listsnapshots">История версий ↓</button></div><div id="snapshot-history" class="notice" aria-live="polite">Версии хранятся в твоём облачном аккаунте. Снимки не заменяют текущий портфель автоматически.</div><div id="portfolio-preview" class="notice" aria-live="polite">Показатели появятся после расчёта. Все суммы и доли основаны на введённых ценах. Стресс-тесты гипотетические.</div></div>`}
 function buildPortfolioText(summary){const f=n=>n.toLocaleString('en-US',{maximumFractionDigits:2}),pct=n=>(n*100).toFixed(1)+'%';
  const primary='Итого по введённым ценам: '+f(summary.total)+' USD; позиций: '+summary.rows.length+'; крупнейшая: '+summary.rows[0].ticker+' ('+pct(summary.top1)+'); топ-3: '+pct(summary.top3)+'; топ-5: '+pct(summary.top5)+'.';
  const risk='HHI: '+summary.hhi.toFixed(4)+'; эффективное число позиций: '+summary.effectiveCount.toFixed(2)+'. Условный стресс: '+summary.rows[0].ticker+' -20% при неизменных остальных -> портфель '+pct(summary.largestShock)+'; все позиции -10% -> портфель -10.0%.';
@@ -199,6 +199,75 @@ async function savePortfolio(){const data=calculatePortfolio();if(!data)return;c
  document.getElementById('f-notes').value=notes;await saveDetail(e.id);
 }
 
+
+const snapshotsCache=new Map();
+function snapshotProfile(row){
+ const d=parseHoldings(row.holdings),target=row.target_bond_pct===null||row.target_bond_pct===undefined?null:Number(row.target_bond_pct);
+ return {data:d,target,date:row.created_at,title:row.title||'',id:row.id};
+}
+function snapshotDiff(a,b){
+ const d1=a.data,d2=b.data,percent=n=>(100*n).toFixed(2)+'%',money=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
+ const metrics=[['Общая стоимость USD',money(d1.total),money(d2.total)],['Акции',percent(d1.equityValue/d1.total),percent(d2.equityValue/d2.total)],['Облигации',percent(d1.bondValue/d1.total),percent(d2.bondValue/d2.total)],['Топ-1',percent(d1.top1),percent(d2.top1)],['HHI',d1.hhi.toFixed(4),d2.hhi.toFixed(4)],['Дюрация облигаций, лет',d1.bondDuration.toFixed(2),d2.bondDuration.toFixed(2)],['Сценарий +100 б.п., весь портфель',percent(d1.rateShock100bp),percent(d2.rateShock100bp)]];
+ const prior=new Map(d1.rows.map(x=>[x.ticker,x])),next=new Map(d2.rows.map(x=>[x.ticker,x]));
+ const changes=[...new Set([...prior.keys(),...next.keys()])].map(name=>({name,oldValue:prior.get(name)?.value||0,newValue:next.get(name)?.value||0})).filter(x=>Math.abs(x.oldValue-x.newValue)>0.005).sort((x,y)=>Math.abs(y.newValue-y.oldValue)-Math.abs(x.newValue-x.oldValue));
+ return {metrics,changes};
+}
+function snapshotUi(message){const el=document.getElementById('snapshot-history');if(!el)return;el.textContent=message}
+async function saveSnapshot(){
+ if(!isCloud()){snapshotUi('Войди в аккаунт, чтобы сохранить историю версий.');return}
+ const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
+ let d;try{d=parseHoldings(document.getElementById('holdings-input').value)}catch(err){snapshotUi('Ошибка данных: '+err.message);return}
+ const raw=document.getElementById('holdings-input').value.trim();if(raw.length>18000){snapshotUi('Снимок превышает 18 000 символов. Уменьши файл.');return}const targetText=document.getElementById('target-bonds')?.value.trim()||'';
+ const target=targetText===''?null:Number(targetText);
+ if(target!==null&&(!Number.isFinite(target)||target<0||target>100)){snapshotUi('Целевая доля должна быть от 0 до 100%.');return}
+ const note=window.prompt('Комментарий к снимку (необязательно):','') ;
+ if(note===null)return;
+ if(note.length>2000){snapshotUi('Комментарий слишком длинный.');return}
+ const {error}=await cloud.from('portfolio_snapshots').insert({case_id:e.id,user_id:session.user.id,title:e.title,holdings:raw,target_bond_pct:target,notes:note});
+ if(error){snapshotUi('Не удалось сохранить снимок: '+error.message);return}
+ snapshotUi('Снимок сохранён: '+d.rows.length+' позиций.');await loadSnapshots();
+}
+async function loadSnapshots(){
+ if(!isCloud()){snapshotUi('Войди в аккаунт для истории версий.');return}
+ const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
+ const {data,error}=await cloud.from('portfolio_snapshots').select('id,case_id,title,holdings,target_bond_pct,notes,created_at').eq('case_id',e.id).order('created_at',{ascending:false}).limit(50);
+ if(error){snapshotUi('Не удалось загрузить историю: '+error.message);return}
+ snapshotsCache.clear();const holder=document.getElementById('snapshot-history');if(!holder)return;holder.textContent='';
+ const p=document.createElement('p');p.textContent=data?.length?'Снимков: '+data.length+'. Выбери две версии для сравнения или восстанови одну в редактор.':'История пока пуста. Добавь первый снимок.';holder.append(p);
+ if(!data?.length)return;
+ const selectors=document.createElement('div');selectors.className='tools';
+ for(const id of ['snapshot-from','snapshot-to']){
+  const box=document.createElement('select');box.id=id;box.className='field';box.style.maxWidth='320px';
+  for(const item of data){snapshotsCache.set(item.id,item);const option=document.createElement('option');option.value=item.id;option.textContent=new Date(item.created_at).toLocaleString('ru-RU')+(item.notes?' · '+item.notes.slice(0,65):'');box.append(option)}
+  selectors.append(box);
+ }
+ const compare=document.createElement('button');compare.className='btn';compare.dataset.action='comparesnapshots';compare.textContent='Сравнить выбранные версии';selectors.append(compare);
+ const restore=document.createElement('button');restore.className='btn';restore.dataset.action='restoresnapshot';restore.textContent='Загрузить вторую версию в редактор';selectors.append(restore);
+ holder.append(selectors);
+ const output=document.createElement('div');output.id='snapshot-diff';holder.append(output);
+ if(data.length>1)document.getElementById('snapshot-from').selectedIndex=1;
+}
+function compareSnapshots(){
+ const a=snapshotsCache.get(document.getElementById('snapshot-from')?.value),b=snapshotsCache.get(document.getElementById('snapshot-to')?.value);
+ const output=document.getElementById('snapshot-diff');if(!a||!b||!output)return;
+ try{
+  const diff=snapshotDiff(snapshotProfile(a),snapshotProfile(b));output.textContent='';
+  const title=document.createElement('h3');title.textContent='Версия 1 → Версия 2';output.append(title);
+  for(const line of diff.metrics){const p=document.createElement('p');p.textContent=line[0]+': '+line[1]+' → '+line[2];output.append(p)}
+  const h=document.createElement('h3');h.textContent='Изменения по инструментам';output.append(h);
+  const p=document.createElement('p');p.textContent=diff.changes.length?diff.changes.slice(0,30).map(c=>c.name+': '+c.oldValue.toFixed(2)+' → '+c.newValue.toFixed(2)+' USD').join('\n'):'Стоимости позиций совпадают.';p.style.whiteSpace='pre-wrap';output.append(p);
+  const note=document.createElement('p');note.textContent='Сравнение отражает изменение введённых стоимостей, включая сделки и изменение цен. Не является расчётом доходности.';output.append(note);
+ }catch(err){output.textContent='Ошибка сравнения: '+err.message}
+}
+function restoreSnapshot(){
+ const row=snapshotsCache.get(document.getElementById('snapshot-to')?.value);if(!row)return;
+ try{parseHoldings(row.holdings)}catch(err){snapshotUi('Версия повреждена: '+err.message);return}
+ if(!confirm('Загрузить сохранённый снимок в форму? Текущие несохранённые изменения в форме будут заменены. Облачная карточка не изменится до нажатия «Сохранить позиции и расчёт».'))return;
+ document.getElementById('holdings-input').value=row.holdings;
+ document.getElementById('target-bonds').value=row.target_bond_pct===null?'':String(row.target_bond_pct);
+ calculatePortfolio();toast('Версия загружена в редактор. Для сохранения нажми «Сохранить позиции и расчёт».');
+}
+
 async function saveDetail(id){let e=entries.find(x=>x.id===id);if(!e)return;let title=document.getElementById('f-title').value.trim(),chat=document.getElementById('f-chat').value.trim();if(!title){toast('Нужен заголовок кейса');return}if(!validChat(chat)){toast('Ссылка должна начинаться с https://chatgpt.com/c/...');return}let updated={...e,title,kind:document.getElementById('f-kind').value,status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value,prompt:document.getElementById('f-prompt').value,chat_url:chat,updated_at:now()};if(await persist(updated)){render();toast('Изменения сохранены')}}
 async function deleteItem(id){if(!confirm('Удалить этот кейс без возможности восстановления?'))return;if(await remove(id)){active=null;render();toast('Кейс удалён')}}
 async function copyCase(id){let e=entries.find(x=>x.id===id);if(!e)return;let txt=e.prompt+'\n\nРабочий контекст:\n'+(e.notes||'Пока нет заметок')+'\n\nПожалуйста, уточняй недостаточные данные и не выдумывай цифры.';try{await navigator.clipboard.writeText(txt);toast('Запрос скопирован. Вставь его в ChatGPT: Ctrl+V.')}catch{prompt('Скопируй запрос вручную:',txt)}}
@@ -210,7 +279,7 @@ async function updatePassword(){if(!cloud||!session){toast('Открой ссы�
 async function signout(){await cloud.auth.signOut();session=null;entries=[];page='settings';render();toast('Вы вышли из аккаунта.')}
 function exportData(){let blob=new Blob([JSON.stringify({exported_at:now(),entries},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='advisor-ai-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}
 async function importData(file){if(!file)return;let parsed;try{parsed=JSON.parse(await file.text())}catch{toast('Файл не является JSON');return}let data=Array.isArray(parsed)?parsed:parsed.entries;if(!Array.isArray(data)||data.some(x=>!section[x.kind]||!x.title)){toast('Неподходящий формат резервной копии');return}if(!confirm('Добавить '+data.length+' записей в текущий кабинет?'))return;let count=0;for(let x of data){let e={...draft(x.kind),...x,id:uid(),created_at:now(),updated_at:now()};delete e.user_id;if(await persist(e))count++}render();toast('Импортировано записей: '+count)}
-document.addEventListener('click',async ev=>{let b=ev.target.closest('[data-action]');if(!b||busy)return;let a=b.dataset.action;busy=true;try{if(a==='nav')nav(b.dataset.page);if(a==='new')create(b.dataset.kind);if(a==='createcase')await submitNewCase();if(a==='cancelnew'){newCaseKind=null;render()}if(a==='open'){newCaseKind=null;active=b.dataset.id;render()}if(a==='back')nav(b.dataset.kind);if(a==='save')await saveDetail(b.dataset.id);if(a==='delete')await deleteItem(b.dataset.id);if(a==='copy')await copyCase(b.dataset.id);if(a==='loadholdings')document.getElementById('holdings-file')?.click();if(a==='downloadtemplate')downloadHoldingsTemplate();if(a==='calcportfolio')calculatePortfolio();if(a==='saveportfolio')await savePortfolio();if(a==='chat')openChat(b.dataset.id);if(a==='login'||a==='signup')await authenticate(a);if(a==='forgot')await forgotPassword();if(a==='updatepassword')await updatePassword();if(a==='refresh')await refresh();if(a==='logout')await signout();if(a==='export')exportData();if(a==='import')document.getElementById('importfile').click()}finally{busy=false}});
+document.addEventListener('click',async ev=>{let b=ev.target.closest('[data-action]');if(!b||busy)return;let a=b.dataset.action;busy=true;try{if(a==='nav')nav(b.dataset.page);if(a==='new')create(b.dataset.kind);if(a==='createcase')await submitNewCase();if(a==='cancelnew'){newCaseKind=null;render()}if(a==='open'){newCaseKind=null;active=b.dataset.id;render()}if(a==='back')nav(b.dataset.kind);if(a==='save')await saveDetail(b.dataset.id);if(a==='delete')await deleteItem(b.dataset.id);if(a==='copy')await copyCase(b.dataset.id);if(a==='loadholdings')document.getElementById('holdings-file')?.click();if(a==='downloadtemplate')downloadHoldingsTemplate();if(a==='calcportfolio')calculatePortfolio();if(a==='saveportfolio')await savePortfolio();if(a==='savesnapshot')await saveSnapshot();if(a==='listsnapshots')await loadSnapshots();if(a==='comparesnapshots')compareSnapshots();if(a==='restoresnapshot')restoreSnapshot();if(a==='chat')openChat(b.dataset.id);if(a==='login'||a==='signup')await authenticate(a);if(a==='forgot')await forgotPassword();if(a==='updatepassword')await updatePassword();if(a==='refresh')await refresh();if(a==='logout')await signout();if(a==='export')exportData();if(a==='import')document.getElementById('importfile').click()}finally{busy=false}});
 document.addEventListener('change',e=>{if(e.target.id==='filter'){filter=e.target.value;render()}if(e.target.id==='importfile')importData(e.target.files[0]);if(e.target.id==='holdings-file')importHoldingsFile(e.target.files[0])});
 document.addEventListener('input',e=>{if(e.target.id==='search'){needle=e.target.value;const pos=e.target.selectionStart;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(pos,pos)}});
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.page)));
