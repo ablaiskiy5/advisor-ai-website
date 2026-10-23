@@ -1,0 +1,60 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Advisor AI · Контроль торгового бюджета</title><style>
+:root{font:14px system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b1427;color:#eaf1ff;color-scheme:dark}*{box-sizing:border-box}body{margin:0}main{max-width:1100px;margin:auto;padding:22px 16px 65px}a{color:#b3caff}.head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}h1{font-size:30px;margin:26px 0 8px}h2{font-size:17px;margin:0 0 16px}.muted{color:#aebfdd;line-height:1.6}.panel{background:#17233b;border:1px solid #344a6b;border-radius:16px;padding:19px;margin:17px 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}label{display:block;font-size:12px;color:#aec1df;margin-bottom:7px}input{width:100%;min-width:0;border:1px solid #466084;border-radius:9px;background:#0b182d;color:white;padding:11px;font:inherit}.metric{background:#1b3151;border:1px solid #3a5277;border-radius:12px;padding:15px}.metric strong{display:block;font-size:24px;margin-top:8px}.btn{background:#29446f;border:1px solid #4a6590;border-radius:10px;color:white;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}.btn.primary{background:#6385eb}.tools{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}.table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;min-width:770px}td,th{border-bottom:1px solid #354b6e;padding:9px 7px;text-align:left}td input{padding:8px;min-width:85px}td:last-child,th:last-child{text-align:right}.status{font-weight:700;padding:10px;border-radius:8px;background:#263750;margin:12px 0}.warn{border:1px solid #a47454;color:#f4d2b7;background:#342824}.success{border:1px solid #4c896d;color:#c6f2da;background:#18372f}.note{font-size:12px;color:#afc3de;line-height:1.5}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.grid,.fields,.split{grid-template-columns:1fr}h1{font-size:24px}.panel{padding:13px}}@media print{body{background:white;color:#111}main{padding:0}.panel,.metric{background:white;color:#111;border:1px solid #bbb}.no-print{display:none!important}.note,.muted{color:#444}input{background:white;color:#111;border:none}table{min-width:0}}
+</style></head><body><main><div class="head"><b>◈ Advisor AI / Investment Intelligence</b><a href="./workspace.html">← Рабочий кабинет</a></div><h1>Контроль спекулятивного бюджета</h1><p class="muted">Задай размер портфеля и один общий лимит спекуляций. Распредели позиции — система сразу проверит, укладываются ли они в бюджет, и покажет риск при исполнении стопов.</p>
+<section class="panel"><h2>Параметры стратегии</h2><div class="fields"><div><label for="portfolio">Общая стоимость портфеля, USD</label><input id="portfolio" type="number" min="1" step="any" value="1000000"></div><div><label for="pool">Спекулятивная доля всего портфеля, %</label><input id="pool" type="number" min="0" max="100" step="any" value="10"></div><div><label for="risk">Лимит убытка по стопам, % всего портфеля</label><input id="risk" type="number" min="0" max="100" step="any" value="0.5"></div></div></section>
+<section class="panel"><div class="head"><h2>Распределение идей</h2><button class="btn no-print" id="add">+ Добавить позицию</button></div><div class="table-scroll"><table><thead><tr><th>Актив</th><th>Сумма USD</th><th>Стоп, % от входа</th><th>Доля всего портфеля</th><th>Убыток до стопа, USD</th><th class="no-print"></th></tr></thead><tbody id="positions"></tbody></table></div><p class="note">Стоп — сценарный уровень риска, а не гарантия исполнения. Гэпы, проскальзывание и комиссии могут увеличить убыток. Не указанные стопы не считаются нулевым риском.</p></section>
+<div class="grid"><div class="metric"><span class="muted">Максимальный размер пула</span><strong id="budget">—</strong></div><div class="metric"><span class="muted">Запланировано</span><strong id="allocated">—</strong></div><div class="metric"><span class="muted">Осталось свободным</span><strong id="remaining">—</strong></div></div>
+<section class="panel"><h2>Проверка ограничений</h2><div id="budget-status" class="status"></div><div id="risk-status" class="status"></div><div class="split"><p id="portfolio-risk"></p><p id="largest"></p></div><div class="tools no-print"><button id="copy" class="btn primary">Копировать расчёт для Advisor AI</button><button id="print" class="btn">Печать / PDF</button><button id="example" class="btn">Пример: четыре идеи</button></div><p class="note">Расчёт автономный в браузере: позиции не отправляются в AI и не сохраняются в базу. Данные обновляются только по твоему вводу, онлайн-котировок здесь нет.</p></section>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id),usd=n=>Number(n).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2});
+let rows=[{ticker:'NVDA',amount:25000,stop:5},{ticker:'AMZN',amount:25000,stop:5},{ticker:'QQQ',amount:30000,stop:4},{ticker:'XBI',amount:20000,stop:7}],result=null;
+function compute(portfolio,pool,limit,positions){
+ if(!Number.isFinite(portfolio)||portfolio<=0||!Number.isFinite(pool)||pool<0||pool>100||!Number.isFinite(limit)||limit<0||limit>100)throw Error('Проверь стоимость портфеля и ограничения от 0 до 100%.');
+ if(positions.length>30)throw Error('Максимум 30 позиций.');
+ let allocated=0,riskUsd=0,missing=0,max=0;
+ const details=positions.map((p,i)=>{
+  if(!Number.isFinite(p.amount)||p.amount<0||p.amount>1e12||typeof p.ticker!=='string'||!p.ticker.trim())throw Error('Проверь название и сумму позиции '+(i+1));
+  if(p.stop!==null&&(!Number.isFinite(p.stop)||p.stop<0||p.stop>100))throw Error('Стоп от 0 до 100% для позиции '+(i+1));
+  allocated+=p.amount;max=Math.max(max,p.amount);
+  const loss=p.stop===null?null:p.amount*p.stop/100;
+  if(loss===null&&p.amount>0)missing++;else riskUsd+=loss||0;
+  return {...p,portfolioPct:p.amount/portfolio*100,loss};
+ });
+ const budget=portfolio*pool/100,lossLimit=portfolio*limit/100;
+ return {portfolio,pool,limit,details,allocated,budget,remaining:budget-allocated,withinBudget:allocated<=budget+0.000001,riskUsd,lossLimit,missing,withinRisk:missing===0&&riskUsd<=lossLimit+0.000001,largestPct:max/portfolio*100};
+}
+function render(){
+ const body=$('positions');body.textContent='';
+ for(let i=0;i<rows.length;i++){
+  const row=rows[i],tr=document.createElement('tr');
+  for(const [key,type,min,max] of [['ticker','text',null,null],['amount','number',0,null],['stop','number',0,100]]){
+   const td=document.createElement('td'),input=document.createElement('input');
+   input.type=type;input.value=row[key]??'';input.setAttribute('aria-label',key+' — позиция '+(i+1));if(min!==null)input.min=String(min);if(max!==null)input.max=String(max);if(type==='number')input.step='any';
+   input.addEventListener('input',()=>{row[key]=key==='ticker'?input.value:input.value===''?(key==='stop'?null:NaN):Number(input.value);calculate()});td.append(input);tr.append(td);
+  }
+  for(const val of [row.amount/Number($('portfolio').value)*100,row.stop===null?null:row.amount*row.stop/100]){
+   const td=document.createElement('td');td.textContent=val===null?'Не указан':Number.isFinite(val)?(tr.children.length===3?val.toFixed(2)+'%':usd(val)):'—';tr.append(td);
+  }
+  const td=document.createElement('td');td.className='no-print';const btn=document.createElement('button');btn.className='btn';btn.textContent='×';btn.title='Убрать позицию';btn.onclick=()=>{rows.splice(i,1);render()};td.append(btn);tr.append(td);body.append(tr);
+ }
+ calculate();
+}
+function calculate(){
+ try{
+  result=compute(Number($('portfolio').value),Number($('pool').value),Number($('risk').value),rows);
+  $('budget').textContent=usd(result.budget);$('allocated').textContent=usd(result.allocated);$('remaining').textContent=usd(result.remaining);
+  $('budget-status').className='status '+(result.withinBudget?'success':'warn');$('budget-status').textContent=result.withinBudget?'✓ Сумма позиций не превышает общий лимит.':'✕ Превышение бюджета на '+usd(-result.remaining)+'. Сократи позиции.';
+  $('risk-status').className='status '+(result.withinRisk?'success':'warn');$('risk-status').textContent=result.missing?'Не указаны стопы для '+result.missing+' позиций: общий стоп-риск не определён.':result.withinRisk?'✓ Суммарный расчётный риск в пределах '+usd(result.lossLimit)+'.':'✕ Стоп-риск '+usd(result.riskUsd)+' превышает лимит '+usd(result.lossLimit)+'.';
+  $('portfolio-risk').textContent='Расчётный суммарный убыток до стопов: '+usd(result.riskUsd)+' ('+(100*result.riskUsd/result.portfolio).toFixed(2)+'% портфеля).'+(result.missing?' Без учёта '+result.missing+' позиций.':'');
+  $('largest').textContent='Максимальная отдельная позиция: '+result.largestPct.toFixed(2)+'% всего портфеля.';
+  $('copy').disabled=false;
+ }catch(e){result=null;$('budget-status').className='status warn';$('budget-status').textContent=e.message;$('risk-status').textContent='Исправь исходные данные.';$('copy').disabled=true}
+}
+$('portfolio').oninput=render;$('pool').oninput=calculate;$('risk').oninput=calculate;
+$('add').onclick=()=>{if(rows.length>=30)return;rows.push({ticker:'Новая идея',amount:0,stop:null});render()};
+$('example').onclick=()=>{rows=[{ticker:'NVDA',amount:25000,stop:5},{ticker:'AMZN',amount:25000,stop:5},{ticker:'QQQ',amount:30000,stop:4},{ticker:'XBI',amount:20000,stop:7}];$('portfolio').value=1000000;$('pool').value=10;$('risk').value=0.5;render()};
+$('print').onclick=()=>window.print();
+$('copy').onclick=async()=>{if(!result)return;const r=result;const text=['Advisor AI — проверка торгового бюджета','Общий портфель: '+usd(r.portfolio),'Один общий спекулятивный лимит: '+r.pool+'% = '+usd(r.budget),'Предложено: '+usd(r.allocated),'Остаток: '+usd(r.remaining),'Укладывается в пул: '+(r.withinBudget?'да':'НЕТ'),'Лимит риска: '+usd(r.lossLimit),'Стоп-риск: '+(r.missing?'неполный':usd(r.riskUsd)),'','Позиции:',...r.details.map(x=>x.ticker+' — '+usd(x.amount)+' ('+x.portfolioPct.toFixed(2)+'% портфеля), стоп '+(x.stop===null?'НЕ ЗАДАН':x.stop+'%')+(x.loss===null?'':', риск '+usd(x.loss))), 'Риск с учётом гэпов/проскальзывания может быть выше.','Сверь цены, ликвидность, корреляции и события перед сделками.'].join('\n');try{await navigator.clipboard.writeText(text);$('copy').textContent='Скопировано ✓'}catch{$('copy').textContent='Копирование недоступно'}};
+render();
+</script></body></html>
