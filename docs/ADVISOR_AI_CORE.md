@@ -6,14 +6,14 @@ Last verified: 2026-10-23. This is an engineering status file, not a claim of su
 
 - **ChatGPT Plugin**: existing private `Advisor AI | Investment Intelligence`, release **2.2.0**. The plugin package contains its comprehensive 2.1 skill, retained academy/source files, and a remote `.mcp.json` connection to the shared mathematical tools.
 - **Workspace frontend**: GitHub Pages `workspace.html`, `ai-chat.html`, `tasks-board.html`, `bond-analysis.html`, and `portfolio-report.html`.
-- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v15**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
+- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v20**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
 - **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v4**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
 - **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` with capped AI proposals.
 - **Files**: private `advisor-chat-attachments` bucket with owner restrictions; screenshot/PDF analysis via `advisor-ai-chat`.
 
 ## Shared means what exactly?
 
-**Implemented:** shared analytical method, shared mathematical service URL and tool catalogue. Workspace reads the plugin skill content copied into its deployed server code at its published release. The plugin package configures the same remote mathematical MCP server. No user-client credentials are exposed by these public deterministic tools.
+**Implemented:** shared analytical method, shared mathematical service URL and tool catalogue. Workspace reads the plugin skill content copied into its deployed server code at its published release. The plugin package configures the same remote mathematical MCP server. No user-client credentials are exposed by these public deterministic tools. The chat now reports actual web/MCP tool usage counts, warns if current market claims lack a successful web search, and refuses to save incomplete token-limited reports as final.
 
 **Not yet implemented:** ChatGPT Plugin conversations do not automatically share the Workspace user's Supabase identity, case history, task board or customer files. The platform plugin object is **not an API endpoint** that a GitHub Pages app can directly invoke. Private-data integration requires OAuth 2.1 authorization and user consent using Supabase Auth's OAuth Server plus RLS-scoped MCP handlers. Do not implement cross-account access using anonymous endpoints or service-role keys in the browser.
 
@@ -36,6 +36,14 @@ Last verified: 2026-10-23. This is an engineering status file, not a claim of su
 4. **Advanced portfolio parsing**: broker-specific statement import, instrument classification, currencies, credit ratings, maturity schedules, total-return history and usable before/after recommendations.
 5. **Simplicity and polish**: keyboard shortcuts, accessible controls, daily dashboard, mobile testing, inline task editing and undo/audit.
 6. **Skill synchronization**: when updating plugin instructions, verify all referenced resources and resync the Workspace Edge Function. The copy in the deployed function is versioned and does **not auto-update** on plugin release.
+
+## MCP verification automation
+
+- GitHub Actions workflow: `.github/workflows/mcp-smoke.yml`.
+- Runs daily, on manual dispatch, and when its smoke-test files are pushed to `main`.
+- Executes `node scripts/smoke-shared-mcp.mjs` from an external GitHub runner, not a local mock. The script checks MCP initialization and discovery of four tools, calculations for coupon yield, HHI, trade-budget enforcement and duration risk, and rejects bad bond prices.
+- Does not access private user cases or secrets; tests the intentionally public, stateless mathematical service only.
+- **A passing GitHub Actions run must be observed before calling the external MCP service live-verified.** Plugin invocation inside ChatGPT and model tool-calling through Workspace require their own separate end-to-end confirmation.
 
 ## Safety and verification contract
 
