@@ -34,7 +34,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button><button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
  <button id="download-result" class="action" disabled>Скачать ответ .txt</button>
- <button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
+ <button id="download-pptx" class="action" disabled>⬇ Презентация .pptx</button><button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
  <button id="refresh" class="action">Обновить историю</button>
  <div id="result-status" class="muted" role="status" style="font-size:12px;line-height:1.5;margin-top:8px">Итог можно сохранить в карточке кейса или скачать.</div>
  <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть ChatGPT ↗</a>
@@ -50,7 +50,7 @@ const error=s=>$('error').textContent=s||'';
 function bubble(role,content){const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';const text=document.createElement('div');text.textContent=content;el.append(who,text);return el}
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
-function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
+function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
  const {data:attachments,error:attachmentErr}=await db.from('advisor_ai_attachments').select('message_id,filename,mime_type,object_path').eq('case_id',caseId).order('created_at',{ascending:true}).limit(200);
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
@@ -154,6 +154,26 @@ function printableContent(){
  const body=document.createElement('div');body.textContent=lastAnswer;body.style.cssText='white-space:pre-wrap;font-size:11px;';
  root.append(h,p,body);return root;
 }
+async function downloadPresentation(){
+ if(!lastAnswer||!caseData)return;const btn=$('download-pptx');btn.disabled=true;btn.textContent='Создаю слайды…';
+ try{
+  const P=window.pptxgen||window.PptxGenJS;if(!P)throw Error('Библиотека PowerPoint не загрузилась');
+  const pptx=new P();pptx.layout='LAYOUT_WIDE';
+  const content=lastAnswer.trim(),sections=content.match(/[\\s\\S]{1,750}/g)||[];
+  const cover=pptx.addSlide();cover.background={color:'13243E'};
+  cover.addText('ADVISOR AI  /  INVESTMENT INTELLIGENCE',{x:0.8,y:0.9,w:11.7,h:0.5,fontSize:16,color:'95B5FF',bold:true});
+  cover.addText(caseData.title,{x:0.8,y:2,w:11.7,h:2.8,fontSize:30,color:'FFFFFF',bold:true,fit:'shrink'});
+  for(let i=0;i<Math.min(sections.length,40);i++){
+   const slide=pptx.addSlide();slide.background={color:'F8FAFE'};
+   slide.addText(caseData.title,{x:0.75,y:0.32,w:11.6,h:0.5,fontSize:16,color:'244D88',bold:true,fit:'shrink'});
+   slide.addText(sections[i],{x:0.85,y:1.05,w:11.4,h:5.7,fontSize:18,color:'1B2940',valign:'top',fit:'shrink',margin:0.06});
+   slide.addText('Advisor AI · Проверь данные перед отправкой клиенту',{x:0.85,y:7,w:11,h:0.23,fontSize:9,color:'788BA4'});
+  }
+  await pptx.writeFile({fileName:'AdvisorAI-'+fileName()+'.pptx',compression:true});
+  $('result-status').textContent='Презентация сохранена. Проверь содержание и оформление.';
+ }catch(e){$('result-status').textContent='Ошибка PowerPoint: '+e.message}
+ finally{btn.disabled=working||!lastAnswer;btn.textContent='⬇ Презентация .pptx'}
+}
 async function downloadPdf(){
  if(!lastAnswer||!caseData)return;
  const button=$('download-pdf');button.disabled=true;button.textContent='Создаю PDF…';
@@ -185,7 +205,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
  ready(true);waiting(false);await history();
 }
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
-</script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script></body></html>
