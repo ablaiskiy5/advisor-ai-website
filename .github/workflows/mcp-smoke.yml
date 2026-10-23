@@ -1,0 +1,33 @@
+name: Advisor AI MCP Live Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/smoke-shared-mcp.mjs'
+      - '.github/workflows/mcp-smoke.yml'
+  schedule:
+    - cron: '20 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: advisor-ai-mcp-live
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify shared MCP tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify MCP endpoint and calculations
+        run: node scripts/smoke-shared-mcp.mjs
