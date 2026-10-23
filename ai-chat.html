@@ -47,6 +47,14 @@ const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 const error=s=>$('error').textContent=s||'';
+function safeExternalChatLink(value){
+ if(typeof value!=='string'||!value.trim())return 'https://chatgpt.com/';
+ try{
+  const url=new URL(value);
+  if(url.origin==='https://chatgpt.com'&&!url.username&&!url.password&&/^\/(?:c|share|g|gpt)\//.test(url.pathname))return url.href;
+ }catch{}
+ return 'https://chatgpt.com/';
+}
 function renderInlineSafe(node,value){
  const parts=String(value).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);
  for(const part of parts){let el=null;
@@ -270,7 +278,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  user=check.data.user;
  const {data,error:err}=await db.from('workspace_items').select('id,kind,title,notes,prompt,chat_url').eq('id',caseId).single();
  if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
- caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
+ caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=safeExternalChatLink(data.chat_url);
  ready(true);waiting(false);await history();
 }
 $('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
