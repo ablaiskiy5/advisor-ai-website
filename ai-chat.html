@@ -31,7 +31,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
- <button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
+ <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button><button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
  <button id="download-result" class="action" disabled>Скачать ответ .txt</button>
  <button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
@@ -112,6 +112,14 @@ const summaryPrompts={
  markets:'Подготовь итоговый макрообзор по этому кейсу: подтверждённые факты и даты, механика влияния на ставки, валюты, акции и облигации, сценарии, риски и индикаторы для дальнейшего наблюдения. Не выдавай предположения за актуальные данные.',
  tasks:'Сформируй итоговый план по этой задаче: цель, подтверждённый контекст, список действий по приоритету, зависимости, риски, критерии завершения и следующие шаги.'
 };
+async function transferToTasks(){
+ if(!user||!caseData||caseData.kind!=='tasks')return;
+ const {data,error:err}=await db.from('advisor_ai_messages').select('role,content').eq('case_id',caseId).eq('role','user').order('created_at',{ascending:false}).limit(12);
+ if(err){error('Не удалось прочитать сообщения: '+err.message);return}
+ const lines=(data||[]).reverse().map(x=>x.content.trim()).filter(Boolean);
+ if(!lines.length){error('Сначала перечисли задачи в чате.');return}
+ try{sessionStorage.setItem('advisor_ai_task_brain_dump',lines.join('\n').slice(0,10000));window.location.href='./tasks-board.html'}catch(e){error('Не удалось перенести текст: '+e.message)}
+}
 async function makeSummary(){
  if(working||!caseData)return;
  const draft=$('question').value;
@@ -166,10 +174,10 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  user=check.data.user;
  const {data,error:err}=await db.from('workspace_items').select('id,kind,title,notes,prompt,chat_url').eq('id',caseId).single();
  if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
- caseData=data;$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
+ caseData=data;if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
  ready(true);waiting(false);await history();
 }
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script></body></html>
