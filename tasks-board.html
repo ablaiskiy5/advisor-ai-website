@@ -1,0 +1,101 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Advisor AI · Мои задачи</title>
+<style>:root{font:14px system-ui,-apple-system,Segoe UI,sans-serif;background:#0a1224;color:#eaf1ff;color-scheme:dark}*{box-sizing:border-box}body{margin:0}main{max-width:1200px;margin:auto;padding:22px 20px 80px}.top,.tools,.stats{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:800}.brand b{color:#89a8ff}a{color:#abc3fb}h1{font-size:32px;margin:28px 0 4px}h2{font-size:18px;margin:0 0 13px}p{line-height:1.6}.muted{color:#abbcda}.panel{border:1px solid #334668;background:#17233b;border-radius:16px;padding:20px;margin:19px 0}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}label{display:block;color:#abbcda;font-size:12px;margin:8px 0}textarea,input,select{font:inherit;background:#0e1a2d;border:1px solid #405779;color:#edf5ff;border-radius:9px;padding:11px;width:100%;min-width:0}textarea{min-height:115px;resize:vertical}.btn{font:inherit;color:white;background:#294369;border:1px solid #4d6691;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:650}.btn.main{background:#6585ed;border-color:#6585ed}.btn:disabled{opacity:.5;cursor:wait}.tags{display:flex;gap:8px;flex-wrap:wrap}.tag{border:1px solid #3d5172;background:#1e3152;border-radius:12px;padding:8px 12px;font-size:12px}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.lane{min-width:0;border:1px solid #2e466a;background:#101c31;border-radius:15px;padding:13px}.lane h2{margin:5px 0 14px}.task{background:#1d2e49;border:1px solid #344c70;border-radius:12px;padding:13px;margin:10px 0;overflow-wrap:anywhere}.task h3{font-size:15px;margin:2px 0 10px}.task p{font-size:12px;color:#b8c9e3;margin:7px 0}.task .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.task button{padding:7px 10px;font-size:12px}.status{font-size:12px;color:#b4ccf7;min-height:18px}.hidden{display:none!important}.drafts{display:grid;gap:10px}.draft{border:1px solid #3b557d;border-radius:11px;padding:12px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:end}.draft label{margin:0}.draft input{font-weight:650}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:8px}.empty{color:#718aaa;padding:10px;font-size:13px}.toast{color:#d3e3ff;font-size:12px}@media(max-width:860px){.board{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}.draft{grid-template-columns:1fr 1fr}.draft .wide{grid-column:span 2}main{padding:16px 12px}}@media(max-width:480px){.formgrid{grid-template-columns:1fr}.draft{grid-template-columns:1fr}.draft .wide{grid-column:span 1}h1{font-size:25px}.panel{padding:13px}}</style></head><body>
+<main><div class="top"><div class="brand">◈ Advisor <b>AI</b> / Мои задачи</div><a href="./workspace.html">← В Workspace</a></div>
+<h1>Выгрузи всё из головы</h1><p class="muted">Работа, клиенты, дом, здоровье, спорт, учёба и собственные проекты. Пиши как есть. AI разложит дела на карточки, а ты сможешь двигать их одним нажатием.</p>
+<section class="panel"><h2>Мой список без порядка</h2><textarea id="brain" maxlength="10000" placeholder="Например: позвонить клиенту про ребалансировку; во вторник стоматолог; подготовиться к аттестации; оплатить счета; доделать телеграм-бота; тренировка; проверить неторговые поручения..."></textarea><div class="tools" style="margin-top:12px"><button class="btn main" id="organize">✦ Разобрать с AI</button><button class="btn" id="manual">+ Добавить одну задачу</button><span id="info" class="status"></span></div><p class="muted" style="font-size:12px">AI предложит карточки. Сначала посмотри, исправь сроки и приоритеты, затем подтверди сохранение. Он не назначает напоминания без твоего действия.</p></section>
+<section class="panel hidden" id="review"><div class="sectionhead"><h2>Проверь предложенные задачи</h2><button class="btn" id="discard">Отмена</button></div><div class="drafts" id="drafts"></div><div class="tools" style="margin-top:14px"><button class="btn main" id="save-drafts">Сохранить выбранные</button><span class="toast" id="review-note"></span></div></section>
+<section class="panel"><div class="sectionhead"><h2>Мои дела</h2><button class="btn" id="refresh">↻ Обновить</button></div><div class="tags" id="filters"></div><div class="stats" id="stats" style="margin-top:16px"></div><div class="board" style="margin-top:15px"><section class="lane"><h2>● Сделать</h2><div id="lane-todo"></div></section><section class="lane"><h2>◐ В работе</h2><div id="lane-doing"></div></section><section class="lane"><h2>✓ Готово</h2><div id="lane-done"></div></section></div></section>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script><script>
+'use strict';
+const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
+const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
+let db,user,items=[],proposals=[],filter='all',busy=false;
+const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
+function feedback(text){$('info').textContent=text}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function dateLabel(date){if(!date)return 'Без срока';const d=new Date(date+'T12:00:00');return Number.isNaN(+d)?'Без срока':d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'})}
+function validDate(date){if(!date)return true;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const d=new Date(date+'T12:00:00');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===date}
+function render(){
+ const list=items.filter(x=>filter==='all'||x.area===filter);
+ const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Almaty'});
+ $('stats').textContent='';for(const v of [['Всего',list.length],['Активных',list.filter(x=>x.status!=='done').length],['На сегодня',list.filter(x=>x.due_date===today&&x.status!=='done').length]]){let t=document.createElement('span');t.className='tag';t.textContent=v[0]+' · '+v[1];$('stats').append(t)}
+ for(const type of ['todo','doing','done']){
+  const el=$('lane-'+type);el.textContent='';
+  const rows=list.filter(x=>x.status===type).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999')||({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  if(!rows.length){const p=document.createElement('p');p.className='empty';p.textContent='Пока пусто';el.append(p);continue}
+  for(const row of rows){
+   const card=document.createElement('article');card.className='task';const name=document.createElement('h3');name.textContent=row.title;card.append(name);
+   const meta=document.createElement('p');meta.textContent=areas[row.area]+' · '+priorities[row.priority]+' · '+dateLabel(row.due_date);card.append(meta);
+   if(row.description){const desc=document.createElement('p');desc.textContent=row.description;card.append(desc)}
+   const actions=document.createElement('div');actions.className='actions';
+   const button=(text,fn)=>{const b=document.createElement('button');b.className='btn';b.textContent=text;b.addEventListener('click',fn);actions.append(b)};
+   if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
+   if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
+   if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
+   button('Дата / правка',()=>editTask(row));
+   card.append(actions);el.append(card);
+  }
+ }
+}
+async function load(){
+ if(!db||!user)return;
+ const {data,error}=await db.from('advisor_tasks').select('id,title,area,priority,status,due_date,description,created_at').order('created_at',{ascending:false}).limit(500);
+ if(error){feedback('Ошибка загрузки: '+error.message);return}
+ items=data||[];render();feedback('Список актуален');
+}
+async function change(item,fields){const {error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',user.id);if(error){feedback('Ошибка: '+error.message);return}Object.assign(item,fields);render()}
+async function editTask(item){
+ const title=prompt('Название задачи',item.title);if(title===null)return;if(!title.trim()||title.length>220){feedback('Название от 1 до 220 символов');return}
+ const due=prompt('Срок YYYY-MM-DD (пусто — без даты)',item.due_date||'');if(due===null)return;if(!validDate(due)){feedback('Неверная дата');return}
+ const priority=prompt('Приоритет: high, normal, low',item.priority);if(priority===null)return;if(!priorities[priority]){feedback('Неверный приоритет');return}
+ await change(item,{title:title.trim(),due_date:due||null,priority});
+}
+function review(data){
+ proposals=data.slice(0,30).map(x=>({title:String(x.title||'').slice(0,220),area:areas[x.area]?x.area:'other',priority:priorities[x.priority]?x.priority:'normal',due_date:validDate(x.due_date)?x.due_date||'':'',description:String(x.description||'').slice(0,3000)}));
+ const area=$('drafts');area.textContent='';
+ proposals.forEach((t,i)=>{
+  const div=document.createElement('div');div.className='draft';div.dataset.index=i;
+  div.innerHTML='<label class="wide">Задача<input data-field="title" maxlength="220" value="'+esc(t.title)+'"></label><label>Область<select data-field="area">'+options(areas,t.area)+'</select></label><label>Приоритет<select data-field="priority">'+options(priorities,t.priority)+'</select></label><label>Срок<input type="date" data-field="due_date" value="'+esc(t.due_date)+'"></label><label class="wide" style="display:flex;align-items:center;gap:7px"><input type="checkbox" data-field="include" checked style="width:auto"> Добавить</label>';
+  area.append(div);
+ });
+ $('review').classList.remove('hidden');
+ $('review-note').textContent='Проверь даты: AI может ошибаться.';
+}
+async function organize(){
+ if(busy)return;const text=$('brain').value.trim();if(text.length<3){feedback('Напиши дела в свободной форме');return}
+ busy=true;$('organize').disabled=true;feedback('Разбираю задачи…');
+ try{const {data,error}=await db.functions.invoke('advisor-ai-organize-tasks',{body:{text}});
+  if(error){let detail='';try{detail=(await error.context?.json())?.error||''}catch{}throw Error(detail||error.message)}
+  if(data?.error)throw Error(data.error);if(!data?.tasks?.length)throw Error('Не удалось выделить задачи');
+  review(data.tasks);feedback('Предложения готовы. Проверь и сохрани.');
+ }catch(e){feedback('Не удалось разобрать: '+e.message)}
+ finally{busy=false;$('organize').disabled=false}
+}
+async function saveDrafts(){
+ if(busy)return;const selected=[];
+ for(const div of $('drafts').children){if(!div.querySelector('[data-field="include"]').checked)continue;
+  const get=f=>div.querySelector('[data-field="'+f+'"]').value;
+  const title=get('title').trim(),date=get('due_date');if(!title||title.length>220||!validDate(date)){feedback('Проверь название и дату');return}
+  selected.push({user_id:user.id,title,area:get('area'),priority:get('priority'),due_date:date||null,description:proposals[Number(div.dataset.index)].description,status:'todo'});
+ }
+ if(!selected.length){feedback('Нет выбранных задач');return}
+ busy=true;$('save-drafts').disabled=true;
+ try{const {error}=await db.from('advisor_tasks').insert(selected);if(error)throw Error(error.message);$('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load()}
+ catch(e){feedback('Не удалось сохранить: '+e.message)}
+ finally{busy=false;$('save-drafts').disabled=false}
+}
+async function manual(){
+ const title=prompt('Что нужно сделать?');if(title===null||!title.trim())return;if(title.length>220){feedback('Максимум 220 символов');return}
+ const {error}=await db.from('advisor_tasks').insert({user_id:user.id,title:title.trim(),status:'todo',area:'work',priority:'normal'});
+ if(error){feedback(error.message);return}await load();
+}
+function filters(){const el=$('filters');for(const [id,name] of [['all','Все'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1'}
+async function init(){
+ if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
+ db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
+ const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
+ user=data.user;filters();await load();
+ $('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
+}
+init().catch(e=>feedback('Ошибка: '+e.message));
+</script></body></html>
