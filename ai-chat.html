@@ -228,6 +228,8 @@ function splitPresentationText(value,maxChars=750){
   let cut=rest.lastIndexOf('\n',maxChars-1);
   if(cut<Math.floor(maxChars/3))cut=rest.lastIndexOf(' ',maxChars-1);
   cut=cut<Math.floor(maxChars/3)?maxChars:cut+1;
+  // Keep UTF-16 surrogate pairs (e.g. emoji) on the same slide.
+  if(cut<rest.length&&cut>0&&/[\uD800-\uDBFF]/.test(rest[cut-1])&&/[\uDC00-\uDFFF]/.test(rest[cut]))cut--;
   chunks.push(rest.slice(0,cut));rest=rest.slice(cut);
  }
  return chunks;
