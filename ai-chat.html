@@ -28,7 +28,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
- <div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+ <div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
@@ -63,7 +63,18 @@ async function history(){if(!db||!caseData)return;const {data,error:err}=await d
   }
   list.append(node)
  }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
-async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
+async function requestAI(){
+ if(working||!caseData)return;
+ waiting(true);error('');$('file-status').textContent='Advisor AI анализирует вопрос и доступные вложения кейса…';
+ try{
+  const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});
+  if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}
+  if(data?.error)throw Error(data.error);
+  await history();
+ }catch(e){
+  error('Ответ не получен: '+e.message+'. Вопрос и загруженные вложения сохранены. Можно нажать «Повторить ответ AI» без повторной загрузки.');
+ }finally{waiting(false);$('file-status').textContent=''}
+}
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
 function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?.toLowerCase()||'';if(name.endsWith('.png'))return 'image/png';if(/\.jpe?g$/.test(name))return 'image/jpeg';if(name.endsWith('.webp'))return 'image/webp';if(name.endsWith('.pdf'))return 'application/pdf';return ''}
 function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
@@ -101,7 +112,14 @@ const summaryPrompts={
  markets:'Подготовь итоговый макрообзор по этому кейсу: подтверждённые факты и даты, механика влияния на ставки, валюты, акции и облигации, сценарии, риски и индикаторы для дальнейшего наблюдения. Не выдавай предположения за актуальные данные.',
  tasks:'Сформируй итоговый план по этой задаче: цель, подтверждённый контекст, список действий по приоритету, зависимости, риски, критерии завершения и следующие шаги.'
 };
-async function makeSummary(){if(working||!caseData)return;$('question').value=summaryPrompts[caseData.kind]||summaryPrompts.tasks;await send()}
+async function makeSummary(){
+ if(working||!caseData)return;
+ const draft=$('question').value;
+ if(draft.trim()&&!confirm('В поле уже есть несохранённый текст. Заменить его запросом на итог кейса?'))return;
+ if(pendingFiles.length&&!confirm('У тебя выбраны вложения. Отправить их вместе с запросом на итог кейса?'))return;
+ $('question').value=summaryPrompts[caseData.kind]||summaryPrompts.tasks;
+ await send();
+}
 async function saveResult(){if(working||!lastAnswer||!caseData)return;const btn=$('save-result');btn.disabled=true;$('result-status').textContent='Сохраняю итог в карточке…';try{
  const {data:fresh,error:readError}=await db.from('workspace_items').select('notes').eq('id',caseId).single();if(readError)throw readError;
  const prior=fresh.notes||'';if(prior.includes(lastAnswer.trim())){ $('result-status').textContent='Этот ответ уже сохранён в заметках кейса.';return }const header='Итог Advisor AI · '+new Date().toLocaleString('ru-RU');
