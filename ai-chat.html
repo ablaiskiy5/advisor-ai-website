@@ -29,7 +29,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
  <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
- </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
+ </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p><div class="notice" style="margin:12px 0;font-size:12px"><strong>AI-ядро и плагин</strong><div id="core-status" aria-live="polite">Проверяю синхронизацию…</div></div>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button><button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
@@ -229,8 +229,19 @@ function downloadWord(){
 }
 function downloadResult(){if(!lastAnswer||!caseData)return;const safeTitle=(caseData.title||'case').replace(/[\\/:*?"<>|]/g,' ').slice(0,65).trim();const content='Advisor AI — '+caseData.title+'\nДата: '+new Date().toLocaleString('ru-RU')+'\n\n'+lastAnswer;const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AdvisorAI-'+(safeTitle||'report')+'.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);$('result-status').textContent='Текст отчёта скачан. Перед отправкой клиенту проверь факты, цифры и формулировки.'}
 
+async function checkCoreIntegrity(){
+ const node=$('core-status');if(!node||!db)return;
+ try{
+  const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{method:'GET'});
+  if(err)throw err;
+  if(!data||data.service!=='Advisor AI Workspace'||typeof data.skill_sha256!=='string')throw Error('Invalid response');
+  const digest=data.skill_sha256.slice(0,12);
+  node.textContent='Методика плагина '+data.core_version+' · SHA-256 '+digest+'… · общие расчёты: '+(data.shared_methods?.length||0)+' инструмента. Прямого запуска ChatGPT-плагина нет; личные данные между системами не синхронизируются.';
+ }catch(e){node.textContent='Статус AI-ядра недоступен. Это не означает, что чат отключён.'}
+}
 async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('Открой AI-чат из карточки нужного кейса.');setStatus('Некорректная ссылка на кейс.');return}if(!window.supabase?.createClient){error('Библиотека Supabase не загрузилась. Проверь интернет.');return}
  db=window.supabase.createClient(SUPABASE_PROJECT_URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ void checkCoreIntegrity();
  const {data:session,error:sessionError}=await db.auth.getSession();
  if(sessionError||!session.session){$('login-note').classList.remove('hidden');$('case-title').textContent='Нужен вход в аккаунт';$('messages').textContent='';setStatus('Войди на сайте, затем вернись по этой ссылке.');return}
  const check=await db.auth.getUser();if(check.error||!check.data.user){$('login-note').classList.remove('hidden');error('Войди повторно в личный кабинет.');return}
