@@ -119,9 +119,18 @@ async function requestAI(){
   if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}
   if(data?.error)throw Error(data.error);
   await history();
+  const usage=data?.tools;
+  if(usage){
+   const parts=[];
+   if(usage.web_search_called>0)parts.push('Веб-поиск: '+usage.web_search_called);
+   if(usage.mcp_called>0)parts.push('MCP-расчёты: '+usage.mcp_called);
+   if(usage.mcp_errors>0)parts.push('Ошибки MCP: '+usage.mcp_errors);
+   if(!parts.length)parts.push('Ответ без подтверждённого вызова веб-поиска или MCP');
+   $('file-status').textContent='Проверка инструментов: '+parts.join(' · ');
+  }
  }catch(e){
   error('Ответ не получен: '+e.message+'. Вопрос и загруженные вложения сохранены. Можно нажать «Повторить ответ AI» без повторной загрузки.');
- }finally{waiting(false);$('file-status').textContent=''}
+ }finally{waiting(false)}
 }
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
 function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?.toLowerCase()||'';if(name.endsWith('.png'))return 'image/png';if(/\.jpe?g$/.test(name))return 'image/jpeg';if(name.endsWith('.webp'))return 'image/webp';if(name.endsWith('.pdf'))return 'application/pdf';return ''}
@@ -150,7 +159,7 @@ async function send(){
   $('file-status').textContent='';
   waiting(false);return;
  }
- waiting(false);await requestAI();$('file-status').textContent='';
+ waiting(false);await requestAI();
 }
 
 const quickOptions={
