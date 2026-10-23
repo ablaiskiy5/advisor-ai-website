@@ -217,7 +217,7 @@ async function saveSnapshot(){
  if(!isCloud()){snapshotUi('Войди в аккаунт, чтобы сохранить историю версий.');return}
  const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
  let d;try{d=parseHoldings(document.getElementById('holdings-input').value)}catch(err){snapshotUi('Ошибка данных: '+err.message);return}
- const raw=document.getElementById('holdings-input').value.trim();const targetText=document.getElementById('target-bonds')?.value.trim()||'';
+ const raw=document.getElementById('holdings-input').value.trim();if(raw.length>18000){snapshotUi('Снимок превышает 18 000 символов. Уменьши файл.');return}const targetText=document.getElementById('target-bonds')?.value.trim()||'';
  const target=targetText===''?null:Number(targetText);
  if(target!==null&&(!Number.isFinite(target)||target<0||target>100)){snapshotUi('Целевая доля должна быть от 0 до 100%.');return}
  const note=window.prompt('Комментарий к снимку (необязательно):','') ;
@@ -241,7 +241,6 @@ async function loadSnapshots(){
   for(const item of data){snapshotsCache.set(item.id,item);const option=document.createElement('option');option.value=item.id;option.textContent=new Date(item.created_at).toLocaleString('ru-RU')+(item.notes?' · '+item.notes.slice(0,65):'');box.append(option)}
   selectors.append(box);
  }
- if(data.length>1)document.getElementById('nothing-placeholder');
  const compare=document.createElement('button');compare.className='btn';compare.dataset.action='comparesnapshots';compare.textContent='Сравнить выбранные версии';selectors.append(compare);
  const restore=document.createElement('button');restore.className='btn';restore.dataset.action='restoresnapshot';restore.textContent='Загрузить вторую версию в редактор';selectors.append(restore);
  holder.append(selectors);
