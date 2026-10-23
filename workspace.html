@@ -215,7 +215,13 @@ function snapshotDiff(a,b){
  const d1=a.data,d2=b.data,percent=n=>(100*n).toFixed(2)+'%',money=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
  const metrics=[['Общая стоимость USD',money(d1.total),money(d2.total)],['Акции',percent(d1.equityValue/d1.total),percent(d2.equityValue/d2.total)],['Облигации',percent(d1.bondValue/d1.total),percent(d2.bondValue/d2.total)],['Топ-1',percent(d1.top1),percent(d2.top1)],['HHI',d1.hhi.toFixed(4),d2.hhi.toFixed(4)],['Дюрация облигаций, лет',d1.bondDuration.toFixed(2),d2.bondDuration.toFixed(2)],['Сценарий +100 б.п., весь портфель',percent(d1.rateShock100bp),percent(d2.rateShock100bp)]];
  const prior=new Map(d1.rows.map(x=>[x.ticker,x])),next=new Map(d2.rows.map(x=>[x.ticker,x]));
- const changes=[...new Set([...prior.keys(),...next.keys()])].map(name=>({name,oldValue:prior.get(name)?.value||0,newValue:next.get(name)?.value||0})).filter(x=>Math.abs(x.oldValue-x.newValue)>0.005).sort((x,y)=>Math.abs(y.newValue-y.oldValue)-Math.abs(x.newValue-x.oldValue));
+ // Show trades and price changes even when the resulting market value is identical.
+ const changes=[...new Set([...prior.keys(),...next.keys()])].map(name=>{
+  const before=prior.get(name),after=next.get(name);
+  return {name,oldValue:before?.value||0,newValue:after?.value||0,
+   oldQty:before?.qty||0,newQty:after?.qty||0,oldPrice:before?.price??null,newPrice:after?.price??null};
+ }).filter(x=>Math.abs(x.oldValue-x.newValue)>0.005||x.oldQty!==x.newQty||x.oldPrice!==x.newPrice)
+ .sort((x,y)=>Math.abs(y.newValue-y.oldValue)-Math.abs(x.newValue-x.oldValue));
  return {metrics,changes};
 }
 function snapshotUi(message){const el=document.getElementById('snapshot-history');if(!el)return;el.textContent=message}
@@ -261,7 +267,8 @@ function compareSnapshots(){
   const title=document.createElement('h3');title.textContent='Версия 1 → Версия 2';output.append(title);
   for(const line of diff.metrics){const p=document.createElement('p');p.textContent=line[0]+': '+line[1]+' → '+line[2];output.append(p)}
   const h=document.createElement('h3');h.textContent='Изменения по инструментам';output.append(h);
-  const p=document.createElement('p');p.textContent=diff.changes.length?diff.changes.slice(0,30).map(c=>c.name+': '+c.oldValue.toFixed(2)+' → '+c.newValue.toFixed(2)+' USD').join('\n'):'Стоимости позиций совпадают.';p.style.whiteSpace='pre-wrap';output.append(p);
+  const fmt=n=>n===null?'—':n.toLocaleString('en-US',{maximumFractionDigits:8});
+  const p=document.createElement('p');p.textContent=diff.changes.length?diff.changes.slice(0,30).map(c=>c.name+': кол-во '+fmt(c.oldQty)+' → '+fmt(c.newQty)+'; цена '+fmt(c.oldPrice)+' → '+fmt(c.newPrice)+' USD; стоимость '+fmt(c.oldValue)+' → '+fmt(c.newValue)+' USD').join('\n'):'Количества, цены и стоимости позиций совпадают.';p.style.whiteSpace='pre-wrap';output.append(p);
   const note=document.createElement('p');note.textContent='Сравнение отражает изменение введённых стоимостей, включая сделки и изменение цен. Не является расчётом доходности.';output.append(note);
  }catch(err){output.textContent='Ошибка сравнения: '+err.message}
 }
