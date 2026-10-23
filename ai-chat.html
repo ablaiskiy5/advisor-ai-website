@@ -34,7 +34,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button><button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
  <button id="download-result" class="action" disabled>Скачать ответ .txt</button>
- <button id="download-pptx" class="action" disabled>⬇ Презентация .pptx</button><button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
+ <button id="download-pptx" class="action" disabled>⬇ Презентация .pptx</button><button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-docx" class="action" disabled>⬇ Редактируемый Word (.docx)</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
  <button id="refresh" class="action">Обновить историю</button>
  <div id="result-status" class="muted" role="status" style="font-size:12px;line-height:1.5;margin-top:8px">Итог можно сохранить в карточке кейса или скачать.</div>
  <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть ChatGPT ↗</a>
@@ -93,7 +93,7 @@ function bubble(role,content){
 }
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
-function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
+function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
@@ -276,6 +276,62 @@ async function downloadPdf(){
  }catch(e){$('result-status').textContent='Не удалось создать PDF: '+e.message+'. Используй кнопку «Печать / сохранить PDF».'}
  finally{button.disabled=false;button.textContent='⬇ Скачать PDF'}
 }
+function docxRichRuns(value,api){
+ const pieces=String(value).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);
+ return pieces.filter(Boolean).map(part=>{
+  const bold=part.startsWith('**')&&part.endsWith('**')&&part.length>4;
+  const mono=part.startsWith('`')&&part.endsWith('`')&&part.length>2;
+  return new api.TextRun({text:(bold||mono)?part.slice(bold?2:1,bold?-2:-1):part,bold,font:mono?'Consolas':'Aptos',size:21});
+ });
+}
+function docxParagraphs(content,api){
+ const output=[],lines=String(content).split(/\r?\n/);
+ for(let i=0;i<lines.length;i++){
+  const t=lines[i].trim();if(!t)continue;
+  if(t.startsWith('|')&&t.endsWith('|')&&i+1<lines.length&&/^\s*\|?[-:| ]+\|?\s*$/.test(lines[i+1])){
+   const rows=[];
+   while(i<lines.length&&lines[i].trim().startsWith('|')&&lines[i].trim().endsWith('|')){
+    const line=lines[i++].trim().slice(1,-1);
+    if(/^[-:| ]+$/.test(line))continue;
+    rows.push(line.split('|').map(text=>text.trim()));
+   }
+   i--;
+   const cols=Math.min(12,Math.max(...rows.map(r=>r.length)));
+   if(cols<1)continue;
+   output.push(new api.Table({width:{size:100,type:api.WidthType.PERCENTAGE},rows:rows.map((row,index)=>new api.TableRow({children:Array.from({length:cols},(_,j)=>new api.TableCell({children:[new api.Paragraph({children:docxRichRuns(row[j]||'',api),spacing:{after:40}})],shading:index===0?{fill:'EAF0FA'}:undefined}) )}))}));
+   continue;
+  }
+  const heading=/^(#{1,3})\s+(.+)$/.exec(t);
+  if(heading){output.push(new api.Paragraph({children:docxRichRuns(heading[2],api),heading:heading[1].length===1?api.HeadingLevel.HEADING_1:api.HeadingLevel.HEADING_2,spacing:{before:260,after:110}}));continue}
+  const bullet=/^[-*•]\s+(.+)$/.exec(t);
+  if(bullet){output.push(new api.Paragraph({children:docxRichRuns(bullet[1],api),bullet:{level:0},spacing:{after:75}}));continue}
+  const enumerated=/^\d+[.)]\s+(.+)$/.exec(t);
+  if(enumerated){output.push(new api.Paragraph({children:docxRichRuns(t,api),spacing:{after:75},indent:{left:240}}));continue}
+  output.push(new api.Paragraph({children:docxRichRuns(lines[i],api),spacing:{after:125}}));
+ }
+ return output;
+}
+async function downloadDocx(){
+ if(!lastAnswer||!caseData)return;
+ const button=$('download-docx');button.disabled=true;button.textContent='Создаю .docx…';
+ try{
+  const api=window.docx;
+  if(!api?.Document||!api?.Packer||!api?.Paragraph||!api?.Table)throw Error('Библиотека DOCX не загрузилась');
+  const children=[
+   new api.Paragraph({children:[new api.TextRun({text:'ADVISOR AI · INVESTMENT INTELLIGENCE',bold:true,color:'345D9F',size:20})],spacing:{after:160}}),
+   new api.Paragraph({text:caseData.title||'Аналитический отчёт',heading:api.HeadingLevel.TITLE,spacing:{after:170}}),
+   new api.Paragraph({children:[new api.TextRun({text:'Дата: '+new Date().toLocaleDateString('ru-RU'),color:'61748F',size:19})],spacing:{after:260}}),
+   ...docxParagraphs(lastAnswer,api)
+  ];
+  const documentFile=new api.Document({creator:'Advisor AI',title:caseData.title||'Отчёт',sections:[{properties:{page:{margin:{top:850,right:850,bottom:850,left:850}}},children}]});
+  const blob=await api.Packer.toBlob(documentFile);
+  if(blob.size<1000)throw Error('Получен некорректный файл');
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='AdvisorAI-'+fileName()+'.docx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
+  $('result-status').textContent='Скачан настоящий редактируемый Word .docx. Проверь таблицы и факты перед отправкой.';
+ }catch(e){$('result-status').textContent='Не удалось создать .docx: '+e.message+'. Можно воспользоваться Word (.doc) или PDF.'}
+ finally{button.disabled=working||!lastAnswer;button.textContent='⬇ Редактируемый Word (.docx)'}
+}
 function downloadWord(){
  if(!lastAnswer||!caseData)return;
  const content=printableContent();const html='<!doctype html><html><head><meta charset="utf-8"></head><body>'+content.outerHTML+'</body></html>';
@@ -307,7 +363,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=safeExternalChatLink(data.chat_url);
  ready(true);waiting(false);await history();
 }
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
-</script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script><script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.umd.cjs"></script></body></html>
