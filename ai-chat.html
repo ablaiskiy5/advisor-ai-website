@@ -13,7 +13,7 @@ h1{font-size:clamp(23px,4vw,35px);margin:9px 0 7px;overflow-wrap:anywhere;line-h
 #messages{flex:1;min-height:200px;overflow:auto;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain;padding:5px 2px 17px}
 .bubble{max-width:90%;width:max-content;min-width:90px;padding:12px 15px;border-radius:14px;background:#223249;border:1px solid #334563;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:14px}
 .bubble.user{align-self:flex-end;background:#244171;border-color:#3d6297}.sender{font-size:11px;color:#afc9ef;font-weight:750;margin-bottom:7px}
-.composer{border-top:1px solid #334561;padding-top:15px;display:flex;gap:10px;align-items:end}
+.composer{border-top:1px solid #334561;padding-top:15px;display:flex;gap:10px;align-items:end}.attachments{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:9px 0}.attachments button{font-size:12px;padding:8px 12px}.filetag{border:1px solid #496184;background:#233856;padding:5px 8px;border-radius:7px;font-size:12px;overflow-wrap:anywhere}.filehint{font-size:11px;color:#aebfd9}.file-status{font-size:12px;color:#c7d7f6;padding:4px 0}
 textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12px;border:1px solid #3c5070;border-radius:10px;background:#0c1528;color:white;outline-offset:2px}
 .notice{padding:12px 14px;border:1px solid #3c5374;border-radius:10px;background:#1a2a45;font-size:13px;line-height:1.55;margin:12px 0;overflow-wrap:anywhere}
 .info h2{font-size:16px;margin:0 0 15px}.info p{font-size:13px;color:#adc0dc}.action{width:100%;margin:6px 0;text-align:center}.hidden{display:none!important}
@@ -28,7 +28,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
- <div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос по этому кейсу…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+ <div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
@@ -45,15 +45,42 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
 'use strict';
 const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
-let db=null,caseData=null,user=null,working=false,lastAnswer='';
+let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 const error=s=>$('error').textContent=s||'';
 function bubble(role,content){const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';const text=document.createElement('div');text.textContent=content;el.append(who,text);return el}
 function setStatus(s){$('case-sub').textContent=s}
-function ready(active){$('question').disabled=!active;$('send').disabled=!active}
+function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';for(const m of (data||[]).reverse())list.append(bubble(m.role,m.content));if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
 async function requestAI(){if(working||!caseData)return;waiting(true);error('');try{const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}if(data?.error)throw Error(data.error);await history()}catch(e){error('Ответ не получен: '+e.message+'. Вопрос сохранён в истории; можно повторить.')}finally{waiting(false)}}
-async function send(){if(working)return;const content=$('question').value.trim();if(!content)return;waiting(true);error('');try{const {error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content});if(err)throw Error(err.message);$('question').value='';await history()}catch(e){error('Не удалось сохранить сообщение: '+e.message);waiting(false);return}waiting(false);await requestAI()}
+const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
+function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
+function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!allowedFiles[f.type]){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
+async function send(){
+ if(working)return;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
+ const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
+ waiting(true);error('');$('file-status').textContent='';
+ let messageId=null,uploaded=[];
+ try{
+  const {data:msg,error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content}).select('id').single();if(err)throw Error(err.message);messageId=msg.id;
+  for(let i=0;i<files.length;i++){
+   const f=files[i];$('file-status').textContent='Загрузка файла '+(i+1)+' из '+files.length+': '+f.name;
+   const ext=allowedFiles[f.type],path=user.id+'/'+caseId+'/'+crypto.randomUUID()+ext;
+   const {error:uploadError}=await db.storage.from('advisor-chat-attachments').upload(path,f,{contentType:f.type,upsert:false,cacheControl:'3600'});
+   if(uploadError)throw Error('Не удалось загрузить '+f.name+': '+uploadError.message);
+   uploaded.push(path);
+   const {error:recordError}=await db.from('advisor_ai_attachments').insert({user_id:user.id,case_id:caseId,message_id:messageId,object_path:path,filename:f.name.slice(0,180),mime_type:f.type,bytes:f.size});
+   if(recordError)throw Error('Не удалось привязать файл к сообщению: '+recordError.message);
+  }
+  $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();
+ }catch(e){
+  // Сохранённое текстовое сообщение остаётся в истории; удаляем неприкреплённые файлы, если возможно.
+  error('Отправка не завершена: '+e.message+'. '+(messageId?'Сообщение осталось в истории; после устранения ошибки можно нажать «Повторить ответ AI».':''));
+  $('file-status').textContent='';
+  waiting(false);return;
+ }
+ waiting(false);await requestAI();$('file-status').textContent='';
+}
 
 const summaryPrompts={
  portfolio:'Сформируй итоговый отчёт по обсуждаемому портфелю только на основе информации этого кейса. Структура: 1) исходные данные и допущения; 2) структура и концентрации; 3) основные риски; 4) аргументированные варианты ребалансировки; 5) конкретные следующие шаги; 6) какие данные ещё нужны. Отделяй установленные факты от гипотез. Не придумывай доли, цены и тикеры.',
@@ -86,7 +113,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  caseData=data;$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=data.chat_url||'https://chatgpt.com/';
  ready(true);waiting(false);await history();
 }
-$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('save-result').addEventListener('click',saveResult);$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script></body></html>
