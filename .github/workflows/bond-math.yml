@@ -1,0 +1,30 @@
+name: Advisor AI Bond Math Checks
+
+on:
+  pull_request:
+    paths:
+      - 'bond-analysis.html'
+      - 'tests/bond-analysis.test.mjs'
+      - '.github/workflows/bond-math.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'bond-analysis.html'
+      - 'tests/bond-analysis.test.mjs'
+      - '.github/workflows/bond-math.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bond-math:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bond math and browser JavaScript syntax
+        run: node --test tests/bond-analysis.test.mjs
