@@ -31,3 +31,24 @@ test('Almaty day boundaries do not depend on browser timezone', () => {
   assert.equal(almatyToday(new Date('2026-10-23T19:00:00Z')), '2026-10-24');
   assert.equal(almatyToday(new Date('2026-12-31T19:00:00Z')), '2027-01-01');
 });
+
+test('seven-day scope includes today plus six days, not eight days', () => {
+  assert.match(html, /const week=addCalendarDays\(today,6\);/);
+  assert.match(html, /scope==='week'&&x\.status!=='done'&&x\.due_date&&x\.due_date<=week/);
+  for (const [today, lastIncluded, firstExcluded] of [
+    ['2026-10-24', '2026-10-30', '2026-10-31'],
+    ['2026-12-29', '2027-01-04', '2027-01-05'],
+    ['2028-02-27', '2028-03-04', '2028-03-05']
+  ]) {
+    const end = addCalendarDays(today, 6);
+    assert.equal(end, lastIncluded);
+    assert.ok(today <= end && lastIncluded <= end);
+    assert.ok(firstExcluded > end);
+  }
+});
+
+test('inline task-board JavaScript parses', () => {
+  const inlineScript = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/)?.[1];
+  assert.ok(inlineScript, 'Inline task-board script must exist');
+  assert.doesNotThrow(() => new Function(inlineScript));
+});
