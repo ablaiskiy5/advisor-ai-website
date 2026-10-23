@@ -219,8 +219,9 @@ function snapshotDiff(a,b){
  const changes=[...new Set([...prior.keys(),...next.keys()])].map(name=>{
   const before=prior.get(name),after=next.get(name);
   return {name,oldValue:before?.value||0,newValue:after?.value||0,
-   oldQty:before?.qty||0,newQty:after?.qty||0,oldPrice:before?.price??null,newPrice:after?.price??null};
- }).filter(x=>Math.abs(x.oldValue-x.newValue)>0.005||x.oldQty!==x.newQty||x.oldPrice!==x.newPrice)
+   oldQty:before?.qty||0,newQty:after?.qty||0,oldPrice:before?.price??null,newPrice:after?.price??null,
+    oldDuration:before?.duration??null,newDuration:after?.duration??null};
+ }).filter(x=>Math.abs(x.oldValue-x.newValue)>0.005||x.oldQty!==x.newQty||x.oldPrice!==x.newPrice||x.oldDuration!==x.newDuration)
  .sort((x,y)=>Math.abs(y.newValue-y.oldValue)-Math.abs(x.newValue-x.oldValue));
  return {metrics,changes};
 }
@@ -268,7 +269,7 @@ function compareSnapshots(){
   for(const line of diff.metrics){const p=document.createElement('p');p.textContent=line[0]+': '+line[1]+' → '+line[2];output.append(p)}
   const h=document.createElement('h3');h.textContent='Изменения по инструментам';output.append(h);
   const fmt=n=>n===null?'—':n.toLocaleString('en-US',{maximumFractionDigits:8});
-  const p=document.createElement('p');p.textContent=diff.changes.length?diff.changes.slice(0,30).map(c=>c.name+': кол-во '+fmt(c.oldQty)+' → '+fmt(c.newQty)+'; цена '+fmt(c.oldPrice)+' → '+fmt(c.newPrice)+' USD; стоимость '+fmt(c.oldValue)+' → '+fmt(c.newValue)+' USD').join('\n'):'Количества, цены и стоимости позиций совпадают.';p.style.whiteSpace='pre-wrap';output.append(p);
+  const p=document.createElement('p');p.textContent=diff.changes.length?diff.changes.slice(0,30).map(c=>c.name+': кол-во '+fmt(c.oldQty)+' → '+fmt(c.newQty)+'; цена '+fmt(c.oldPrice)+' → '+fmt(c.newPrice)+' USD; стоимость '+fmt(c.oldValue)+' → '+fmt(c.newValue)+' USD'+(c.oldDuration!==null||c.newDuration!==null?'; мод. дюрация '+fmt(c.oldDuration)+' → '+fmt(c.newDuration)+' лет':'')).join('\n'):'Количества, цены и стоимости позиций совпадают.';p.style.whiteSpace='pre-wrap';output.append(p);
   const note=document.createElement('p');note.textContent='Сравнение отражает изменение введённых стоимостей, включая сделки и изменение цен. Не является расчётом доходности.';output.append(note);
  }catch(err){output.textContent='Ошибка сравнения: '+err.message}
 }
