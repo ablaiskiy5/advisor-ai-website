@@ -1,0 +1,30 @@
+name: Advisor AI Risk Budget Checks
+
+on:
+  pull_request:
+    paths:
+      - 'ideas-risk-budget.html'
+      - 'tests/risk-budget.test.mjs'
+      - '.github/workflows/risk-budget.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ideas-risk-budget.html'
+      - 'tests/risk-budget.test.mjs'
+      - '.github/workflows/risk-budget.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  risk-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify speculative pool and stop-loss calculations
+        run: node --test tests/risk-budget.test.mjs
