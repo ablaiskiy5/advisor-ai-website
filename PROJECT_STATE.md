@@ -2,6 +2,19 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## FX sensitivity guard — PR #74 (2026-10-24)
+
+- [PR #74](https://github.com/ablaiskiy5/advisor-ai-website/pull/74) changes the KZT cash FX sensitivity to **withhold percentage impact** when estimated NAV is zero or negative. For negative NAV, dividing a USD loss by a negative denominator would misleadingly display a positive percentage; for zero NAV, a null percentage previously risked a browser rendering error.
+- The absolute USD change is still shown; a clear disclosure explains why percentage sensitivity is not meaningful. Positive-NAV behavior is unchanged. Synthetic tests cover positive, zero and negative NAV.
+- Scope: frontend and tests only. No change to RLS, Supabase, plugin release, actual quote data, credentials or private cases. Check PR merge and CI conclusions before calling this deployed. Logged-in browser E2E remains unverified.
+
+## Latest inspected production baseline (2026-10-24)
+
+- GitHub `main` before PR #74: `f06ff28742478295b555eb0480f01414519a4428` (merged [PR #73](https://github.com/ablaiskiy5/advisor-ai-website/pull/73), KZT cash FX sensitivity).
+- Plugin `plugin_5d899bb8d1248191861dff1b4a9295a0`: 2.2.0, private, USER scope. Shared public MCP URL configured; plugin skill is not a callable private backend.
+- Supabase `xhewhzgzzonpgsjznmyl`: ACTIVE_HEALTHY; `advisor-ai-chat` v21, `advisor-ai-organize-tasks` v2, `advisor-ai-shared-tools` v4. Seven inspected public tables have RLS enabled; this does **not** prove cross-user isolation.
+- Security advisor: leaked-password protection disabled (WARN); `advisor_ai_access` and `advisor_task_ai_usage` have RLS with no policy (INFO, potentially intentional for backend-only use). No database settings changed.
+
 ## Portfolio reporting releases — PR #67–#68 (2026-10-24)
 
 - [PR #67](https://github.com/ablaiskiy5/advisor-ai-website/pull/67) merged as `63090b51bbff08e6437db7e0acb217e8e478b6ff`: instrument-name CSV escaping and formula-injection prevention with regression tests. CI passed.
