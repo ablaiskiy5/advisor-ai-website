@@ -107,9 +107,26 @@ test('normal positive-price holdings do not trigger zero-price alerts', () => {
 
 test('coverage audit discloses missing cash, leverage, FX and NAV reconciliation',()=>{
  const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 2; 100','BOND:UST10; 1; 100; 5'])));
- assert.match(memo,/денежные остатки, маржинальные и прочие обязательства/);
- assert.match(memo,/не равна подтверждённым чистым активам \(NAV\)/);
+ assert.match(memo,/Денежные средства или обязательства не указаны/);
+ assert.match(memo,/NAV не рассчитывается/);
  assert.match(memo,/валютная экспозиция/);
  assert.match(memo,/дата оценки, источник котировок/);
  assert.match(html,/id="r-coverage"/);
+});
+
+test('explicit cash and liabilities produce NAV while legacy portfolios remain unknown',()=>{
+ const base=input(['AAPL; 2; 100']);
+ const complete=base.replace('[ADVISOR_AI_PORTFOLIO_END]','Денежные средства 50 USD\nОбязательства 20 USD\n[ADVISOR_AI_PORTFOLIO_END]');
+ const parsed=parseSaved(complete);
+ assert.equal(parsed.cashUsd,50);
+ assert.equal(parsed.debtUsd,20);
+ assert.match(buildInvestmentConclusion(parsed),/Расчётный NAV: 230\.00 USD/);
+ const legacy=parseSaved(base);
+ assert.equal(legacy.cashUsd,null);
+ assert.equal(legacy.debtUsd,null);
+ assert.match(buildInvestmentConclusion(legacy),/NAV не рассчитывается/);
+ const partial=parseSaved(base.replace('[ADVISOR_AI_PORTFOLIO_END]','Денежные средства 0 USD\n[ADVISOR_AI_PORTFOLIO_END]'));
+ assert.equal(partial.cashUsd,0);
+ assert.equal(partial.debtUsd,null);
+ assert.match(buildInvestmentConclusion(partial),/NAV не рассчитывается/);
 });
