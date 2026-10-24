@@ -61,15 +61,10 @@ test('late owner-scoped portfolio fetch cannot render after sign-out',async()=>{
  const filters=[];
  const database={
   auth:{onAuthStateChange:fn=>{authCallback=fn;return {data:{subscription:{unsubscribe(){}}}}},getUser:async()=>({data:{user:{id:'owner-a'}},error:null})},
-  from:table=>{
+  from(table){
    assert.equal(table,'workspace_items');
-   return {select:()=>this,eq(field,value){filters.push([field,value]);return this},single(){return new Promise(resolve=>{release=resolve})}};
+   return {select(){return this},eq(field,value){filters.push([field,value]);return this},single(){return new Promise(resolve=>{release=resolve})}};
   }
- };
- // Use a normal query builder with a chainable select.
- database.from=table=>{
-  assert.equal(table,'workspace_items');
-  return {select(){return this},eq(field,value){filters.push([field,value]);return this},single(){return new Promise(resolve=>{release=resolve})}};
  };
  const app=harness(database);
  const pending=app.init();
