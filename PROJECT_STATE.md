@@ -12,7 +12,7 @@
 
 ## Stable shipped baseline
 
-**GitHub `main` at start of this continuation:** `7bfa95ac536c048b0c84140578ea8396c27abced`, merged PR [#57](https://github.com/ablaiskiy5/advisor-ai-website/pull/57), 2026-10-24. PR #45 (real DOCX regression) was an earlier milestone, **not** the latest revision.
+**Previous GitHub `main` at start of this continuation:** `7bfa95ac536c048b0c84140578ea8396c27abced`, merged PR [#57](https://github.com/ablaiskiy5/advisor-ai-website/pull/57), 2026-10-24. PR #45 (real DOCX regression) was an earlier milestone, **not** the latest revision.
 
 Relevant existing modules:
 - `workspace.html`: signed-in case management, saved positions, import and portfolio snapshots.
@@ -23,16 +23,16 @@ Relevant existing modules:
 - `tasks-board.html`: Supabase tasks, AI task proposals, CSV/iCalendar export.
 - `tools-health.html`: browser-based diagnostic for the **public** four-tool MCP service.
 
-## Release currently being implemented
+## Latest completed release — PR #58
 
-Branch `feat/portfolio-conclusion-and-project-state-20261024` based on PR #57.
+Merged [PR #58](https://github.com/ablaiskiy5/advisor-ai-website/pull/58) to `main` on 2026-10-24 as commit `8382efbe5de6184ed765c10487a9fc67ea2120c1`.
 
 - Add a **deterministic, editable investment-conclusion draft** to `portfolio-report.html`, based only on parsed holdings and existing target allocation; safeguards for missing targets, missing classes, valuation provenance, concentration, duration and illustrative stress.
 - Add explicit user-triggered copy and UTF-8 text export; no transmission to third parties or saved recommendation.
 - Add `tests/portfolio-conclusion.test.mjs` and run through portfolio snapshot GitHub Actions workflow.
 - Keep this handoff document and the README up to date.
 
-**Release gate:** observe successful tests on the PR, then merge. Do not write 'shipped to main' until GitHub confirms the merge.
+**Release gate observed:** both portfolio workflows passed on the PR and again on merged `main` commit `8382efbe5de6` ([snapshot checks](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40058367899), [stress tests](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40058367968)). GitHub Pages publication for that commit was still pending at the time of this status update; see [deployment run](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40058367612) for its actual conclusion. Logged-in browser E2E remains unverified.
 
 ## Recent verification evidence
 
@@ -57,5 +57,5 @@ Branch `feat/portfolio-conclusion-and-project-state-20261024` based on PR #57.
 2. Compare file tree with requested feature, avoid duplicate tools. The ChatGPT plugin does not act as a general API for Workspace.
 3. Create a small feature branch from current `main`. Run or add production-code regression tests and CI gates before merge.
 4. Verify actual GitHub Actions run conclusion; do not report deployment or MCP/OAuth end-to-end as confirmed without explicit evidence.
-5. Update this file: release SHA, exact checks passed, blockers and the next three priorities.
+5. Update this file: release SHA, exact checks passed, blockers and the next three priorities. Documentation-only checkpoint commits on `main` must also be recorded in Git history.
 6. Do not log/upload customer identifiers, positions, tokens, access keys or screenshots into public GitHub.
