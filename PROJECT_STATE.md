@@ -1,3 +1,9 @@
+## Workspace case/session isolation — PR #94 (2026-10-24)
+
+- [PR #94](https://github.com/ablaiskiy5/advisor-ai-website/pull/94) clears Workspace case lists and portfolio snapshot caches on sign-out/account switch; delayed reads, case writes and snapshot responses are ignored after session changes (including same-user re-login). Case list/delete and snapshot reads are explicitly owner-filtered in addition to existing RLS.
+- Synthetic regressions exercise stale case reads, cross-account/same-account login and late saves. This is frontend/test-only; Supabase policies, backend, plugin and client records were not changed.
+- Release status requires successful PR checks, merge and Pages deployment. Two-account authenticated browser testing remains outstanding.
+
 ## Task organizer AI pilot access hardening — 2026-10-24
 
 - Found secondary paid AI entrypoint `advisor-ai-organize-tasks` did not enforce the pilot email allowlist; any confirmed Supabase account could use up to 12 task parses/24h.
