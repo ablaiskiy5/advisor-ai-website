@@ -28,9 +28,9 @@ function harness(){
   review=tasks=>globalThis.__suggestions.push(tasks);
   feedback=message=>globalThis.__messages.push(message);
   ({organize,handleTaskAuthChange,
-    setUser:id=>{user=id?{id}:null},
+    setUser:id=>{db=globalThis.__db;user=id?{id}:null},
     getEpoch:()=>authRevision})
- `,{Date,Intl,document,setTimeout:()=>{},__suggestions:suggestions,__messages:messages});
+ `,{Date,Intl,document,setTimeout:()=>{},__db:database,__suggestions:suggestions,__messages:messages});
  app.setUser('account-a');
  document.getElementById('brain').value='Synthetic task only';
  return {...app,messages,suggestions,resolve:reply=>{
