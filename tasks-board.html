@@ -108,16 +108,21 @@ function openTaskEditor(item){
 }
 async function submitTaskEditor(event){
  event.preventDefault();if(busy)return;
+ const ownerId=user?.id,sessionEpoch=authRevision,editorId=editingId;
+ if(!ownerId){$('edit-note').textContent='Сначала войди в Workspace.';return}
+ const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
  const title=$('edit-title').value.trim(),due=$('edit-due').value;
  if(!title||title.length>220||!validDate(due)){$('edit-note').textContent='Проверь название и дату.';return}
  const values={title,area:$('edit-area').value,priority:$('edit-priority').value,status:$('edit-status').value,due_date:due||null,description:$('edit-description').value.trim()};
  if(!areas[values.area]||!priorities[values.priority]||!['todo','doing','done'].includes(values.status))return;
  busy=true;$('edit-note').textContent='Сохраняю…';
  try{
-  const result=editingId?await db.from('advisor_tasks').update(values).eq('id',editingId).eq('user_id',user.id):await db.from('advisor_tasks').insert({...values,user_id:user.id});
+  const result=editorId?await db.from('advisor_tasks').update(values).eq('id',editorId).eq('user_id',ownerId):await db.from('advisor_tasks').insert({...values,user_id:ownerId});
+  if(!current())return;
   if(result.error)throw result.error;
-  $('task-editor').classList.add('hidden');editingId=null;await load();feedback('Задача сохранена');
- }catch(err){$('edit-note').textContent='Не удалось сохранить: '+err.message}
+  $('task-editor').classList.add('hidden');editingId=null;await load();
+  if(current())feedback('Задача сохранена');
+ }catch(err){if(current())$('edit-note').textContent='Не удалось сохранить: '+err.message}
  finally{busy=false}
 }
 async function editTask(item){openTaskEditor(item)}
