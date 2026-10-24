@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
 const html=readFileSync(new URL('../tasks-board.html',import.meta.url),'utf8');
-const inline=html.match(/<script>\\s*([\\s\\S]*?)<\\/script>\\s*<\\/body>/)?.[1];
+const inline=html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/)?.[1];
 assert.ok(inline,'Production task editor script must exist');
-const offline=inline.replace(/^init\\(\\)\\.catch\\(e=>feedback\\('Ошибка: '\\+e\\.message\\)\\);\\s*$/m,'');
+const offline=inline.replace(/^init\(\)\.catch\(e=>feedback\('Ошибка: '\+e\.message\)\);\s*$/m,'');
 assert.notEqual(offline,inline,'Never connect to production Supabase in unit tests');
 
 function harness(){
