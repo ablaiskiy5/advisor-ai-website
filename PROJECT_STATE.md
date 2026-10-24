@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Task quick-action session isolation — PR #88 (2026-10-24)
+
+- [PR #88](https://github.com/ablaiskiy5/advisor-ai-website/pull/88) captures the authenticated owner and session epoch for task status changes and one-day postponements. Delayed Supabase success or error after sign-out, account switch, or same-account re-login cannot mutate an old task object or display stale feedback.
+- Four synthetic regressions cover normal owner-scoped updates, stale success, stale error and unauthenticated calls. No customer data, Supabase schema/RLS, plugin, secrets or production functions changed.
+- **Release gate:** confirm PR CI, merge, merged-main checks and Pages deployment before claiming this is live. Two-account browser E2E remains outstanding.
+
 ## AI task batch-save session isolation — PR #87 (2026-10-24)
 
 - [PR #87](https://github.com/ablaiskiy5/advisor-ai-website/pull/87) captures the authenticated owner and session epoch before inserting AI-proposed task cards. Late successes and errors after sign-out, account switch or same-account re-login no longer clear the next session's draft, close its review, show the old session's error or refresh tasks for the wrong account.
