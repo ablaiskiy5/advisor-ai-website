@@ -17,7 +17,7 @@
 'use strict';
 const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
 const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
-let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null;
+let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false;
 const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
 function feedback(text){$('info').textContent=text}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -62,9 +62,24 @@ function renderFocus(list,today){
 }
 async function load(){
  if(!db||!user)return;
- const {data,error}=await db.from('advisor_tasks').select('id,title,area,priority,status,due_date,description,created_at').order('created_at',{ascending:false}).limit(500);
- if(error){feedback('Ошибка загрузки: '+error.message);return}
- items=data||[];render();feedback('Список актуален');
+ taskListComplete=false;
+ const pageSize=500,maxPages=20,loaded=[];
+ for(let page=0;page<=maxPages;page++){
+  const start=page*pageSize;
+  const {data,error}=await db.from('advisor_tasks')
+   .select('id,title,area,priority,status,due_date,description,created_at')
+   .eq('user_id',user.id)
+   .order('created_at',{ascending:false})
+   .order('id',{ascending:false})
+   .range(start,start+pageSize-1);
+  if(error){feedback('Ошибка загрузки: '+error.message+'. Экспорт недоступен до успешного обновления.');return}
+  const batch=data||[];
+  if(page===maxPages&&batch.length){feedback('Более 10 000 задач. Экспорт недоступен: список загружен не полностью.');return}
+  loaded.push(...batch);
+  if(batch.length<pageSize){
+   items=loaded;taskListComplete=true;render();feedback('Список актуален · '+items.length+' задач');return;
+  }
+ }
 }
 async function change(item,fields){const {error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',user.id);if(error){feedback('Ошибка: '+error.message);return}Object.assign(item,fields);render()}
 function openTaskEditor(item){
@@ -175,6 +190,7 @@ function downloadExport(name,body,mime){
 }
 function exportCalendar(){
  if(!user)return feedback('Сначала войди в аккаунт');
+ if(!taskListComplete)return feedback('Сначала полностью обнови список задач.');
  const active=items.filter(t=>t.status!=='done'&&t.due_date&&validDate(t.due_date));
  if(!active.length)return feedback('Нет активных задач с назначенной датой');
  downloadExport('AdvisorAI-calendar-'+new Date().toISOString().slice(0,10)+'.ics',tasksIcs(active),'text/calendar;charset=utf-8');
@@ -182,9 +198,10 @@ function exportCalendar(){
 }
 function exportCsv(){
  if(!user)return feedback('Сначала войди в аккаунт');
+ if(!taskListComplete)return feedback('Сначала полностью обнови список задач.');
  if(!items.length)return feedback('Список задач пуст');
  downloadExport('AdvisorAI-tasks-'+new Date().toISOString().slice(0,10)+'.csv',tasksCsv(items),'text/csv;charset=utf-8');
- feedback('Скачано '+items.length+' задач в CSV. Загружено не более 500 последних записей.');
+ feedback('Скачано '+items.length+' задач в CSV. Все доступные задачи включены.');
 }
 
 function filters(){const el=$('filters');for(const [id,name] of [['all','Все области'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1';
