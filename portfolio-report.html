@@ -77,8 +77,12 @@ function parseSaved(notes){
  if(target!==null&&(!Number.isFinite(target)||target<0||target>100))throw Error('Целевая доля облигаций должна быть от 0 до 100%. Исправь карточку портфеля.');
  const cashMatch=segment.match(/^Денежные средства ([0-9]+(?:\.[0-9]+)?) USD$/m),debtMatch=segment.match(/^Обязательства ([0-9]+(?:\.[0-9]+)?) USD$/m);
  const cashUsd=cashMatch?Number(cashMatch[1]):null,debtUsd=debtMatch?Number(debtMatch[1]):null;
+ const kztMatch=segment.match(/^Денежные средства KZT ([0-9]+(?:\.[0-9]+)?) KZT$/m),fxMatch=segment.match(/^Курс KZT за USD ([0-9]+(?:\.[0-9]+)?) KZT\/USD$/m);
+ if(Boolean(kztMatch)!==Boolean(fxMatch))throw Error('Для денежных средств KZT необходим курс KZT за 1 USD.');
+ const cashKzt=kztMatch?Number(kztMatch[1]):null,fxKzt=fxMatch?Number(fxMatch[1]):null;
+ if((cashKzt!==null&&(!Number.isFinite(cashKzt)||cashKzt<0))||(fxKzt!==null&&(!Number.isFinite(fxKzt)||fxKzt<=0)))throw Error('Некорректная сумма KZT или валютный курс.');
  if((cashUsd!==null&&(!Number.isFinite(cashUsd)||cashUsd<0))||(debtUsd!==null&&(!Number.isFinite(debtUsd)||debtUsd<0)))throw Error('Некорректные денежные средства или обязательства.');
- return {rows,total,cashUsd,debtUsd,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
+ return {rows,total,cashUsd,debtUsd,cashKzt,fxKzt,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
 }
 function rateShockScenario(data,basisPoints){
  if(!Number.isFinite(data.total)||data.total<=0||!Number.isFinite(data.bondValue)||data.bondValue<0||data.bondValue>data.total||!Number.isFinite(data.duration)||data.duration<0||!Number.isFinite(basisPoints))throw Error('Некорректные параметры дюрационного сценария');
@@ -218,7 +222,8 @@ function portfolioCoverageLines(data){
  const zero=data.rows.filter(r=>r.price===0);
  return [
   'Подтверждено из сохранённой структуры: '+data.rows.length+' позиций, количество и пользовательская цена каждой в USD.',
-  data.cashUsd===null||data.debtUsd===null?'Денежные средства или обязательства не указаны. NAV не рассчитывается; пустое поле не означает ноль.':'Расчётный NAV: '+cash(data.total+data.cashUsd-data.debtUsd)+' USD = стоимость позиций + денежные средства − обязательства. Все суммы введены пользователем и не сверены с брокером.',
+  data.cashUsd===null||data.debtUsd===null?'Денежные средства или обязательства не указаны. NAV не рассчитывается; пустое поле не означает ноль.':'Расчётный NAV: '+cash(data.total+data.cashUsd+(data.cashKzt===null?0:data.cashKzt/data.fxKzt)-data.debtUsd)+' USD = стоимость позиций + денежные средства − обязательства. Все суммы введены пользователем и не сверены с брокером.',
+  data.cashKzt===null?'Средства KZT не указаны; валютный пересчёт не применялся.':'Средства KZT '+cash(data.cashKzt)+' пересчитаны по введённому курсу '+data.fxKzt+' KZT за USD = '+cash(data.cashKzt/data.fxKzt)+' USD. Курс не проверен.',
   'Не подтверждены: исходная валюта каждого инструмента, валютные курсы и валютная экспозиция. Все введённые цены считаются ценами в USD без пересчёта.',
   'Не подтверждены: дата оценки, источник котировок, комиссии и налоги.',
   zero.length?'Требуют сверки: '+zero.length+' позиций с ценой 0 USD ('+zero.map(r=>r.name).join(', ')+').':'Позиции с ценой 0 USD не обнаружены.'
@@ -276,7 +281,7 @@ function buildInvestmentConclusion(data){
 }
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Отчёт сформирован: '+new Date().toLocaleString('ru-RU')+' · Дата оценки активов: не подтверждена';
- $('r-nav').textContent='';addLine('r-nav',data.cashUsd===null||data.debtUsd===null?'NAV не рассчитан: укажи и денежные средства, и обязательства (0 допустим, если подтверждён).':'Стоимость бумаг '+cash(data.total)+' USD + денежные средства '+cash(data.cashUsd)+' USD − обязательства '+cash(data.debtUsd)+' USD = расчётный NAV '+cash(data.total+data.cashUsd-data.debtUsd)+' USD. Без валютной переоценки и сверки с брокером.');
+ $('r-nav').textContent='';addLine('r-nav',data.cashUsd===null||data.debtUsd===null?'NAV не рассчитан: укажи и денежные средства, и обязательства (0 допустим, если подтверждён).':'Стоимость бумаг '+cash(data.total)+' USD + денежные средства '+cash(data.cashUsd)+' USD − обязательства '+cash(data.debtUsd)+' USD = расчётный NAV '+cash(data.total+data.cashUsd-data.debtUsd)+' USD.'+(data.cashKzt===null?'':' Включая '+cash(data.cashKzt)+' KZT / '+data.fxKzt+' KZT за USD.')+' Курс введён пользователем, без сверки с брокером.');
  $('r-coverage').textContent='';for(const line of portfolioCoverageLines(data))addLine('r-coverage',line);
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
  addLine('r-concentration','Топ-1: '+pct(data.top1)+'; топ-3: '+pct(data.top3)+'; топ-5: '+pct(data.top5)+'.');
