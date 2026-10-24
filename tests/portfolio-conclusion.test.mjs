@@ -15,7 +15,7 @@ const code = [
  "const cash=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>(100*n).toFixed(1)+'%';",
  between('function parseSaved(', 'function renderRateStress('),
  between('function projectAllocation(', 'function customPortfolioStress('),
- between('function buildInvestmentConclusion(', 'function renderReport('),
+ between('function portfolioCoverageLines(', 'function renderReport('),
  '({parseSaved,buildInvestmentConclusion})'
 ].join('\n');
 const { parseSaved, buildInvestmentConclusion } = runInNewContext(code);
@@ -103,4 +103,13 @@ test('zero-price holdings are explicitly flagged rather than silently treated as
 test('normal positive-price holdings do not trigger zero-price alerts', () => {
  const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 1; 100','NVDA; 2; 100'])));
  assert.doesNotMatch(memo,/позиций имеют цену 0 USD/);
+});
+
+test('coverage audit discloses missing cash, leverage, FX and NAV reconciliation',()=>{
+ const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 2; 100','BOND:UST10; 1; 100; 5'])));
+ assert.match(memo,/денежные остатки, маржинальные и прочие обязательства/);
+ assert.match(memo,/не равна подтверждённым чистым активам \(NAV\)/);
+ assert.match(memo,/валютная экспозиция/);
+ assert.match(memo,/дата оценки, источник котировок/);
+ assert.match(html,/id="r-coverage"/);
 });

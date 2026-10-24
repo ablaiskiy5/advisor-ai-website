@@ -21,6 +21,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <div class="brand">Advisor <span>AI</span> · Investment Intelligence</div>
 <h1 id="r-title">Портфель</h1><p id="r-date" class="sub"></p><p id="r-valuation-warning" class="notice" role="note">Дата оценки и источник котировок не подтверждены. Время формирования отчёта не является датой оценки активов.</p>
 <div class="grid"><div class="tile"><small>Стоимость</small><strong id="r-total">—</strong></div><div class="tile"><small>Акции</small><strong id="r-equity">—</strong></div><div class="tile"><small>Облигации</small><strong id="r-bonds">—</strong></div><div class="tile"><small>Количество позиций</small><strong id="r-count">—</strong></div></div>
+<section class="panel"><h2>Полнота данных и границы оценки</h2><div id="r-coverage"></div></section>
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
 <section class="panel"><h2>Совместный стресс-тест: акции и ставки</h2><div id="r-cross-stress"></div><p class="foot">Гипотетические независимые шоки акций и процентных ставок. Без корреляций, изменения кредитных спредов, выпуклости и других рыночных факторов. Не прогноз.</p></section>
@@ -208,6 +209,17 @@ function renderComparison(data){
  addLine('r-comparison','Сравнение рассчитано при сохранении пропорций инструментов внутри каждого класса активов.');
 }
 
+function portfolioCoverageLines(data){
+ if(!data||!Array.isArray(data.rows))throw Error('Не указан портфель для проверки полноты.');
+ const zero=data.rows.filter(r=>r.price===0);
+ return [
+  'Подтверждено из сохранённой структуры: '+data.rows.length+' позиций, количество и пользовательская цена каждой в USD.',
+  'Не предоставлены в структуре: денежные остатки, маржинальные и прочие обязательства. Поэтому расчётная стоимость позиций не равна подтверждённым чистым активам (NAV).',
+  'Не подтверждены: исходная валюта каждого инструмента, валютные курсы и валютная экспозиция. Все введённые цены считаются ценами в USD без пересчёта.',
+  'Не подтверждены: дата оценки, источник котировок, комиссии и налоги.',
+  zero.length?'Требуют сверки: '+zero.length+' позиций с ценой 0 USD ('+zero.map(r=>r.name).join(', ')+').':'Позиции с ценой 0 USD не обнаружены.'
+ ];
+}
 function buildInvestmentConclusion(data){
  if(!data||!Number.isFinite(data.total)||data.total<=0||!Array.isArray(data.rows)||!data.rows.length)throw Error('Для заключения требуется корректный портфель.');
  const money=n=>cash(n)+' USD';
@@ -249,7 +261,8 @@ function buildInvestmentConclusion(data){
   if(!allocation.possible)lines.push('• Состав целевого портфеля нельзя рассчитать только из текущих инструментов: '+allocation.reason);
   else lines.push('• Модель сохраняет пропорции внутри каждого класса, не подбирает новые бумаги и не формирует торговые поручения.');
  }
- lines.push('','4. Проверить до представления клиенту',
+ lines.push('','4. Полнота данных',...portfolioCoverageLines(data));
+ lines.push('','5. Проверить до представления клиенту',
  '• Актуальность котировок и дату оценки; валюты, денежные средства, обязательства и плечо.',
  '• Секторную и географическую концентрацию, корреляции, кредитное качество, ликвидность и сроки погашения.',
  '• Горизонт инвестирования, ограничения, налоги, комиссии и допустимую просадку.',
@@ -259,6 +272,7 @@ function buildInvestmentConclusion(data){
 }
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Отчёт сформирован: '+new Date().toLocaleString('ru-RU')+' · Дата оценки активов: не подтверждена';
+ $('r-coverage').textContent='';for(const line of portfolioCoverageLines(data))addLine('r-coverage',line);
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
  addLine('r-concentration','Топ-1: '+pct(data.top1)+'; топ-3: '+pct(data.top3)+'; топ-5: '+pct(data.top5)+'.');
  addLine('r-concentration','HHI: '+data.hhi.toFixed(4)+'; эффективное число позиций: '+(1/data.hhi).toFixed(2)+'.');
