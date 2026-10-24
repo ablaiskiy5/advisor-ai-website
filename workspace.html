@@ -206,15 +206,20 @@ function downloadHoldingsTemplate(){
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='advisor-ai-portfolio-template.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
 }
 async function importHoldingsFile(file){
- if(!file)return;const preview=document.getElementById('portfolio-preview');
- if(file.size>50000){if(preview)preview.textContent='Файл слишком большой. Максимум 50 КБ.';return}
+ if(!file||!session?.user?.id||!active)return;
+ const revision=authRevision,ownerId=session.user.id,caseId=active;
+ const input=document.getElementById('holdings-input'),preview=document.getElementById('portfolio-preview'),fileInput=document.getElementById('holdings-file');
+ if(!input)return;
+ const importIsCurrent=()=>isCurrentWorkspaceSession(revision,ownerId)&&active===caseId&&document.getElementById('holdings-input')===input;
+ if(file.size>50000){if(importIsCurrent()&&preview)preview.textContent='Файл слишком большой. Максимум 50 КБ.';return}
  try{
-  const text=await file.text(),normalized=normalizeHoldingsFile(text);
-  const check=parseHoldings(normalized),input=document.getElementById('holdings-input');if(!input)return;
+  const text=await file.text();
+  if(!importIsCurrent())return;
+  const normalized=normalizeHoldingsFile(text),check=parseHoldings(normalized);
   input.value=normalized;
   if(preview)preview.textContent='Файл прочитан: '+check.rows.length+' позиций.\n'+summarizeHoldings(check)+'\nНажми «Сохранить позиции и расчёт», чтобы сохранить результат в кейсе.';
- }catch(e){if(preview)preview.textContent='Ошибка импорта: '+e.message}
- finally{const fileInput=document.getElementById('holdings-file');if(fileInput)fileInput.value=''}
+ }catch(e){if(importIsCurrent()&&preview)preview.textContent='Ошибка импорта: '+e.message}
+ finally{if(importIsCurrent()&&fileInput===document.getElementById('holdings-file'))fileInput.value=''}
 }
 function calculatePortfolio(){const el=document.getElementById('portfolio-preview');if(!el)return null;try{const data=parseHoldings(document.getElementById('holdings-input').value);const goal=document.getElementById('target-bonds')?.value.trim()||'';if(goal!==''){const target=Number(goal);if(!Number.isFinite(target)||target<0||target>100)throw Error('Целевая доля облигаций должна быть в пределах 0–100%.');data.targetBondPct=target;data.bondTradeValue=data.total*target/100-data.bondValue;}for(const [id,key] of [['cash-usd','cashUsd'],['debt-usd','debtUsd']]){const raw=document.getElementById(id)?.value.trim()||'';if(raw!==''){const amount=Number(raw);if(!Number.isFinite(amount)||amount<0||!/^\d+(?:\.\d{1,2})?$/.test(raw))throw Error('Суммы USD должны быть неотрицательными, максимум 2 знака после запятой.');data[key]=amount;}}const kztRaw=document.getElementById('cash-kzt')?.value.trim()||'',fxRaw=document.getElementById('fx-kzt')?.value.trim()||'';if(kztRaw!==''||fxRaw!==''){const kzt=Number(kztRaw),fx=Number(fxRaw);if(kztRaw===''||fxRaw===''||!/^\d+(?:\.\d{1,2})?$/.test(kztRaw)||!/^\d+(?:\.\d+)?$/.test(fxRaw)||!Number.isFinite(kzt)||!Number.isFinite(fx)||fx<=0)throw Error('Для средств KZT укажи неотрицательную сумму и положительный курс KZT за 1 USD.');data.cashKzt=kzt;data.fxKzt=fx;}el.textContent=summarizeHoldings(data)+(data.targetBondPct===undefined?'':'\n\nЦель: облигации '+data.targetBondPct.toFixed(1)+'%. '+(data.bondTradeValue>=0?'Увеличить облигационную часть на ':'Сократить облигационную часть на ')+Math.abs(data.bondTradeValue).toFixed(2)+' USD, акции изменить на обратную сумму. Без издержек и изменения стоимости портфеля.');return data}catch(e){el.textContent='Ошибка: '+e.message;return null}}
 async function savePortfolio(){const data=calculatePortfolio();if(!data)return;const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
