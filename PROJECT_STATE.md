@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Portfolio reporting releases — PR #67–#68 (2026-10-24)
+
+- [PR #67](https://github.com/ablaiskiy5/advisor-ai-website/pull/67) merged as `63090b51bbff08e6437db7e0acb217e8e478b6ff`: instrument-name CSV escaping and formula-injection prevention with regression tests. CI passed.
+- [PR #68](https://github.com/ablaiskiy5/advisor-ai-website/pull/68) merged as `33c16cb6810ea43b218dc7fb7d3eda3a31886a50`: investment report and conclusion explicitly distinguish report generation time from **unverified** asset valuation date and quote provenance. First PR CI failed due to a faulty HTML matching assertion; corrected, then all three PR workflows and merged-main workflows passed. [Pages deployment passed](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40069717607).
+- These changes do **not** add real-time prices, verified quote timestamps, broker statement reconciliation or authenticated browser E2E.
+
 ## Task-board session isolation — PR #66 (2026-10-24)
 
 - [PR #66](https://github.com/ablaiskiy5/advisor-ai-website/pull/66) clears cached task cards, unsaved draft/editor fields and export eligibility when Supabase signs out or the signed-in account changes. This prevents task information from a previous session remaining on screen in the same tab.
