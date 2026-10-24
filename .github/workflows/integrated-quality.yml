@@ -1,0 +1,49 @@
+name: Advisor AI Integrated Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - 'workspace.html'
+      - 'ai-chat.html'
+      - 'portfolio-report.html'
+      - 'tasks-board.html'
+      - 'ideas-risk-budget.html'
+      - 'bond-analysis.html'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/integrated-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'workspace.html'
+      - 'ai-chat.html'
+      - 'portfolio-report.html'
+      - 'tasks-board.html'
+      - 'ideas-risk-budget.html'
+      - 'bond-analysis.html'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/integrated-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all existing Node regression tests
+        run: node --test tests/*.test.mjs
+      - name: Validate presentation export logic
+        run: node scripts/test-presentation-export.mjs
+      - name: Validate JS syntax of export and MCP scripts
+        run: |
+          node --check scripts/test-presentation-export.mjs
+          node --check scripts/smoke-shared-mcp.mjs
+          node --check scripts/test-docx-export.mjs
