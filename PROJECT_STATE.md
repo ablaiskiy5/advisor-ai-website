@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Task-board pagination safeguard — PR #65 (2026-10-24)
+
+- Task loading previously stopped after 500 records, so CSV and calendar exports could silently omit older tasks. [PR #65](https://github.com/ablaiskiy5/advisor-ai-website/pull/65) introduces owner-scoped, stable 500-row pagination and full export only after every page is loaded.
+- Defensive ceiling: more than 10,000 rows or a failed page blocks export rather than publishing a partial file. Synthetic regression tests cover 0, 499, 500, 501, 1,201, 10,001 rows, network errors and exports.
+- This is a frontend-only change: no RLS policies, credentials, client data, paid settings, plugin release or Edge Functions are changed. Authenticated browser E2E remains unverified. Verify PR CI and deployment outcomes before claiming production success.
+
 ## Repositories and deployment surfaces
 
 - Frontend: [`ablaiskiy5/advisor-ai-website`](https://github.com/ablaiskiy5/advisor-ai-website), public, `main`, GitHub Pages static HTML/JS.
