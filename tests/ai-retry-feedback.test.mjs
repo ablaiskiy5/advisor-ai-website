@@ -12,3 +12,10 @@ test('quota and pilot access failures have actionable guidance',()=>{
  assert.match(page,/подтверждённый email из списка участников пилота/);
  assert.match(page,/не более трёх попыток на вопрос/);
 });
+test('history refresh does not re-enable an exhausted message retry',()=>{
+ assert.match(page,/const exhaustedRetryMessages=new Set\(\)/);
+ assert.match(page,/latestUserMessageId=\(data\|\|\[\]\)\.find\(m=>m\.role==='user'\)\?\.id/);
+ assert.match(page,/exhaustedRetryMessages\.has\(latestUserMessageId\)/);
+ assert.match(page,/exhaustedRetryMessages\.add\(latestUserMessageId\)/);
+ assert.match(page,/exhaustedRetryMessages\.clear\(\)/);
+});
