@@ -1,12 +1,16 @@
 name: Advisor AI Live Public Pages Smoke
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['pages build and deployment']
+    types: [completed]
   schedule:
     - cron: '0 3 * * *'
 permissions:
   contents: read
 jobs:
   live-pages:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
