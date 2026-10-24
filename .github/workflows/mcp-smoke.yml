@@ -2,6 +2,10 @@ name: Advisor AI MCP Live Verification
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/smoke-shared-mcp.mjs'
+      - '.github/workflows/mcp-smoke.yml'
   push:
     branches: [main]
     paths:

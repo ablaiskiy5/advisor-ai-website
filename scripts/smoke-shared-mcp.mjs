@@ -17,6 +17,7 @@ async function run(){
  const listed=await call('tools/list');
  const expected=['bond_current_yield','portfolio_concentration','trade_risk_budget','bond_duration_shock'];
  for(const name of expected)assert(listed.tools?.some(x=>x.name===name),'Missing '+name);
+ assert(listed.tools.length===expected.length,'Unexpected tool exposed on public MCP');
  const invoke=async(name,args)=>{
   const result=await call('tools/call',{name,arguments:args});
   assert(result.isError!==true,name+' reported an error');
