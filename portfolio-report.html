@@ -16,6 +16,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <div class="grid"><div class="tile"><small>Стоимость</small><strong id="r-total">—</strong></div><div class="tile"><small>Акции</small><strong id="r-equity">—</strong></div><div class="tile"><small>Облигации</small><strong id="r-bonds">—</strong></div><div class="tile"><small>Количество позиций</small><strong id="r-count">—</strong></div></div>
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
+<section class="panel"><h2>Совместный стресс-тест: акции и ставки</h2><div id="r-cross-stress"></div><p class="foot">Гипотетические независимые шоки акций и процентных ставок. Без корреляций, изменения кредитных спредов, выпуклости и других рыночных факторов. Не прогноз.</p></section>
 <section class="panel"><h2>Целевой состав и перераспределение</h2><div id="r-target"></div></section>
 <section class="panel"><h2>Сравнение текущего и целевого портфеля</h2><div id="r-comparison"></div><p class="foot">Сценарий: пропорциональное изменение позиций внутри каждого класса. Без новых инструментов, изменения цен, комиссий и налогов. Не является торговым планом.</p></section><section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
 <section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
@@ -77,6 +78,27 @@ function renderRateStress(data){
  table.append(body);const wrap=document.createElement('div');wrap.className='tablewrap';wrap.append(table);host.append(wrap);
  addLine('r-duration','Это приближение первого порядка по модифицированной дюрации при параллельном изменении доходностей. Без выпуклости, кредитных спредов, валютного риска, ликвидности и переоценки акций. При больших шоках погрешность может быть существенной.');
 }
+function combinedPortfolioStress(data,equityReturnPercent,yieldChangeBp){
+ if(!Number.isFinite(data.total)||data.total<=0||![data.bondValue,data.equityValue,data.duration,equityReturnPercent,yieldChangeBp].every(Number.isFinite)||data.bondValue<0||data.equityValue<0||Math.abs(data.bondValue+data.equityValue-data.total)>1e-6*Math.max(1,data.total)||data.duration<0||equityReturnPercent< -100||equityReturnPercent>100||Math.abs(yieldChangeBp)>10000)throw Error('Некорректные входные данные стресс-теста');
+ const equityChangeUsd=data.equityValue*equityReturnPercent/100;
+ const bondChangeUsd=-data.bondValue*data.duration*yieldChangeBp/10000;
+ const changeUsd=equityChangeUsd+bondChangeUsd;
+ return {equityChangeUsd,bondChangeUsd,changeUsd,portfolioPct:changeUsd/data.total*100,stressedValue:data.total+changeUsd};
+}
+function renderCombinedStress(data){
+ const host=$('r-cross-stress');
+ const assumptions=[{title:'Коррекция акций −10%, ставки +50 б.п.',equity:-10,bp:50},{title:'Распродажа акций −20%, ставки +100 б.п.',equity:-20,bp:100},{title:'Сильная просадка акций −35%, ставки +200 б.п.',equity:-35,bp:200},{title:'Рост акций +10%, ставки −50 б.п.',equity:10,bp:-50}];
+ const table=document.createElement('table'),head=document.createElement('thead'),hr=document.createElement('tr');
+ for(const title of ['Условный сценарий','Изменение акций, USD','Изменение облигаций, USD','Изменение всего портфеля','Стоимость после шока']){const th=document.createElement('th');th.textContent=title;hr.append(th)}
+ head.append(hr);table.append(head);const body=document.createElement('tbody');
+ for(const a of assumptions){
+  const res=combinedPortfolioStress(data,a.equity,a.bp),tr=document.createElement('tr');
+  for(const cell of [a.title,(res.equityChangeUsd>=0?'+':'−')+cash(Math.abs(res.equityChangeUsd)),(res.bondChangeUsd>=0?'+':'−')+cash(Math.abs(res.bondChangeUsd)),(res.portfolioPct>=0?'+':'')+res.portfolioPct.toFixed(2)+'% ('+(res.changeUsd>=0?'+':'−')+cash(Math.abs(res.changeUsd))+' USD)',cash(res.stressedValue)+' USD']){
+   const td=document.createElement('td');td.textContent=cell;tr.append(td)}
+  body.append(tr)}
+ table.append(body);const wrapper=document.createElement('div');wrapper.className='tablewrap';wrapper.append(table);host.append(wrapper);
+ addLine('r-cross-stress','База: акции '+pct(data.equityValue/data.total)+', облигации '+pct(data.bondValue/data.total)+'. Модифицированная дюрация облигаций '+data.duration.toFixed(2)+' года. Доли рассчитаны по указанным позициям; стоимость после шока может стать отрицательной в экстремальной линейной модели — не считай такой результат достижимой ценой.');
+}
 function projectAllocation(data,targetBondPercent){
  if(!Number.isFinite(targetBondPercent)||targetBondPercent<0||targetBondPercent>100)return {possible:false,reason:'Целевая доля должна быть от 0 до 100%.'};
  const targetBond=targetBondPercent/100,targetEquity=1-targetBond;
@@ -129,6 +151,7 @@ function renderReport(data,title){
   addLine('r-duration','Сценарий +100 б.п. доходности облигаций: приблизительно '+pct(-data.bondValue/data.total*data.duration*0.01)+' по всему портфелю при прочих равных.');
   renderRateStress(data);
  }else addLine('r-duration','Облигации не указаны, процентный риск облигационного сегмента не рассчитан.');
+ renderCombinedStress(data);
  renderComparison(data);
  if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
  else{
