@@ -227,11 +227,17 @@ const summaryPrompts={
 };
 async function transferToTasks(){
  if(!user||!caseData||caseData.kind!=='tasks')return;
- const {data,error:err}=await db.from('advisor_ai_messages').select('role,content').eq('case_id',caseId).eq('role','user').order('created_at',{ascending:false}).limit(12);
+ const ownerId=user.id,epoch=sessionEpoch,sourceCaseId=caseId;
+ const {data,error:err}=await db.from('advisor_ai_messages').select('role,content').eq('case_id',sourceCaseId).eq('role','user').order('created_at',{ascending:false}).limit(12);
+ // Ignore responses from signed-out, switched, or restarted sessions.
+ if(!isCurrentChat(epoch,ownerId)||caseId!==sourceCaseId||caseData?.kind!=='tasks')return;
  if(err){error('Не удалось прочитать сообщения: '+err.message);return}
  const lines=(data||[]).reverse().map(x=>x.content.trim()).filter(Boolean);
  if(!lines.length){error('Сначала перечисли задачи в чате.');return}
- try{sessionStorage.setItem('advisor_ai_task_brain_dump',lines.join('\n').slice(0,10000));window.location.href='./tasks-board.html'}catch(e){error('Не удалось перенести текст: '+e.message)}
+ try{
+  sessionStorage.setItem('advisor_ai_task_brain_dump',JSON.stringify({owner_id:ownerId,text:lines.join('\n').slice(0,10000)}));
+  window.location.href='./tasks-board.html';
+ }catch(e){error('Не удалось перенести текст: '+e.message)}
 }
 async function makeSummary(){
  if(working||!caseData)return;
