@@ -14,6 +14,13 @@
 - Adds synthetic regression tests for state clearing and asynchronous guards. No Supabase migration, plugin release, customer data or permission change.
 - **Verification boundary:** this is a code-level guard, not an authenticated two-account browser E2E test. Check PR and merged-main CI and Pages deployment before calling it released. Two-account login/attachment isolation and mobile Safari remain outstanding.
 
+## Atomic AI quota release — 2026-10-24
+
+- Supabase migration `atomic_ai_request_reservation_limits` created RLS-enabled, client-inaccessible `advisor_ai_request_reservations` and service-role-only `reserve_advisor_ai_request(uuid,integer,integer)` RPC.
+- The RPC uses a transaction-scoped advisory lock, counts 24-hour reservations, and atomically reserves one slot. Effective per-user limit is the lesser of the account limit and server ceiling 30; new users auto-enroll at 10; global limit 150 reservations/24h. The reservation is **not** a dollar-cost cap; failures after reservation can consume one slot.
+- Supabase `advisor-ai-chat` **v24 ACTIVE** calls the RPC after verifying the user, owned case, valid new user message and presence of API key. Previous count-then-check race removed.
+- SQL transaction-and-rollback smoke test checked first reservation succeeds and second fails at user limit 1; authenticated role lacks EXECUTE on RPC. No live second-user/browser E2E, token-billing reconciliation or authenticated AI response tested. Registration of non-employee users remains possible; do not load confidential client data yet.
+
 ## Attachment authorization hardening — 2026-10-24
 
 - Production Supabase migration `fix_attachment_message_case_ownership` applied: `advisor_ai_attachments` INSERT RLS now requires `advisor_ai_messages.case_id = advisor_ai_attachments.case_id`, not the previous tautology `m.case_id = m.case_id`.
