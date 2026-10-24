@@ -14,6 +14,6 @@ test('cash and liabilities restore from saved notes',()=>{
 test('workspace exposes optional amounts and saves them',()=>{
  assert.match(html,/id="cash-usd"/);
  assert.match(html,/id="debt-usd"/);
- assert.match(html,/summary\\.cashUsd===undefined/);
- assert.match(html,/summary\\.debtUsd===undefined/);
+ assert.match(html,/summary\.cashUsd===undefined/);
+ assert.match(html,/summary\.debtUsd===undefined/);
 });
