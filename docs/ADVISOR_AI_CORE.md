@@ -1,12 +1,12 @@
 # Advisor AI — unified architecture and status
 
-Last verified: 2026-10-24. For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
+Last verified: 2026-10-24 (plugin metadata and Supabase Edge Function listing rechecked; no authenticated browser E2E). For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
 
 ## Production components
 
 - **ChatGPT Plugin**: existing private `Advisor AI | Investment Intelligence`, release **2.2.0**. The plugin package contains its comprehensive 2.1 skill, retained academy/source files, and a remote `.mcp.json` connection to the shared mathematical tools.
 - **Workspace frontend**: GitHub Pages `workspace.html`, `ai-chat.html`, `tasks-board.html`, `bond-analysis.html`, and `portfolio-report.html`.
-- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v21**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
+- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v24**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
 - **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v4**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
 - **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` with capped AI proposals.
 - **Files**: private `advisor-chat-attachments` bucket with owner restrictions; screenshot/PDF analysis via `advisor-ai-chat`.
