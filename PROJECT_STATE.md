@@ -1,3 +1,9 @@
+## Portfolio file import session isolation — PR #99 (2026-10-25)
+
+- [PR #99](https://github.com/ablaiskiy5/advisor-ai-website/pull/99) guards the asynchronous portfolio CSV/text file importer against account switch, sign-out/re-login and navigation to a different case while `file.text()` is pending. Old results, errors and file-picker cleanup cannot modify the next editor.
+- Six synthetic Node regressions exercise ordinary import, cross-account and same-account session changes, case navigation, delayed errors, and invalid/oversized files. This does **not** establish authenticated two-account browser E2E.
+- Scope: frontend and tests only. No private cases, plugin, Supabase database/RLS, Edge Functions, market prices, credentials or tariffs changed. **Release gate:** verify PR checks, merge, merged-main checks and Pages publication before reporting release.
+
 ## Chat-to-task transfer session isolation — PR #96 (2026-10-24)
 
 - [PR #96](https://github.com/ablaiskiy5/advisor-ai-website/pull/96) changes the AI-chat → task-board handoff to a one-time, owner-tagged browser session payload. The receiving page checks the verified Supabase user **before** displaying the text; mismatched and legacy unscoped payloads are discarded.
