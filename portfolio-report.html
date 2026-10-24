@@ -225,7 +225,7 @@ function kztCashFxScenario(data,fxChangePct){
  const afterUsd=data.cashKzt/(data.fxKzt*(1+fxChangePct/100));
  const deltaUsd=afterUsd-beforeUsd;
  const nav=data.cashUsd===null||data.debtUsd===null?null:data.total+data.cashUsd+beforeUsd-data.debtUsd;
- return {beforeUsd,afterUsd,deltaUsd,nav,navChangePct:nav!==null&&nav!==0?deltaUsd/nav*100:null};
+ return {beforeUsd,afterUsd,deltaUsd,nav,navChangePct:nav!==null&&nav>0?deltaUsd/nav*100:null};
 }
 function portfolioCoverageLines(data){
  if(!data||!Array.isArray(data.rows))throw Error('Не указан портфель для проверки полноты.');
@@ -299,7 +299,7 @@ function renderReport(data,title){
   addLine('r-fx-risk','Оценка KZT cash: '+cash(stronger.beforeUsd)+' USD при вручную введённом курсе '+data.fxKzt+' KZT за 1 USD.');
   addLine('r-fx-risk','KZT укрепляется на 10% к USD в терминах курса KZT/USD (курс снижается на 10%): изменение USD-стоимости остатка '+cash(stronger.deltaUsd)+' USD.');
   addLine('r-fx-risk','KZT ослабевает на 10% к USD в терминах курса KZT/USD (курс растёт на 10%): изменение USD-стоимости остатка '+cash(weaker.deltaUsd)+' USD.');
-  addLine('r-fx-risk',weaker.nav===null?'NAV не подтверждён из-за отсутствия USD cash или обязательств; процентное влияние на NAV не вычисляется.': 'Влияние ослабления KZT на расчётный NAV: '+weaker.navChangePct.toFixed(2)+'%.');
+  addLine('r-fx-risk',weaker.nav===null?'NAV не подтверждён из-за отсутствия USD cash или обязательств; процентное влияние на NAV не вычисляется.':weaker.nav<=0?'Расчётный NAV равен нулю или отрицателен; процентное влияние валютного шока на NAV не имеет корректного экономического смысла и не показывается.':'Влияние ослабления KZT на расчётный NAV: '+weaker.navChangePct.toFixed(2)+'%.');
   addLine('r-fx-risk','Это только чувствительность указанного остатка KZT; валюты ценных бумаг, обязательств и хеджирование не учитываются. Сценарий, не прогноз.');
  }
  $('r-coverage').textContent='';for(const line of portfolioCoverageLines(data))addLine('r-coverage',line);
