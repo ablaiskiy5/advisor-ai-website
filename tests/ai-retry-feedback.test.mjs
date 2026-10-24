@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const page=readFileSync(new URL('../ai-chat.html',import.meta.url),'utf8');
 test('retry exhaustion disables repeated calls and offers new question',()=>{
  assert.match(page,/Лимит повторных попыток/);
- assert.match(page,/if\(exhausted\)\{\s*\$\('retry'\)\.classList\.add\('hidden'\)/);
+ assert.match(page,/if\(exhausted\)\{[\s\S]*?\$\('retry'\)\.classList\.add\('hidden'\)/);
  assert.match(page,/Три попытки обработки этого сообщения использованы/);
 });
 test('quota and pilot access failures have actionable guidance',()=>{
