@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Task-board session isolation — PR #66 (2026-10-24)
+
+- [PR #66](https://github.com/ablaiskiy5/advisor-ai-website/pull/66) clears cached task cards, unsaved draft/editor fields and export eligibility when Supabase signs out or the signed-in account changes. This prevents task information from a previous session remaining on screen in the same tab.
+- Paginated reads capture the owner ID and request revision; older in-flight responses cannot repopulate tasks after sign-out, account switch or a newer refresh. Synthetic regression tests cover sign-out and deferred old-owner responses.
+- Scope: static task-board frontend and synthetic tests only. No production customer records, RLS policies, backend functions, credentials or paid configuration changed. Authenticated cross-tab browser E2E is still unverified. Check actual PR CI, merge and Pages deployment status before describing this change as released.
+
 ## Task-board pagination safeguard — PR #65 (2026-10-24)
 
 - Task loading previously stopped after 500 records, so CSV and calendar exports could silently omit older tasks. [PR #65](https://github.com/ablaiskiy5/advisor-ai-website/pull/65) introduces owner-scoped, stable 500-row pagination and full export only after every page is loaded.
