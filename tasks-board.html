@@ -97,7 +97,15 @@ async function load(){
   }
  }
 }
-async function change(item,fields){const {error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',user.id);if(error){feedback('Ошибка: '+error.message);return}Object.assign(item,fields);render()}
+async function change(item,fields){
+ const ownerId=user?.id,sessionEpoch=authRevision;
+ if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
+ const {error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',ownerId);
+ // A late quick-action response must not mutate or report on a different auth session.
+ if(user?.id!==ownerId||authRevision!==sessionEpoch)return;
+ if(error){feedback('Ошибка: '+error.message);return}
+ Object.assign(item,fields);render();
+}
 function openTaskEditor(item){
  editingId=item?.id||null;$('edit-heading').textContent=item?'Редактировать задачу':'Добавить задачу';
  $('edit-title').value=item?.title||'';$('edit-area').innerHTML=options(areas,item?.area||'work');
