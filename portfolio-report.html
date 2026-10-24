@@ -88,7 +88,7 @@ function parseSaved(notes){
  rows.sort((a,b)=>b.value-a.value);
  const bonds=rows.filter(x=>x.bond),bondValue=bonds.reduce((a,x)=>a+x.value,0),equityValue=total-bondValue;
  const weights=rows.map(x=>x.value/total),hhi=weights.reduce((a,x)=>a+x*x,0);
- const dur=bondValue?bonds.reduce((a,x)=>a+x.value*x.duration,0)/bondValue:0;
+ const dur=bondValue?bonds.reduce((a,x)=>a+(x.value/bondValue)*x.duration,0):0;
  const tm=segment.match(/Целевая доля облигаций\s+(\d+(?:\.\d+)?)%/);
  const target=tm?Number(tm[1]):null;
  if(target!==null&&(!Number.isFinite(target)||target<0||target>100))throw Error('Целевая доля облигаций должна быть от 0 до 100%. Исправь карточку портфеля.');
@@ -103,7 +103,7 @@ function parseSaved(notes){
 }
 function rateShockScenario(data,basisPoints){
  if(!Number.isFinite(data.total)||data.total<=0||!Number.isFinite(data.bondValue)||data.bondValue<0||data.bondValue>data.total||!Number.isFinite(data.duration)||data.duration<0||!Number.isFinite(basisPoints))throw Error('Некорректные параметры дюрационного сценария');
- const changeUsd=-data.bondValue*data.duration*basisPoints/10000;
+ const changeUsd=-data.bondValue*(data.duration*(basisPoints/10000));
  return {basisPoints,changeUsd,portfolioPct:changeUsd/data.total*100,bondPct:-data.duration*basisPoints/100};
 }
 function renderRateStress(data){
@@ -125,8 +125,8 @@ function renderRateStress(data){
 }
 function combinedPortfolioStress(data,equityReturnPercent,yieldChangeBp){
  if(!Number.isFinite(data.total)||data.total<=0||![data.bondValue,data.equityValue,data.duration,equityReturnPercent,yieldChangeBp].every(Number.isFinite)||data.bondValue<0||data.equityValue<0||Math.abs(data.bondValue+data.equityValue-data.total)>1e-6*Math.max(1,data.total)||data.duration<0||equityReturnPercent< -100||equityReturnPercent>100||Math.abs(yieldChangeBp)>10000)throw Error('Некорректные входные данные стресс-теста');
- const equityChangeUsd=data.equityValue*equityReturnPercent/100;
- const bondChangeUsd=-data.bondValue*data.duration*yieldChangeBp/10000;
+ const equityChangeUsd=data.equityValue*(equityReturnPercent/100);
+ const bondChangeUsd=-data.bondValue*(data.duration*(yieldChangeBp/10000));
  const changeUsd=equityChangeUsd+bondChangeUsd;
  return {equityChangeUsd,bondChangeUsd,changeUsd,portfolioPct:changeUsd/data.total*100,stressedValue:data.total+changeUsd};
 }
@@ -151,7 +151,7 @@ function projectAllocation(data,targetBondPercent){
  if((targetBond>0&&currentBond===0)||(targetEquity>0&&currentEquity===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
  const rows=data.rows.map(r=>({...r,projectedValue:r.value*(r.bond?(currentBond?targetBond/currentBond:0):(currentEquity?targetEquity/currentEquity:0))}));
  const weights=rows.map(r=>r.projectedValue/data.total),hhi=weights.reduce((a,x)=>a+x*x,0);
- const targetRateShock=-rows.filter(r=>r.bond).reduce((a,r)=>a+r.projectedValue*r.duration,0)/data.total*0.01;
+ const targetRateShock=-rows.filter(r=>r.bond).reduce((a,r)=>a+(r.projectedValue/data.total)*r.duration,0)*0.01;
  return {possible:true,rows,hhi,top1:Math.max(...weights),top3:[...weights].sort((a,b)=>b-a).slice(0,3).reduce((a,x)=>a+x,0),targetRateShock};
 }
 
@@ -167,7 +167,7 @@ function customPortfolioStress(data,equityPercent,yieldBasisPoints){
  const equityValue=allocation.rows.filter(r=>!r.bond).reduce((sum,r)=>sum+r.projectedValue,0);
  const totalProjected=bondValue+equityValue;
  if(Math.abs(totalProjected-data.total)>Math.max(0.01,data.total*1e-8))throw Error('Ошибка: модельная стоимость после ребалансировки не совпадает с исходной.');
- const duration=bondValue>0?allocation.rows.filter(r=>r.bond).reduce((sum,r)=>sum+r.projectedValue*r.duration,0)/bondValue:0;
+ const duration=bondValue>0?allocation.rows.filter(r=>r.bond).reduce((sum,r)=>sum+(r.projectedValue/bondValue)*r.duration,0):0;
  const after=combinedPortfolioStress({total:data.total,bondValue,equityValue,duration},equityPercent,yieldBasisPoints);
  return {current,after,reason:null};
 }
