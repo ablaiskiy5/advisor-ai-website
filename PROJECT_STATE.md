@@ -1,3 +1,9 @@
+## Portfolio report session isolation — PR #95 (2026-10-24)
+
+- [PR #95](https://github.com/ablaiskiy5/advisor-ai-website/pull/95) clears rendered portfolio metrics, holdings, conclusions and in-memory export data when the report tab receives a sign-out or account switch. A print-specific CSS override prevents hidden reports from reappearing on paper.
+- Owner-scoped case reads now discard delayed responses after session invalidation, including sign-out/re-login to the same account. Synthetic regressions cover session clearing, token refresh, account switch, late case fetch and late authentication.
+- Frontend and tests only. No plugin, Supabase policy, secret, paid setting or client record changed. Authenticated two-user browser verification remains outstanding; confirm successful PR CI, merge and Pages publication before calling this live.
+
 ## Workspace case/session isolation — PR #94 (2026-10-24)
 
 - [PR #94](https://github.com/ablaiskiy5/advisor-ai-website/pull/94) clears Workspace case lists and portfolio snapshot caches on sign-out/account switch; delayed reads, case writes and snapshot responses are ignored after session changes (including same-user re-login). Case list/delete and snapshot reads are explicitly owner-filtered in addition to existing RLS.

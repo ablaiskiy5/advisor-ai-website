@@ -14,6 +14,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 
 @media(max-width:720px){main{padding:19px 12px 45px}h1{font-size:25px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:15px}.tile strong{font-size:17px}}
 @media print{@page{size:A4;margin:16mm} :root{font:10pt Arial,sans-serif;color:#101827;background:white;color-scheme:light}body{background:white;color:#101827}main{width:auto;max-width:none;padding:0}.no-print{display:none!important}#report{display:block!important}.panel{border:1px solid #ced5df;background:white;break-inside:avoid;margin:14px 0;padding:13px}.grid{gap:6px}.tile{background:white;border:1px solid #c8d0dd;padding:10px}.tile small{color:#526278}.tile strong{font-size:16px}th,td{border-color:#d7dee8;color:#111}th{color:#35445d}h1{font-size:23px;margin:10px 0}.sub,.foot{color:#526278}.notice{background:white;color:#333;border:1px solid #bbb}.tablewrap{overflow:visible}table{font-size:9pt}tr{break-inside:avoid}}
+@media print{body.report-session-ended #report{display:none!important}}
 </style></head><body><main>
 <div class="header no-print"><div class="brand">◈ Advisor <span>AI</span></div><a id="back" href="./workspace.html">← К карточке кейса</a></div>
 <div class="no-print"><h1>Отчёт по портфелю</h1><p class="sub">Отчёт строится только по сохранённым позициям. Никаких онлайн-котировок, скрытых допущений или дополнительных AI-запросов.</p><p id="status">Загружаю портфель…</p><div class="actions"><button id="print" class="button primary" disabled>Печать / сохранить PDF</button><button id="download" class="button" disabled>Скачать CSV позиций</button></div></div>
@@ -52,6 +53,21 @@ const URL_SUPA='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable
 const $=x=>document.getElementById(x),caseId=new URLSearchParams(location.search).get('case');
 const PORT_START='[ADVISOR_AI_PORTFOLIO_BEGIN]',PORT_END='[ADVISOR_AI_PORTFOLIO_END]';
 let exportedRows=null,currentPortfolioData=null,currentInvestmentConclusion='';
+let reportOwnerId=null,reportAuthRevision=0;
+const reportPrivateIds=['r-title','r-date','r-total','r-equity','r-bonds','r-count','r-nav','r-fx-risk','r-coverage','r-concentration','r-duration','r-cross-stress','r-target','r-comparison','r-rows','r-conclusion','r-checks','scenario-validation','scenario-output','conclusion-status'];
+function clearPrivateReport(){
+ exportedRows=null;currentPortfolioData=null;currentInvestmentConclusion='';
+ for(const id of reportPrivateIds)$(id).textContent='';
+ $('report').style.display='none';
+ document.body.classList.add('report-session-ended');
+ for(const id of ['print','download','copy-conclusion','download-conclusion'])$(id).disabled=true;
+}
+function handleReportAuthChange(event,session){
+ const changedUser=reportOwnerId&&session?.user?.id&&session.user.id!==reportOwnerId;
+ if(event!=='SIGNED_OUT'&&!(changedUser&&['SIGNED_IN','INITIAL_SESSION','USER_UPDATED'].includes(event)))return;
+ reportAuthRevision++;reportOwnerId=null;clearPrivateReport();
+ $('status').className='error';$('status').textContent='Сессия изменилась. Войди и открой отчёт повторно.';
+}
 const cash=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>(100*n).toFixed(1)+'%';
 function addLine(id,text){const p=document.createElement('p');p.textContent=text;$(id).append(p)}
 function parseSaved(notes){
@@ -345,11 +361,18 @@ async function init(){
  $('back').href='./workspace.html?case='+encodeURIComponent(caseId);
  if(!window.supabase?.createClient)throw Error('Модуль входа не загрузился.');
  const db=window.supabase.createClient(URL_SUPA,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ const startRevision=reportAuthRevision;
+ db.auth.onAuthStateChange((event,session)=>handleReportAuthChange(event,session));
  const {data:{user},error:authError}=await db.auth.getUser();
+ if(reportAuthRevision!==startRevision)return;
  if(authError||!user)throw Error('Нужен вход в личный кабинет. Войди и открой отчёт повторно.');
+ reportOwnerId=user.id;
+ const requestRevision=reportAuthRevision;
  const {data,error}=await db.from('workspace_items').select('id,kind,title,notes').eq('id',caseId).eq('user_id',user.id).single();
+ if(reportAuthRevision!==requestRevision||reportOwnerId!==user.id)return;
  if(error||!data||data.kind!=='portfolio')throw Error('Портфель не найден или доступ запрещён.');
  renderReport(parseSaved(data.notes),data.title);
+ document.body.classList.remove('report-session-ended');
 }
 for(const id of ['scenario-equity','scenario-yield'])$(id).addEventListener('input',()=>{
  if(currentPortfolioData)renderCustomPortfolioStress(currentPortfolioData);
