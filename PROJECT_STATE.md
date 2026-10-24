@@ -20,6 +20,13 @@
 - Adds synthetic regression tests for state clearing and asynchronous guards. No Supabase migration, plugin release, customer data or permission change.
 - **Verification boundary:** this is a code-level guard, not an authenticated two-account browser E2E test. Check PR and merged-main CI and Pages deployment before calling it released. Two-account login/attachment isolation and mobile Safari remain outstanding.
 
+## Pilot allowlist and AI retry guard — 2026-10-24
+
+- `advisor-ai-chat` **v27 ACTIVE**. Pilot AI access requires a verified email in private `advisor_ai_allowed_emails` (service-role-only RPC `advisor_ai_is_allowed_email`). Existing account's email seeded; new colleague emails must be explicitly added by an administrator. Signup itself remains public, but non-allowlisted users cannot invoke AI.
+- `advisor_ai_request_reservations.message_id` now associates each billed request reservation with the actual owned user message. `reserve_advisor_ai_message` verifies message ownership and role and permits **up to 3 attempts per message**, counting each against per-user and global 24h limits. This retains the UI's 'retry AI answer' behavior while preventing unlimited retries of one message. The previous `reserve_advisor_ai_request` function remains deployed but the active Edge Function no longer calls it.
+- SQL transaction/rollback smoke test checked three allowed attempts and fourth `retry_limit`; no permanent test reservations remain. No actual multi-account browser test or production AI response has been performed. Treat confidential client-data handling as blocked until full verification and approvals.
+- GitHub PR #84 signup guidance passed both Integrated Quality Gate and Portfolio Snapshot Checks and was merged.
+
 ## Atomic AI quota release — 2026-10-24
 
 - Supabase migration `atomic_ai_request_reservation_limits` created RLS-enabled, client-inaccessible `advisor_ai_request_reservations` and service-role-only `reserve_advisor_ai_request(uuid,integer,integer)` RPC.
