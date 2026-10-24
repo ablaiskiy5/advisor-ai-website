@@ -12,10 +12,14 @@ const samples=[
  '🙂'.repeat(200),
  'x🙂y'.repeat(400),
  'Первый абзац\nВторой абзац\n\nТретий',
- 'longword'.repeat(700)
+ 'longword'.repeat(700),
+ '📈📉💼'.repeat(500),
+ 'قيمة المحفظة والأسهم والسندات'.repeat(80),
+ '投资组合分析和风险管理'.repeat(80),
+ 'Акции и облигации\\n'.repeat(200)
 ];
 let checked=0;
-for(const value of samples)for(const size of [2,3,5,30,750]){
+for(const value of samples)for(const size of [2,3,5,30,750,1200]){
  const parts=split(value,size);
  assert.equal(parts.join(''),value,'Slide export must preserve full report');
  for(const part of parts){
