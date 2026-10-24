@@ -11,11 +11,13 @@ function sourceBetween(start, end) {
   assert.ok(a >= 0 && b > a, 'Missing production source: ' + start);
   return html.slice(a, b);
 }
-const { parseSaved, rateShockScenario, projectAllocation } = runInNewContext(
+const { parseSaved, rateShockScenario, combinedPortfolioStress, projectAllocation, customPortfolioStress } = runInNewContext(
   sourceBetween('const PORT_START=', 'let exportedRows=') +
   sourceBetween('function parseSaved(', 'function renderRateStress(') +
+  sourceBetween('function combinedPortfolioStress(', 'function renderCombinedStress(') +
   sourceBetween('function projectAllocation(', 'function renderComparison(') +
-  '\n({parseSaved,rateShockScenario,projectAllocation})'
+  sourceBetween('function customPortfolioStress(', 'function renderCustomPortfolioStress(') +
+  '\n({parseSaved,rateShockScenario,combinedPortfolioStress,projectAllocation,customPortfolioStress})'
 );
 const near = (actual, expected) =>
   assert.ok(Number.isFinite(actual) && Math.abs(actual - expected) < 1e-9, actual + ' != ' + expected);
@@ -60,6 +62,31 @@ test('100bp up/down shocks have the correct sign and USD/percent units', () => {
   near(down.portfolioPct, 76 / 3900 * 100);
   near(down.bondPct, 4);
   near(rateShockScenario(p, 0).changeUsd, 0);
+});
+
+test('large but finite bond portfolios retain finite duration and stress results', () => {
+  // A naive value * duration * basisPoints overflows before division by 10000.
+  const p = parseSaved(saved(['BOND:LONG; 1e307; 1; 80', 'AAPL; 1e307; 1'], 50));
+  assert.equal(p.duration, 80);
+  assert.ok(Number.isFinite(p.total));
+  const rate = rateShockScenario(p, 100);
+  assert.ok(Number.isFinite(rate.changeUsd));
+  assert.ok(Math.abs(rate.changeUsd / -8e306 - 1) < 1e-12);
+  near(rate.portfolioPct, -40);
+
+  const combined = combinedPortfolioStress(p, 100, 100);
+  assert.ok(Number.isFinite(combined.equityChangeUsd));
+  assert.ok(Number.isFinite(combined.bondChangeUsd));
+  assert.ok(Math.abs(combined.equityChangeUsd / 1e307 - 1) < 1e-12);
+  assert.ok(Math.abs(combined.bondChangeUsd / -8e306 - 1) < 1e-12);
+  near(combined.portfolioPct, 10);
+
+  const allocation = projectAllocation(p, 50);
+  assert.equal(allocation.possible, true);
+  near(allocation.targetRateShock, -0.4);
+  const custom = customPortfolioStress(p, 100, 100);
+  assert.ok(Number.isFinite(custom.after.bondChangeUsd));
+  assert.ok(Math.abs(custom.after.bondChangeUsd / -8e306 - 1) < 1e-12);
 });
 
 test('target allocation preserves total value and proportions within asset classes', () => {
