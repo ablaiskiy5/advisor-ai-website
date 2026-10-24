@@ -1,3 +1,9 @@
+## Chat-to-task transfer session isolation — PR #96 (2026-10-24)
+
+- [PR #96](https://github.com/ablaiskiy5/advisor-ai-website/pull/96) changes the AI-chat → task-board handoff to a one-time, owner-tagged browser session payload. The receiving page checks the verified Supabase user **before** displaying the text; mismatched and legacy unscoped payloads are discarded.
+- Source-chat requests that finish after sign-out, account switch or same-account re-login cannot stage private tasks. Sign-out clears pending transfer storage. Synthetic tests cover the normal path and these session boundaries.
+- Frontend and tests only. No customer data, plugin release, Supabase schema/RLS, secrets, quotas or Edge Functions changed. **Release gate:** confirm PR checks, merge, main-branch checks and Pages deployment. Authenticated two-account browser verification remains outstanding.
+
 ## Portfolio report session isolation — PR #95 (2026-10-24)
 
 - [PR #95](https://github.com/ablaiskiy5/advisor-ai-website/pull/95) clears rendered portfolio metrics, holdings, conclusions and in-memory export data when the report tab receives a sign-out or account switch. A print-specific CSS override prevents hidden reports from reappearing on paper.
