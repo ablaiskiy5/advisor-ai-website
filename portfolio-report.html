@@ -19,7 +19,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <div class="no-print"><h1>Отчёт по портфелю</h1><p class="sub">Отчёт строится только по сохранённым позициям. Никаких онлайн-котировок, скрытых допущений или дополнительных AI-запросов.</p><p id="status">Загружаю портфель…</p><div class="actions"><button id="print" class="button primary" disabled>Печать / сохранить PDF</button><button id="download" class="button" disabled>Скачать CSV позиций</button></div></div>
 <article id="report" aria-label="Аналитический отчёт">
 <div class="brand">Advisor <span>AI</span> · Investment Intelligence</div>
-<h1 id="r-title">Портфель</h1><p id="r-date" class="sub"></p>
+<h1 id="r-title">Портфель</h1><p id="r-date" class="sub"></p><p id="r-valuation-warning" class="notice" role="note">Дата оценки и источник котировок не подтверждены. Время формирования отчёта не является датой оценки активов.</p>
 <div class="grid"><div class="tile"><small>Стоимость</small><strong id="r-total">—</strong></div><div class="tile"><small>Акции</small><strong id="r-equity">—</strong></div><div class="tile"><small>Облигации</small><strong id="r-bonds">—</strong></div><div class="tile"><small>Количество позиций</small><strong id="r-count">—</strong></div></div>
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
@@ -216,6 +216,7 @@ function buildInvestmentConclusion(data){
  const lines=[
   'ЧЕРНОВИК ИНВЕСТИЦИОННОГО ЗАКЛЮЧЕНИЯ',
   'Основа: сохранённые пользователем количества и цены, не биржевые котировки.',
+  'Дата оценки и источник котировок не подтверждены; время создания отчёта не является датой оценки.',
   '',
   '1. Структура',
   'Стоимость: '+money(data.total)+'. Позиций: '+data.rows.length+'.',
@@ -255,7 +256,7 @@ function buildInvestmentConclusion(data){
  return lines.join('\n');
 }
 function renderReport(data,title){
- $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Сформирован: '+new Date().toLocaleString('ru-RU')+' · Стоимость на основе введённых данных';
+ $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Отчёт сформирован: '+new Date().toLocaleString('ru-RU')+' · Дата оценки активов: не подтверждена';
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
  addLine('r-concentration','Топ-1: '+pct(data.top1)+'; топ-3: '+pct(data.top3)+'; топ-5: '+pct(data.top5)+'.');
  addLine('r-concentration','HHI: '+data.hhi.toFixed(4)+'; эффективное число позиций: '+(1/data.hhi).toFixed(2)+'.');
