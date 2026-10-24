@@ -156,16 +156,24 @@ async function organize(){
  finally{busy=false;$('organize').disabled=false}
 }
 async function saveDrafts(){
- if(busy)return;const selected=[];
+ if(busy)return;
+ const ownerId=user?.id,sessionEpoch=authRevision;
+ if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
+ const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
+ const selected=[];
  for(const div of $('drafts').children){if(!div.querySelector('[data-field="include"]').checked)continue;
   const get=f=>div.querySelector('[data-field="'+f+'"]').value;
   const title=get('title').trim(),date=get('due_date');if(!title||title.length>220||!validDate(date)){feedback('Проверь название и дату');return}
-  selected.push({user_id:user.id,title,area:get('area'),priority:get('priority'),due_date:date||null,description:proposals[Number(div.dataset.index)].description,status:'todo'});
+  selected.push({user_id:ownerId,title,area:get('area'),priority:get('priority'),due_date:date||null,description:proposals[Number(div.dataset.index)].description,status:'todo'});
  }
  if(!selected.length){feedback('Нет выбранных задач');return}
  busy=true;$('save-drafts').disabled=true;
- try{const {error}=await db.from('advisor_tasks').insert(selected);if(error)throw Error(error.message);$('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load()}
- catch(e){feedback('Не удалось сохранить: '+e.message)}
+ try{
+  const {error}=await db.from('advisor_tasks').insert(selected);
+  if(!current())return;
+  if(error)throw Error(error.message);
+  $('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load();
+ }catch(e){if(current())feedback('Не удалось сохранить: '+e.message)}
  finally{busy=false;$('save-drafts').disabled=false}
 }
 async function manual(){openTaskEditor(null)}
