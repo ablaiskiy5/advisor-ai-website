@@ -79,6 +79,7 @@ test('stale batch-save completion cannot clear new AI busy state',async()=>{
  h.app.handleTaskAuthChange('SIGNED_OUT',null);
  assert.equal(h.document.getElementById('save-drafts').disabled,false);
  h.app.setUser('owner-b');
+ h.document.getElementById('brain').value='Synthetic task only';
  const fresh=h.app.organize();
  assert.equal(h.aiRequests.length,1);
  h.saves[0]({error:null});await old;
@@ -92,6 +93,7 @@ test('stale editor-save completion cannot clear new AI busy state',async()=>{
  assert.equal(h.saves.length,1);
  h.app.handleTaskAuthChange('SIGNED_OUT',null);
  h.app.setUser('owner-b');
+ h.document.getElementById('brain').value='Synthetic task only';
  const fresh=h.app.organize();
  h.saves[0]({error:null});await old;
  assert.equal(h.app.getBusy(),true);
