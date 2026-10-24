@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## In-flight task AI response isolation — PR #83 (2026-10-24)
+
+- [PR #83](https://github.com/ablaiskiy5/advisor-ai-website/pull/83) guards AI-generated task proposals and stale error messages by the authenticated user ID **and** a session epoch. A reply arriving after sign-out, account switch, or sign-out/re-login to the same account is discarded instead of repopulating private draft tasks.
+- Adds synthetic regressions for the normal proposal flow, sign-out, cross-account switch, same-account re-login, and late errors. **Release status depends on successful PR CI, merge and deployment;** this is not an authenticated two-user browser test.
+- Read-only component verification on 2026-10-24: private USER-scope plugin **2.2.0**, Supabase `advisor-ai-chat` **v24**, `advisor-ai-organize-tasks` **v2**, `advisor-ai-shared-tools` **v4**. Eight listed public tables have RLS enabled; this alone does not establish two-user isolation. No backend, schema, secrets or permissions changed in PR #83.
+
 ## Workspace HTML integrity — PR #78 (2026-10-24)
 
 - [PR #78](https://github.com/ablaiskiy5/advisor-ai-website/pull/78) removes 28,835 characters of accidentally appended duplicate JavaScript/markup after the first complete `workspace.html` document. The retained inline JavaScript was syntax-checked; the original page functionality was not intentionally changed.
