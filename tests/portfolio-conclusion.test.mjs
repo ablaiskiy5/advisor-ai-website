@@ -130,3 +130,17 @@ test('explicit cash and liabilities produce NAV while legacy portfolios remain u
  assert.equal(partial.debtUsd,null);
  assert.match(buildInvestmentConclusion(partial),/NAV не рассчитывается/);
 });
+
+test('KZT cash is converted using explicit KZT-per-USD rate, preserving legacy NAV',()=>{
+ const base=input(['AAPL; 2; 100']);
+ const notes=base.replace('[ADVISOR_AI_PORTFOLIO_END]','Денежные средства 50 USD\nОбязательства 20 USD\nДенежные средства KZT 50000 KZT\nКурс KZT за USD 500 KZT/USD\n[ADVISOR_AI_PORTFOLIO_END]');
+ const p=parseSaved(notes);
+ assert.equal(p.cashKzt,50000);
+ assert.equal(p.fxKzt,500);
+ assert.match(buildInvestmentConclusion(p),/Расчётный NAV: 330\.00 USD/);
+ assert.match(buildInvestmentConclusion(p),/500 KZT за USD/);
+ const old=parseSaved(base);
+ assert.equal(old.cashKzt,null);
+ assert.equal(old.fxKzt,null);
+ assert.throws(()=>parseSaved(base.replace('[ADVISOR_AI_PORTFOLIO_END]','Денежные средства KZT 50000 KZT\n[ADVISOR_AI_PORTFOLIO_END]')),/курс KZT/);
+});
