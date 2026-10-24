@@ -23,7 +23,11 @@ Relevant existing modules:
 - `tasks-board.html`: Supabase tasks, AI task proposals, CSV/iCalendar export.
 - `tools-health.html`: browser-based diagnostic for the **public** four-tool MCP service.
 
-## Recent releases — PR #58–#60
+## Recent releases — PR #58–#62
+
+- **PR #61** merged as `15e817765a0e920e9044b199fe1d4ab5cffe44be`: DOCX real-file validation now runs before PR merge; [CI passed](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40059662891).
+- **PR #62** merged as `97f993d7c7534201f189bc3d65770d9eb3f9f644`: integrated cross-module regression workflow covering all existing Node tests and presentation logic; [PR CI passed](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40059765302). This is not authenticated end-to-end browser coverage.
+
 
 - **PR #59** merged to `main` as `3c44627d1bb4820f89fd80ebb69ba8c9a5ca1a87`: shared public MCP live checks now validate metadata and reject additional invalid requests; [CI passed](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40059442749).
 - **PR #60** merged to `main` as `70227797cf87f8905a0039d3a58d3dffe885c005`: presentation splitter regression now covers Cyrillic, Arabic, Chinese, and dense emoji; [PR CI passed](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40059557843). These are automated unit-level checks, **not** mobile Safari or real PPTX open/render tests.
