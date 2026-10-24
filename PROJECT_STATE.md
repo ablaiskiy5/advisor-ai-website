@@ -1,3 +1,10 @@
+## Task organizer AI pilot access hardening — 2026-10-24
+
+- Found secondary paid AI entrypoint `advisor-ai-organize-tasks` did not enforce the pilot email allowlist; any confirmed Supabase account could use up to 12 task parses/24h.
+- Deployed `advisor-ai-organize-tasks` **v3 ACTIVE**: after JWT identity verification, require `email_confirmed_at` and a positive service-role-only `advisor_ai_is_allowed_email` check before parsing input or recording AI usage.
+- Fetched deployed source and confirmed the check. Existing 12-per-user/day quota still uses count-then-insert and is **not atomic**. An attempted quota RPC migration was blocked by tooling; no schema change for task quota was applied.
+- Still outstanding: genuine two-account browser E2E, actual model response, mobile/export QA, and Supabase Auth leaked-password protection (security advisor WARN). Four server-only RLS tables intentionally have no browser policies.
+
 # PROJECT_STATE.md — Advisor AI Workspace
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
