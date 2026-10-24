@@ -22,6 +22,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <h1 id="r-title">Портфель</h1><p id="r-date" class="sub"></p><p id="r-valuation-warning" class="notice" role="note">Дата оценки и источник котировок не подтверждены. Время формирования отчёта не является датой оценки активов.</p>
 <div class="grid"><div class="tile"><small>Стоимость</small><strong id="r-total">—</strong></div><div class="tile"><small>Акции</small><strong id="r-equity">—</strong></div><div class="tile"><small>Облигации</small><strong id="r-bonds">—</strong></div><div class="tile"><small>Количество позиций</small><strong id="r-count">—</strong></div></div>
 <section class="panel"><h2>Расчёт чистых активов (NAV)</h2><div id="r-nav"></div></section>
+<section class="panel"><h2>Валютная чувствительность денежных средств KZT</h2><div id="r-fx-risk"></div></section>
 <section class="panel"><h2>Полнота данных и границы оценки</h2><div id="r-coverage"></div></section>
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
@@ -41,7 +42,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <section class="panel"><h2>Сравнение текущего и целевого портфеля</h2><div id="r-comparison"></div><p class="foot">Сценарий: пропорциональное изменение позиций внутри каждого класса. Без новых инструментов, изменения цен, комиссий и налогов. Не является торговым планом.</p></section><section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
 <section class="panel"><h2>Инвестиционное заключение (черновик)</h2><div class="actions no-print"><button class="button" id="copy-conclusion" type="button" disabled>Скопировать заключение</button><button class="button" id="download-conclusion" type="button" disabled>Скачать .txt</button><span id="conclusion-status" class="foot" role="status" aria-live="polite"></span></div><div id="r-conclusion" style="white-space:pre-line;line-height:1.75"></div><p class="foot">Перед отправкой клиенту проверь источники, актуальные цены и инвестиционный профиль.</p></section>
 <section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
-<div class="notice">Все суммы рассчитаны на основе пользовательских цен в USD. Предполагаются длинные позиции и отсутствие денежного остатка, обязательств, валютных пересчётов, комиссий и налогов. Концентрационные показатели не измеряют корреляции и кредитный риск. Дюрационный сценарий — линейная оценка движения цены облигаций при параллельном изменении их доходностей, без учёта выпуклости. Отчёт не является индивидуальной инвестиционной рекомендацией.</div>
+<div class="notice">Все суммы рассчитаны на основе пользовательских цен в USD. Предполагаются длинные позиции. Денежные остатки и обязательства учитываются только при явном вводе; KZT cash пересчитывается по введённому пользователем курсу. Остальные валюты, валюты ценных бумаг, комиссии и налоги не учитываются. Концентрационные показатели не измеряют корреляции и кредитный риск. Дюрационный сценарий — линейная оценка движения цены облигаций при параллельном изменении их доходностей, без учёта выпуклости. Отчёт не является индивидуальной инвестиционной рекомендацией.</div>
 <p class="foot">Advisor AI · Автоматически рассчитанный отчёт. Перед передачей клиенту проверь исходные цены, количество бумаг, валюты, дюрацию и полноту исходного портфеля.</p>
 </article></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
@@ -217,6 +218,15 @@ function renderComparison(data){
  addLine('r-comparison','Сравнение рассчитано при сохранении пропорций инструментов внутри каждого класса активов.');
 }
 
+function kztCashFxScenario(data,fxChangePct){
+ if(!data||data.cashKzt===null||data.fxKzt===null)return null;
+ if(!Number.isFinite(data.cashKzt)||data.cashKzt<0||!Number.isFinite(data.fxKzt)||data.fxKzt<=0||!Number.isFinite(fxChangePct)||fxChangePct<=-100)throw Error('Некорректные параметры валютного сценария.');
+ const beforeUsd=data.cashKzt/data.fxKzt;
+ const afterUsd=data.cashKzt/(data.fxKzt*(1+fxChangePct/100));
+ const deltaUsd=afterUsd-beforeUsd;
+ const nav=data.cashUsd===null||data.debtUsd===null?null:data.total+data.cashUsd+beforeUsd-data.debtUsd;
+ return {beforeUsd,afterUsd,deltaUsd,nav,navChangePct:nav!==null&&nav!==0?deltaUsd/nav*100:null};
+}
 function portfolioCoverageLines(data){
  if(!data||!Array.isArray(data.rows))throw Error('Не указан портфель для проверки полноты.');
  const zero=data.rows.filter(r=>r.price===0);
@@ -282,6 +292,16 @@ function buildInvestmentConclusion(data){
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Отчёт сформирован: '+new Date().toLocaleString('ru-RU')+' · Дата оценки активов: не подтверждена';
  $('r-nav').textContent='';addLine('r-nav',data.cashUsd===null||data.debtUsd===null?'NAV не рассчитан: укажи и денежные средства, и обязательства (0 допустим, если подтверждён).':'Стоимость бумаг '+cash(data.total)+' USD + денежные средства '+cash(data.cashUsd)+' USD'+(data.cashKzt===null?'':' + '+cash(data.cashKzt/data.fxKzt)+' USD (конвертация KZT)')+' − обязательства '+cash(data.debtUsd)+' USD = расчётный NAV '+cash(data.total+data.cashUsd+(data.cashKzt===null?0:data.cashKzt/data.fxKzt)-data.debtUsd)+' USD.'+(data.cashKzt===null?'':' Включая '+cash(data.cashKzt)+' KZT / '+data.fxKzt+' KZT за USD.')+' Курс введён пользователем, без сверки с брокером.');
+ $('r-fx-risk').textContent='';
+ if(data.cashKzt===null)addLine('r-fx-risk','Денежные средства KZT не указаны. Валютная чувствительность не рассчитывается; это не означает отсутствие валютного риска по ценным бумагам.');
+ else{
+  const stronger=kztCashFxScenario(data,-10),weaker=kztCashFxScenario(data,10);
+  addLine('r-fx-risk','Оценка KZT cash: '+cash(stronger.beforeUsd)+' USD при вручную введённом курсе '+data.fxKzt+' KZT за 1 USD.');
+  addLine('r-fx-risk','KZT укрепляется на 10% к USD в терминах курса KZT/USD (курс снижается на 10%): изменение USD-стоимости остатка '+cash(stronger.deltaUsd)+' USD.');
+  addLine('r-fx-risk','KZT ослабевает на 10% к USD в терминах курса KZT/USD (курс растёт на 10%): изменение USD-стоимости остатка '+cash(weaker.deltaUsd)+' USD.');
+  addLine('r-fx-risk',weaker.nav===null?'NAV не подтверждён из-за отсутствия USD cash или обязательств; процентное влияние на NAV не вычисляется.': 'Влияние ослабления KZT на расчётный NAV: '+weaker.navChangePct.toFixed(2)+'%.');
+  addLine('r-fx-risk','Это только чувствительность указанного остатка KZT; валюты ценных бумаг, обязательств и хеджирование не учитываются. Сценарий, не прогноз.');
+ }
  $('r-coverage').textContent='';for(const line of portfolioCoverageLines(data))addLine('r-coverage',line);
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
  addLine('r-concentration','Топ-1: '+pct(data.top1)+'; топ-3: '+pct(data.top3)+'; топ-5: '+pct(data.top5)+'.');

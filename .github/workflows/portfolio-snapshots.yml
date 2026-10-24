@@ -9,6 +9,7 @@ on:
       - 'tests/portfolio-report.test.mjs'
       - 'tests/portfolio-conclusion.test.mjs'
       - 'tests/portfolio-nav.test.mjs'
+      - 'tests/portfolio-fx.test.mjs'
       - 'tests/portfolio-csv.test.mjs'
       - '.github/workflows/portfolio-snapshots.yml'
   push:
@@ -20,6 +21,7 @@ on:
       - 'tests/portfolio-report.test.mjs'
       - 'tests/portfolio-conclusion.test.mjs'
       - 'tests/portfolio-nav.test.mjs'
+      - 'tests/portfolio-fx.test.mjs'
       - 'tests/portfolio-csv.test.mjs'
       - '.github/workflows/portfolio-snapshots.yml'
   workflow_dispatch:
@@ -37,4 +39,4 @@ jobs:
         with:
           node-version: '22'
       - name: Validate portfolio snapshot and report math
-        run: node --test tests/portfolio-snapshots.test.mjs tests/portfolio-report.test.mjs tests/portfolio-conclusion.test.mjs tests/portfolio-csv.test.mjs tests/portfolio-nav.test.mjs
+        run: node --test tests/portfolio-snapshots.test.mjs tests/portfolio-report.test.mjs tests/portfolio-conclusion.test.mjs tests/portfolio-csv.test.mjs tests/portfolio-nav.test.mjs tests/portfolio-fx.test.mjs
