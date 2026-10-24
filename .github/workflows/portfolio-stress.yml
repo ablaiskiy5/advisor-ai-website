@@ -1,0 +1,33 @@
+name: Advisor AI Portfolio Stress Tests
+
+on:
+  pull_request:
+    paths:
+      - 'portfolio-report.html'
+      - 'scripts/test-portfolio-custom-stress.mjs'
+      - '.github/workflows/portfolio-stress.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portfolio-report.html'
+      - 'scripts/test-portfolio-custom-stress.mjs'
+      - '.github/workflows/portfolio-stress.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portfolio-stress:
+    name: Validate portfolio scenario calculations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test production portfolio formulas
+        run: node scripts/test-portfolio-custom-stress.mjs
