@@ -40,6 +40,8 @@ jobs:
           node-version: '22'
       - name: Validate all existing Node regression tests
         run: node --test tests/*.test.mjs
+      - name: Validate production portfolio custom-stress formulas
+        run: node scripts/test-portfolio-custom-stress.mjs
       - name: Validate presentation export logic
         run: node scripts/test-presentation-export.mjs
       - name: Validate JS syntax of export and MCP scripts
