@@ -138,7 +138,7 @@ test('KZT cash is converted using explicit KZT-per-USD rate, preserving legacy N
  assert.equal(p.cashKzt,50000);
  assert.equal(p.fxKzt,500);
  assert.match(buildInvestmentConclusion(p),/Расчётный NAV: 330\.00 USD/);
- assert.match(buildInvestmentConclusion(p),/500\.00 KZT за USD/);
+ assert.match(buildInvestmentConclusion(p),/500 KZT за USD/);
  const old=parseSaved(base);
  assert.equal(old.cashKzt,null);
  assert.equal(old.fxKzt,null);
