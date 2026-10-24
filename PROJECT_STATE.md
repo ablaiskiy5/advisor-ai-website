@@ -2,6 +2,13 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Attachment authorization hardening — 2026-10-24
+
+- Production Supabase migration `fix_attachment_message_case_ownership` applied: `advisor_ai_attachments` INSERT RLS now requires `advisor_ai_messages.case_id = advisor_ai_attachments.case_id`, not the previous tautology `m.case_id = m.case_id`.
+- Post-migration `pg_policies` verification: `enforces_matching_case=true`, `has_old_bug=false`. This prevents a user attaching metadata for a message from another of their own cases; existing owner and storage path checks remain.
+- Security advisor still flags disabled leaked-password protection; configure it in Auth settings. This is a policy verification, **not** an authenticated two-account E2E test.
+- Release remains gated on verified signup/AI/chat/files with two dummy users, browser/mobile UX and usage-spend protection.
+
 ## Pilot readiness — 2026-10-24
 
 - **Deployment:** Supabase `advisor-ai-chat` v22 is ACTIVE and its deployed source was re-read. Verified-email users now auto-enroll at first AI request with 10 requests per 24 hours. Existing explicitly disabled accounts remain disabled. Per-user server ceiling is 30 requests per 24 hours; global server ceiling is 150 user messages per 24 hours. These are simple count-based limits, **not** atomic concurrency-safe billing controls or a monetary spending cap.
