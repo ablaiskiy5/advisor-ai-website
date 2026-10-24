@@ -30,3 +30,15 @@ test('FX scenario visible in printable report and disclosure updated',()=>{
  assert.match(html,/Валютная чувствительность денежных средств KZT/);
  assert.doesNotMatch(html,/отсутствие денежного остатка, обязательств, валютных пересчётов/);
 });
+
+test('zero and negative NAV suppress misleading FX percentages while retaining USD impact',()=>{
+ const zero=scenario({...sample,debtUsd:350},10);
+ assert.equal(zero.nav,0);
+ assert.equal(zero.navChangePct,null);
+ assert.ok(zero.deltaUsd<0);
+ const negative=scenario({...sample,debtUsd:400},10);
+ assert.equal(negative.nav,-50);
+ assert.equal(negative.navChangePct,null);
+ assert.ok(negative.deltaUsd<0);
+ assert.match(html,/NAV равен нулю или отрицателен/);
+});
