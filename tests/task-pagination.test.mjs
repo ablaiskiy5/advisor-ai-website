@@ -13,16 +13,17 @@ const offline = inline.replace(/^init\(\)\.catch\(e=>feedback\('Ошибка: '\
 assert.notEqual(offline, inline, 'Disable real Supabase initializer');
 
 function harness() {
-  const info = { textContent: '' };
+  const info = { textContent: '', value: '', classList: { add() {} } };
+  const timers = [];
   const app = runInNewContext(offline + `
 render=()=>{};
 let exported=[];
 downloadExport=(name,body,mime)=>exported.push({name,body,mime});
-({load,exportCsv,exportCalendar,setup:(database,identity)=>{db=database;user=identity},
- snapshot:()=>({count:items.length,complete:taskListComplete,ids:items.map(x=>x.id)}),
+({load,exportCsv,exportCalendar,handleTaskAuthChange,setup:(database,identity)=>{db=database;user=identity},
+ snapshot:()=>({count:items.length,complete:taskListComplete,userId:user?.id||null,ids:items.map(x=>x.id)}),
  exports:()=>exported,resetExports:()=>{exported=[]}})
-`, { Date, Intl, TextEncoder, document: { getElementById: () => info } });
-  return { ...app, info };
+`, { Date, Intl, TextEncoder, document: { getElementById: () => info }, setTimeout: fn => timers.push(fn) });
+  return { ...app, info, runTimers: async () => { for (const fn of timers.splice(0)) await fn(); } };
 }
 
 function fakeDatabase(count, failAt = -1) {
@@ -114,4 +115,56 @@ test('defensive 10,000-task ceiling rejects partial exports', async () => {
   assert.equal(db.pages.length, 21);
   app.exportCsv();
   assert.equal(app.exports().length, 0);
+});
+
+test('sign-out immediately clears task data and disables exports', async () => {
+  const app = harness();
+  app.setup(fakeDatabase(2), { id: 'synthetic-user' });
+  await app.load();
+  assert.equal(app.snapshot().complete, true);
+  app.info.value = 'Synthetic unsaved note';
+  app.handleTaskAuthChange('SIGNED_OUT', null);
+  assert.equal(app.snapshot().userId, null);
+  assert.equal(app.snapshot().count, 0);
+  assert.equal(app.snapshot().complete, false);
+  assert.equal(app.info.value, '', 'Unsaved text from previous account must be cleared');
+  app.exportCsv();
+  app.exportCalendar();
+  assert.equal(app.exports().length, 0);
+});
+
+test('stale paginated response cannot overwrite tasks after account switch', async () => {
+  let releaseOldPage;
+  const database = {
+    from(table) {
+      assert.equal(table, 'advisor_tasks');
+      let owner;
+      return {
+        select() { return this; },
+        eq(field, value) { assert.equal(field, 'user_id'); owner = value; return this; },
+        order() { return this; },
+        range() {
+          if (owner === 'synthetic-user') return new Promise(resolve => { releaseOldPage = resolve; });
+          assert.equal(owner, 'second-user');
+          return Promise.resolve({ data: [{
+            id: 'second-user-task', title: 'Second synthetic task',
+            area: 'work', priority: 'normal', status: 'todo',
+            due_date: '2026-10-24', description: '', created_at: '2026-10-24T00:00:00Z'
+          }], error: null });
+        }
+      };
+    }
+  };
+  const app = harness();
+  app.setup(database, { id: 'synthetic-user' });
+  const oldRequest = app.load();
+  assert.equal(typeof releaseOldPage, 'function');
+  app.handleTaskAuthChange('SIGNED_IN', { user: { id: 'second-user' } });
+  await app.runTimers();
+  releaseOldPage({ data: [{ id: 'old-owner-task', title: 'Old synthetic task' }], error: null });
+  await oldRequest;
+  assert.equal(app.snapshot().userId, 'second-user');
+  assert.equal(app.snapshot().complete, true);
+  assert.equal(app.snapshot().count, 1);
+  assert.equal(app.snapshot().ids[0], 'second-user-task');
 });
