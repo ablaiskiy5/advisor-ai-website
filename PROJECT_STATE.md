@@ -2,6 +2,13 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Pilot readiness — 2026-10-24
+
+- **Deployment:** Supabase `advisor-ai-chat` v22 is ACTIVE and its deployed source was re-read. Verified-email users now auto-enroll at first AI request with 10 requests per 24 hours. Existing explicitly disabled accounts remain disabled. Per-user server ceiling is 30 requests per 24 hours; global server ceiling is 150 user messages per 24 hours. These are simple count-based limits, **not** atomic concurrency-safe billing controls or a monetary spending cap.
+- **Security:** Authentication is checked with Supabase Auth; case access uses the requesting user's JWT and RLS. No secret keys were added to the browser. Database security advisor still warns that leaked-password protection is disabled. Confirmed users are not equivalent to organization-vetted employees: open signup permits outside users, subject to the global request cap.
+- **Remaining release blockers:** authenticated two-account E2E (signup, email verification, separate cases and attachments, sign-out, AI answer, repeat login), real PDF/DOCX/PPTX rendering, mobile Safari UX, end-to-end spend controls, and registration/organization restrictions if handling real client data.
+- **Pilot decision:** Test or anonymized data only. Do not claim production-grade client-data handling until cross-account E2E, secure onboarding and review are complete. Target pilot Tuesday 2026-10-27, subject to release gates.
+
 ## FX sensitivity guard — PR #74 (2026-10-24)
 
 - [PR #74](https://github.com/ablaiskiy5/advisor-ai-website/pull/74) changes the KZT cash FX sensitivity to **withhold percentage impact** when estimated NAV is zero or negative. For negative NAV, dividing a USD loss by a negative denominator would misleadingly display a positive percentage; for zero NAV, a null percentage previously risked a browser rendering error.
