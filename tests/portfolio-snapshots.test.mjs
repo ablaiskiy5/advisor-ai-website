@@ -72,6 +72,12 @@ test('invalid holdings are rejected instead of silently mispriced', () => {
   }
 });
 
+test('Workspace HTML has one closing document and no appended duplicate source', () => {
+  const closing = '</script></body></html>';
+  assert.equal(html.split(closing).length - 1, 1, 'Only one complete HTML document');
+  assert.equal(html.slice(html.indexOf(closing) + closing.length).trim(), '', 'No stray source text after closing HTML');
+});
+
 test('production inline Workspace JavaScript parses', () => {
   const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, 'Workspace inline script is required');
