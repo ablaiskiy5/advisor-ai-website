@@ -52,3 +52,59 @@ test('inline task-board JavaScript parses', () => {
   assert.ok(inlineScript, 'Inline task-board script must exist');
   assert.doesNotThrow(() => new Function(inlineScript));
 });
+
+// Exercise the actual export helpers from the browser script, without running init()
+// or accessing Supabase. Keep private tasks and credentials out of CI fixtures.
+const browserScript = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/)?.[1];
+assert.ok(browserScript, 'Task-board inline script must exist');
+const offlineScript = browserScript.replace(/^init\(\)\.catch\(e=>feedback\('Ошибка: '\+e\.message\)\);\s*$/m, '');
+assert.notEqual(offlineScript, browserScript, 'Disable the browser initializer for offline tests');
+const { csvSafe, tasksCsv, icsEsc, icsFold, tasksIcs } = runInNewContext(
+  offlineScript + '\n({csvSafe,tasksCsv,icsEsc,icsFold,tasksIcs})',
+  { Date, Intl, TextEncoder }
+);
+
+test('CSV export escapes formulas, commas, quotes and NULs', () => {
+  for (const value of ['=1+1', '+2+3', '-1+2', '@SUM(A1)', ' \t=1+1', '\r=1+1']) {
+    assert.equal(csvSafe(value), '"\'' + value + '"', 'Dangerous CSV prefix: ' + JSON.stringify(value));
+  }
+  assert.equal(csvSafe('Нормально, "да"'), '"Нормально, ""да"""');
+  assert.equal(csvSafe('a\u0000b'), '"ab"');
+  const csv = tasksCsv([{ title: '=2+2', area: 'work', priority: 'high', status: 'todo',
+    due_date: '2026-10-24', description: 'Проверка, "кавычки"', created_at: '2026-10-24T00:00:00Z' }]);
+  assert.ok(csv.startsWith('\uFEFF'), 'Excel-compatible UTF-8 BOM must be retained');
+  assert.ok(csv.includes('"\'=2+2"'), 'Formula must be stored as text');
+  assert.ok(csv.includes('"Проверка, ""кавычки"""'), 'Quotes and comma must remain in one cell');
+  assert.ok(csv.endsWith('\r\n'), 'CSV must use CRLF line endings');
+});
+
+test('iCalendar escaping preserves user text without creating properties', () => {
+  assert.equal(icsEsc('A\\B;C,D\r\nE'), 'A\\\\B\\;C\\,D\\nE');
+});
+
+test('iCalendar line folding respects the 75-octet UTF-8 limit', () => {
+  const original = 'SUMMARY:' + 'К📈'.repeat(80);
+  const folded = icsFold(original);
+  assert.equal(folded.replace(/\r\n /g, ''), original, 'Unfolding must recover original Unicode text');
+  for (const line of folded.split('\r\n')) {
+    assert.ok(Buffer.byteLength(line, 'utf8') <= 75, 'Physical line exceeds 75 octets');
+  }
+});
+
+test('iCalendar exports only active dated tasks as private all-day events', () => {
+  const active = { id: 'synthetic-1', title: 'Проверить, отчёт; Q4\\финал', area: 'work',
+    priority: 'high', status: 'todo', due_date: '2026-12-31', description: 'Строка 1\nСтрока 2' };
+  const done = { ...active, id: 'synthetic-2', status: 'done' };
+  const invalid = { ...active, id: 'synthetic-3', due_date: '2026-02-29' };
+  const undated = { ...active, id: 'synthetic-4', due_date: null };
+  const ics = tasksIcs([active, done, invalid, undated], new Date('2026-10-24T01:02:03Z'));
+  const unfolded = ics.replace(/\r\n /g, '');
+  assert.equal((unfolded.match(/BEGIN:VEVENT/g) || []).length, 1);
+  assert.ok(unfolded.includes('DTSTAMP:20261024T010203Z'));
+  assert.ok(unfolded.includes('DTSTART;VALUE=DATE:20261231\r\nDTEND;VALUE=DATE:20270101'));
+  assert.ok(unfolded.includes('SUMMARY:Проверить\\, отчёт\\; Q4\\\\финал'));
+  assert.ok(unfolded.includes('Строка 1\\nСтрока 2'));
+  assert.ok(unfolded.includes('CLASS:PRIVATE'));
+  assert.ok(!unfolded.includes('BEGIN:VALARM'), 'Import must not schedule reminders');
+  assert.ok(ics.endsWith('\r\n'));
+});
