@@ -211,6 +211,7 @@ function renderComparison(data){
 function buildInvestmentConclusion(data){
  if(!data||!Number.isFinite(data.total)||data.total<=0||!Array.isArray(data.rows)||!data.rows.length)throw Error('Для заключения требуется корректный портфель.');
  const money=n=>cash(n)+' USD';
+ const zeroPriceRows=data.rows.filter(r=>r.price===0);
  const bondWeight=data.bondValue/data.total,equityWeight=data.equityValue/data.total;
  const largest=data.rows[0],largestWeight=largest.value/data.total;
  const lines=[
@@ -226,6 +227,7 @@ function buildInvestmentConclusion(data){
   '',
   '2. Ключевые риски'
  ];
+ if(zeroPriceRows.length)lines.push('• ВНИМАНИЕ: '+zeroPriceRows.length+' позиций имеют цену 0 USD ('+zeroPriceRows.map(r=>r.name).join(', ')+'). Их стоимость не учтена в оценке; доли и концентрация могут быть искажены. Проверь цену или статус списания до использования отчёта.');
  if(largestWeight>0.35)lines.push('• Высокая концентрация: крупнейшая позиция превышает 35% портфеля.');
  else lines.push('• Крупнейшая позиция ниже порога 35%; это не исключает отраслевой и корреляционный риск.');
  if(data.top3>0.7)lines.push('• Три крупнейшие позиции превышают 70% стоимости портфеля.');
@@ -282,6 +284,8 @@ function renderReport(data,title){
  for(const r of data.rows){const tr=document.createElement('tr');const columns=[r.name,r.bond?'Облигация':'Акция',String(r.qty),cash(r.price),cash(r.value),pct(r.value/data.total),r.bond?r.duration.toFixed(2):'—'];
   columns.forEach((c,i)=>{const td=document.createElement('td');td.textContent=c;if(i>1)td.className='num';tr.append(td)});tbody.append(tr);}
  const issues=[];
+ const zeroPriceRows=data.rows.filter(r=>r.price===0);
+ if(zeroPriceRows.length)issues.push('ВНИМАНИЕ: '+zeroPriceRows.length+' позиций с ценой 0 USD ('+zeroPriceRows.map(r=>r.name).join(', ')+'). Стоимость, веса и стресс-сценарии могут быть занижены. Сверь цену или статус списания.');
  if(data.top1>.35)issues.push('Крупнейшая позиция превышает 35% портфеля. Проверь допустимость концентрации.');
  if(data.top5>.8&&data.rows.length>5)issues.push('Пять крупнейших позиций составляют более 80%. Рассмотри риск концентрации.');
  if(data.bondValue&&data.duration>7)issues.push('Взвешенная дюрация облигаций выше 7 лет: портфель чувствителен к изменению доходности.');

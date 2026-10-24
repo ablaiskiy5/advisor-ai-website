@@ -90,3 +90,17 @@ test('portfolio report explicitly distinguishes creation time from unverified va
  assert.match(html,/Отчёт сформирован:/);
  assert.match(html,/Дата оценки активов: не подтверждена/);
 });
+
+test('zero-price holdings are explicitly flagged rather than silently treated as worthless', () => {
+ const portfolio=parseSaved(input(['AAPL; 1; 100', 'NVDA; 10; 0']));
+ assert.equal(portfolio.rows.length,2);
+ const memo=buildInvestmentConclusion(portfolio);
+ assert.match(memo,/1 позиций имеют цену 0 USD \(NVDA\)/);
+ assert.match(memo,/доли и концентрация могут быть искажены/);
+ assert.match(html,/zeroPriceRows\.length\)issues\.push/);
+});
+
+test('normal positive-price holdings do not trigger zero-price alerts', () => {
+ const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 1; 100','NVDA; 2; 100'])));
+ assert.doesNotMatch(memo,/позиций имеют цену 0 USD/);
+});
