@@ -5,7 +5,7 @@
 <section class="panel"><h2>Общий сервер вычислений</h2><p class="muted">Расчёты доступны и через Workspace, и через конфигурацию плагина. Тест проверяет сам сервер, но не доказывает, что модель уже вызвала его внутри диалога.</p><button id="test" class="btn">Проверить соединение и расчёты</button><p class="summary" id="overall" role="status">Проверка ещё не проводилась</p>
 <div class="list" id="steps">
 <div class="item"><span>MCP: подключение и инициализация</span><span class="status dim" id="step-init">Не проверено</span></div>
-<div class="item"><span>Наличие четырёх инструментов</span><span class="status dim" id="step-list">Не проверено</span></div>
+<div class="item"><span>Ровно четыре публичных инструмента (без приватных)</span><span class="status dim" id="step-list">Не проверено</span></div>
 <div class="item"><span>Доходность облигации (купон 6%, цена $950)</span><span class="status dim" id="step-bond">Не проверено</span></div>
 <div class="item"><span>Контроль общего торгового бюджета</span><span class="status dim" id="step-budget">Не проверено</span></div>
 <div class="item"><span>Концентрация портфеля, HHI</span><span class="status dim" id="step-hhi">Не проверено</span></div>
@@ -35,7 +35,7 @@ async function run(){
  for(const id of ['init','list','bond','budget','hhi','duration','invalid'])status(id,'Проверяется','dim');
  const checks=[
   ['init',async()=>{const v=await rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-browser-check',version:'1.0'}});if(v?.serverInfo?.name!=='advisor-ai-shared-tools')throw Error('Неверный сервер');return 'MCP подключён'}],
-  ['list',async()=>{const v=await rpc('tools/list');const names=new Set((v.tools||[]).map(x=>x.name));for(const x of ['bond_current_yield','portfolio_concentration','trade_risk_budget','bond_duration_shock'])if(!names.has(x))throw Error('Нет инструмента '+x);return '4 инструмента'}],
+  ['list',async()=>{const v=await rpc('tools/list');if(!Array.isArray(v?.tools))throw Error('Некорректный список инструментов');const names=new Set(v.tools.map(x=>x?.name));const allowed=['bond_current_yield','portfolio_concentration','trade_risk_budget','bond_duration_shock'];if(v.tools.length!==allowed.length||names.size!==allowed.length||allowed.some(x=>!names.has(x)))throw Error('Список публичных инструментов изменился: требуется ровно 4 разрешённых инструмента');if(v.tools.some(x=>!x?.description||x.inputSchema?.type!=='object'))throw Error('Неполное описание или схема инструмента');return 'Ровно 4 публичных инструмента'}],
   ['bond',async()=>{const v=await rpc('tools/call',{name:'bond_current_yield',arguments:{face:1000,coupon_percent:6,price:950}});if(v?.isError||!nearly(v.structuredContent?.current_yield_percent,6.315789473684211))throw Error('Неверная доходность');return '6,32%'}],
   ['budget',async()=>{const v=await rpc('tools/call',{name:'trade_risk_budget',arguments:{portfolio_usd:1000000,pool_percent:10,positions:[{name:'A',amount_usd:100000},{name:'B',amount_usd:100000}]}});if(v?.isError||v.structuredContent?.within_pool!==false||!nearly(v.structuredContent?.remaining_usd,-100000))throw Error('Бюджет не ограничен');return 'Превышение найдено'}],
   ['hhi',async()=>{const v=await rpc('tools/call',{name:'portfolio_concentration',arguments:{holdings:[{ticker:'A',value:70},{ticker:'B',value:30}]}});if(v?.isError||!nearly(v.structuredContent?.hhi,.58))throw Error('Неверный HHI');return 'HHI = 0,58'}],
