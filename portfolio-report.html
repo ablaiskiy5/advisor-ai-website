@@ -4,7 +4,14 @@
 <style>
 :root{font:14px Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaf0fa;background:#0a1020;color-scheme:dark}*{box-sizing:border-box}body{margin:0}
 main{max-width:1000px;padding:28px 18px 70px;margin:auto}a{color:#abc5ff}.header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:800}.brand span{color:#81a9ff}
-h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color:#a6b9d5;line-height:1.6}.panel{border:1px solid #354867;background:#152037;border-radius:14px;padding:22px;margin:17px 0;overflow-wrap:anywhere}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.tile{border:1px solid #374e75;background:#1b2d4b;border-radius:12px;padding:15px}.tile small{color:#aabddd}.tile strong{display:block;font-size:21px;margin-top:9px;overflow-wrap:anywhere}.button{font:inherit;display:inline-block;border:1px solid #445d87;border-radius:10px;background:#24406b;color:white;padding:11px 17px;cursor:pointer;font-weight:700;text-decoration:none}.button.primary{background:#5a82ef}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.notice{border:1px solid #755d40;background:#30281e;padding:14px;border-radius:10px;font-size:12px;line-height:1.6;color:#f1d7ac}.error{color:#ffc1aa}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #334663;padding:11px 8px;text-align:left;white-space:nowrap}th{color:#aabedc;font-size:12px}td.num,th.num{text-align:right}ul{line-height:1.8;padding-left:20px}#report{display:none}.foot{font-size:12px;color:#a6b8d0;line-height:1.6}
+h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color:#a6b9d5;line-height:1.6}.panel{border:1px solid #354867;background:#152037;border-radius:14px;padding:22px;margin:17px 0;overflow-wrap:anywhere}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.tile{border:1px solid #374e75;background:#1b2d4b;border-radius:12px;padding:15px}.tile small{color:#aabddd}.tile strong{display:block;font-size:21px;margin-top:9px;overflow-wrap:anywhere}.button{font:inherit;display:inline-block;border:1px solid #445d87;border-radius:10px;background:#24406b;color:white;padding:11px 17px;cursor:pointer;font-weight:700;text-decoration:none}.button.primary{background:#5a82ef}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.notice{border:1px solid #755d40;background:#30281e;padding:14px;border-radius:10px;font-size:12px;line-height:1.6;color:#f1d7ac}.error{color:#ffc1aa}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #334663;padding:11px 8px;text-align:left;white-space:nowrap}th{color:#aabedc;font-size:12px}td.num,th.num{text-align:right}ul{line-height:1.8;padding-left:20px}#report{display:none}.foot{font-size:12px;color:#a6b8d0;line-height:1.6}.scenario-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.scenario-controls label{display:block;color:#bed0e8;font-size:12px;margin:0 0 6px}
+.scenario-controls input{display:block;width:100%;border:1px solid #58729e;border-radius:9px;background:#0c172b;color:#fff;padding:11px;font:inherit}
+.scenario-note{font-size:12px;color:#bdcce4;line-height:1.55}
+.scenario-error{color:#ffcead;font-weight:650}
+@media(max-width:620px){.scenario-controls{grid-template-columns:1fr}}
+@media print{.scenario-controls input{border:0;background:white;color:#141c2a;padding:3px}.scenario-controls label{color:#34415a}.scenario-error{color:#7b2b21}}
+
 @media(max-width:720px){main{padding:19px 12px 45px}h1{font-size:25px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:15px}.tile strong{font-size:17px}}
 @media print{@page{size:A4;margin:16mm} :root{font:10pt Arial,sans-serif;color:#101827;background:white;color-scheme:light}body{background:white;color:#101827}main{width:auto;max-width:none;padding:0}.no-print{display:none!important}#report{display:block!important}.panel{border:1px solid #ced5df;background:white;break-inside:avoid;margin:14px 0;padding:13px}.grid{gap:6px}.tile{background:white;border:1px solid #c8d0dd;padding:10px}.tile small{color:#526278}.tile strong{font-size:16px}th,td{border-color:#d7dee8;color:#111}th{color:#35445d}h1{font-size:23px;margin:10px 0}.sub,.foot{color:#526278}.notice{background:white;color:#333;border:1px solid #bbb}.tablewrap{overflow:visible}table{font-size:9pt}tr{break-inside:avoid}}
 </style></head><body><main>
@@ -17,6 +24,17 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 <section class="panel"><h2>Концентрация и диверсификация</h2><div id="r-concentration"></div></section>
 <section class="panel"><h2>Процентный риск облигаций</h2><div id="r-duration"></div></section>
 <section class="panel"><h2>Совместный стресс-тест: акции и ставки</h2><div id="r-cross-stress"></div><p class="foot">Гипотетические независимые шоки акций и процентных ставок. Без корреляций, изменения кредитных спредов, выпуклости и других рыночных факторов. Не прогноз.</p></section>
+<section class="panel" aria-labelledby="custom-stress-head">
+ <h2 id="custom-stress-head">Свой стресс-сценарий: до и после ребалансировки</h2>
+ <p class="sub">Задай изменение цен акций и доходностей облигаций. Сравнение использует сохранённые позиции и целевую долю облигаций в карточке кейса.</p>
+ <div class="scenario-controls">
+  <div><label for="scenario-equity">Изменение стоимости акций, % (−100…+100)</label><input id="scenario-equity" type="number" min="-100" max="100" step="1" value="-15" inputmode="decimal"></div>
+  <div><label for="scenario-yield">Изменение доходностей облигаций, б.п. (−1000…+1000)</label><input id="scenario-yield" type="number" min="-1000" max="1000" step="25" value="75" inputmode="decimal"></div>
+ </div>
+ <div id="scenario-validation" role="status" aria-live="polite" class="scenario-error"></div>
+ <div id="scenario-output" aria-live="polite"></div>
+ <p class="scenario-note">Расчёт — условная линейная чувствительность. Не учитывает выпуклость, кредитные спреды, корреляции, валютные изменения, ограничения ликвидности и налоги. Целевая модель перераспределяет существующие позиции пропорционально внутри каждого класса; новые активы не предполагаются.</p>
+ </section>
 <section class="panel"><h2>Целевой состав и перераспределение</h2><div id="r-target"></div></section>
 <section class="panel"><h2>Сравнение текущего и целевого портфеля</h2><div id="r-comparison"></div><p class="foot">Сценарий: пропорциональное изменение позиций внутри каждого класса. Без новых инструментов, изменения цен, комиссий и налогов. Не является торговым планом.</p></section><section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
 <section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
@@ -29,7 +47,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 const URL_SUPA='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=x=>document.getElementById(x),caseId=new URLSearchParams(location.search).get('case');
 const PORT_START='[ADVISOR_AI_PORTFOLIO_BEGIN]',PORT_END='[ADVISOR_AI_PORTFOLIO_END]';
-let exportedRows=null;
+let exportedRows=null,currentPortfolioData=null;
 const cash=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>(100*n).toFixed(1)+'%';
 function addLine(id,text){const p=document.createElement('p');p.textContent=text;$(id).append(p)}
 function parseSaved(notes){
@@ -109,6 +127,54 @@ function projectAllocation(data,targetBondPercent){
  const targetRateShock=-rows.filter(r=>r.bond).reduce((a,r)=>a+r.projectedValue*r.duration,0)/data.total*0.01;
  return {possible:true,rows,hhi,top1:Math.max(...weights),top3:[...weights].sort((a,b)=>b-a).slice(0,3).reduce((a,x)=>a+x,0),targetRateShock};
 }
+
+function customPortfolioStress(data,equityPercent,yieldBasisPoints){
+ if(!Number.isFinite(equityPercent)||equityPercent< -100||equityPercent>100||!Number.isFinite(yieldBasisPoints)||Math.abs(yieldBasisPoints)>1000){
+  throw Error('Укажи изменение акций от −100% до +100% и доходностей от −1000 до +1000 б.п.');
+ }
+ const current=combinedPortfolioStress(data,equityPercent,yieldBasisPoints);
+ if(data.target===null)return {current,after:null,reason:'Целевая доля облигаций не указана. Добавь её в карточке портфеля для сравнения.'};
+ const allocation=projectAllocation(data,data.target);
+ if(!allocation.possible)return {current,after:null,reason:allocation.reason};
+ const bondValue=allocation.rows.filter(r=>r.bond).reduce((sum,r)=>sum+r.projectedValue,0);
+ const equityValue=allocation.rows.filter(r=>!r.bond).reduce((sum,r)=>sum+r.projectedValue,0);
+ const totalProjected=bondValue+equityValue;
+ if(Math.abs(totalProjected-data.total)>Math.max(0.01,data.total*1e-8))throw Error('Ошибка: модельная стоимость после ребалансировки не совпадает с исходной.');
+ const duration=bondValue>0?allocation.rows.filter(r=>r.bond).reduce((sum,r)=>sum+r.projectedValue*r.duration,0)/bondValue:0;
+ const after=combinedPortfolioStress({total:data.total,bondValue,equityValue,duration},equityPercent,yieldBasisPoints);
+ return {current,after,reason:null};
+}
+function renderCustomPortfolioStress(data){
+ const errors=$('scenario-validation'),host=$('scenario-output');
+ errors.textContent='';host.textContent='';
+ const eqText=$('scenario-equity').value.trim(),bpText=$('scenario-yield').value.trim();
+ if(!eqText||!bpText){errors.textContent='Заполни оба поля сценария.';return}
+ let result;
+ try{result=customPortfolioStress(data,Number(eqText),Number(bpText))}
+ catch(e){errors.textContent=e.message;return}
+ const formatChange=usd=>(usd>=0?'+':'−')+cash(Math.abs(usd))+' USD';
+ const formatPct=ratio=>(ratio>=0?'+':'')+ratio.toFixed(2)+'%';
+ const table=document.createElement('table'),thead=document.createElement('thead'),header=document.createElement('tr');
+ for(const label of ['Показатель','Исходный портфель','После ребалансировки']){
+  const th=document.createElement('th');th.textContent=label;header.append(th)
+ }
+ thead.append(header);table.append(thead);
+ const tbody=document.createElement('tbody');
+ const rows=[
+  ['Изменение стоимости, USD',formatChange(result.current.changeUsd),result.after?formatChange(result.after.changeUsd):'—'],
+  ['Изменение всего портфеля',formatPct(result.current.portfolioPct),result.after?formatPct(result.after.portfolioPct):'—'],
+  ['Стоимость после сценария',cash(result.current.stressedValue)+' USD',result.after?cash(result.after.stressedValue)+' USD':'—'],
+  ['Эффект по акциям',formatChange(result.current.equityChangeUsd),result.after?formatChange(result.after.equityChangeUsd):'—'],
+  ['Эффект по облигациям',formatChange(result.current.bondChangeUsd),result.after?formatChange(result.after.bondChangeUsd):'—']
+ ];
+ for(const values of rows){const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td)}tbody.append(tr)}
+ table.append(tbody);
+ const wrap=document.createElement('div');wrap.className='tablewrap';wrap.append(table);host.append(wrap);
+ if(result.reason){const note=document.createElement('p');note.textContent=result.reason;note.className='scenario-note';host.append(note)}
+ if(result.current.stressedValue<0||(result.after&&result.after.stressedValue<0)){
+  const note=document.createElement('p');note.textContent='Внимание: линейная модель дала отрицательную стоимость. Это артефакт приближения, а не реалистичная цена портфеля.';note.className='scenario-error';host.append(note)
+ }
+}
 function renderComparison(data){
  const out=$('r-comparison');
  if(data.target===null){addLine('r-comparison','Целевая доля облигаций не задана. Укажи её в карточке кейса и сохрани структуру.');return}
@@ -152,6 +218,7 @@ function renderReport(data,title){
   renderRateStress(data);
  }else addLine('r-duration','Облигации не указаны, процентный риск облигационного сегмента не рассчитан.');
  renderCombinedStress(data);
+ renderCustomPortfolioStress(data);
  renderComparison(data);
  if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
  else{
@@ -169,7 +236,7 @@ function renderReport(data,title){
  issues.push('Сверь позиции и цены с актуальными обезличенными данными брокера.');
  issues.push('Оцени корреляции, кредитное качество, ликвидность, валюты, сроки и индивидуальный риск-профиль. Эти показатели не выводятся из введённых строк.');
  for(const text of issues){const li=document.createElement('li');li.textContent=text;$('r-checks').append(li)}
- exportedRows=data.rows;
+ exportedRows=data.rows;currentPortfolioData=data;
  $('print').disabled=false;$('download').disabled=false;
  $('status').textContent='Отчёт готов: '+data.rows.length+' позиций. Можно распечатать или сохранить PDF.';
 }
@@ -184,6 +251,9 @@ async function init(){
  if(error||!data||data.kind!=='portfolio')throw Error('Портфель не найден или доступ запрещён.');
  renderReport(parseSaved(data.notes),data.title);
 }
+for(const id of ['scenario-equity','scenario-yield'])$(id).addEventListener('input',()=>{
+ if(currentPortfolioData)renderCustomPortfolioStress(currentPortfolioData);
+});
 $('print').addEventListener('click',()=>window.print());
 $('download').addEventListener('click',()=>{
  if(!exportedRows)return;
