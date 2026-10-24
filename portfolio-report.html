@@ -323,9 +323,14 @@ $('download-conclusion').addEventListener('click',()=>{
  setTimeout(()=>URL.revokeObjectURL(url),2000);
  $('conclusion-status').textContent='Черновик сохранён. Проверь его перед отправкой.';
 });
+function csvSafeCell(value){
+ const raw=String(value??'');
+ const safe=/^[\s\uFEFF]*[=+\-@\t\r]/u.test(raw)?"'"+raw:raw;
+ return '"'+safe.replace(/"/g,'""')+'"';
+}
 $('download').addEventListener('click',()=>{
  if(!exportedRows)return;
- const csv='Инструмент;Класс;Количество;Цена USD;Стоимость USD;Доля %;Мод. дюрация\n'+exportedRows.map(r=>[r.name,r.bond?'Облигация':'Акция',r.qty,r.price,r.value,100*r.value/exportedRows.reduce((a,x)=>a+x.value,0),r.bond?r.duration:''].join(';')).join('\n');
+ const csv='Инструмент;Класс;Количество;Цена USD;Стоимость USD;Доля %;Мод. дюрация\n'+exportedRows.map(r=>[csvSafeCell(r.name),r.bond?'Облигация':'Акция',r.qty,r.price,r.value,100*r.value/exportedRows.reduce((a,x)=>a+x.value,0),r.bond?r.duration:''].join(';')).join('\n');
  const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='advisor-ai-portfolio-report.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 });
 init().catch(e=>{$('status').className='error';$('status').textContent=e.message});
