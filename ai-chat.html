@@ -46,6 +46,7 @@ textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12p
 const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
+let sessionEpoch=0;
 const error=s=>$('error').textContent=s||'';
 function safeExternalChatLink(value){
  if(typeof value!=='string'||!value.trim())return 'https://chatgpt.com/';
@@ -94,7 +95,18 @@ function bubble(role,content){
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
-async function history(){if(!db||!caseData)return;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
+function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
+function resetChatSession(){
+ sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
+ $('messages').textContent='';$('question').value='';$('attach-input').value='';
+ $('file-list').textContent='';$('file-status').textContent='';$('result-status').textContent='';
+ $('context').textContent='';$('print-report').textContent='';$('quick-actions').textContent='';
+ $('external').href='https://chatgpt.com/';$('to-tasks').classList.add('hidden');$('retry').classList.add('hidden');
+ $('login-note').classList.remove('hidden');$('case-title').textContent='Нужен вход в аккаунт';
+ setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
+ error('');waiting(false);
+}
+async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
  const visibleMessageIds=(data||[]).map(m=>m.id);
@@ -109,24 +121,27 @@ async function history(){if(!db||!caseData)return;const {data,error:err}=await d
   attachments=files.data||[];
   attachmentErr=files.error;
  }
+ if(!isCurrentChat(epoch,ownerId))return;
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
  const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
  for(const m of (data||[]).reverse()){
   const node=bubble(m.role,m.content);
   for(const f of (grouped.get(m.id)||[])){const btn=document.createElement('button');btn.className='filetag';btn.textContent='📎 '+f.filename;btn.title='Открыть вложение';btn.style.marginTop='8px';
-   btn.addEventListener('click',async()=>{btn.disabled=true;try{const {data:link,error:linkErr}=await db.storage.from('advisor-chat-attachments').createSignedUrl(f.object_path,60);if(linkErr)throw linkErr;window.open(link.signedUrl,'_blank','noopener')}catch(e){error('Не удалось открыть файл: '+e.message)}finally{btn.disabled=false}});
+   btn.addEventListener('click',async()=>{if(!isCurrentChat(epoch,ownerId))return;btn.disabled=true;try{const {data:link,error:linkErr}=await db.storage.from('advisor-chat-attachments').createSignedUrl(f.object_path,60);if(!isCurrentChat(epoch,ownerId))return;if(linkErr)throw linkErr;window.open(link.signedUrl,'_blank','noopener')}catch(e){if(isCurrentChat(epoch,ownerId))error('Не удалось открыть файл: '+e.message)}finally{btn.disabled=false}});
    node.append(btn)
   }
   list.append(node)
  }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
 async function requestAI(){
- if(working||!caseData)return;
+ if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;
  waiting(true);error('');$('file-status').textContent='Advisor AI анализирует вопрос и доступные вложения кейса…';
  try{
   const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});
+  if(!isCurrentChat(epoch,ownerId))return;
   if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}
   if(data?.error)throw Error(data.error);
   await history();
+  if(!isCurrentChat(epoch,ownerId))return;
   const usage=data?.tools;
   if(usage){
    const parts=[];
@@ -137,36 +152,40 @@ async function requestAI(){
    $('file-status').textContent='Проверка инструментов: '+parts.join(' · ');
   }
  }catch(e){
-  error('Ответ не получен: '+e.message+'. Вопрос и загруженные вложения сохранены. Можно нажать «Повторить ответ AI» без повторной загрузки.');
- }finally{waiting(false)}
+  if(isCurrentChat(epoch,ownerId))error('Ответ не получен: '+e.message+'. Вопрос и загруженные вложения сохранены. Можно нажать «Повторить ответ AI» без повторной загрузки.');
+ }finally{if(isCurrentChat(epoch,ownerId))waiting(false)}
 }
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
 function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?.toLowerCase()||'';if(name.endsWith('.png'))return 'image/png';if(/\.jpe?g$/.test(name))return 'image/jpeg';if(name.endsWith('.webp'))return 'image/webp';if(name.endsWith('.pdf'))return 'application/pdf';return ''}
 function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
 function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!mimeForFile(f)){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
 async function send(){
- if(working)return;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
+ if(working||!user||!caseData)return;const epoch=sessionEpoch,ownerId=user.id;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
  const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
  waiting(true);error('');$('file-status').textContent='';
  let messageId=null,uploaded=[];
  try{
-  const {data:msg,error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content}).select('id').single();if(err)throw Error(err.message);messageId=msg.id;
+  const {data:msg,error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content}).select('id').single();if(!isCurrentChat(epoch,ownerId))return;if(err)throw Error(err.message);messageId=msg.id;
   for(let i=0;i<files.length;i++){
    const f=files[i];$('file-status').textContent='Загрузка файла '+(i+1)+' из '+files.length+': '+f.name;
    const mime=mimeForFile(f),ext=allowedFiles[mime],path=user.id+'/'+caseId+'/'+crypto.randomUUID()+ext;
    const {error:uploadError}=await db.storage.from('advisor-chat-attachments').upload(path,f,{contentType:mime,upsert:false,cacheControl:'3600'});
+   if(!isCurrentChat(epoch,ownerId))return;
    if(uploadError)throw Error('Не удалось загрузить '+f.name+': '+uploadError.message);
    uploaded.push(path);
    const {error:recordError}=await db.from('advisor_ai_attachments').insert({user_id:user.id,case_id:caseId,message_id:messageId,object_path:path,filename:f.name.slice(0,180),mime_type:mime,bytes:f.size});
+   if(!isCurrentChat(epoch,ownerId))return;
    if(recordError)throw Error('Не удалось привязать файл к сообщению: '+recordError.message);
   }
-  $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();
+  $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
  }catch(e){
+  if(!isCurrentChat(epoch,ownerId))return;
   // Сохранённое текстовое сообщение остаётся в истории; удаляем неприкреплённые файлы, если возможно.
   error('Отправка не завершена: '+e.message+'. '+(messageId?'Сообщение осталось в истории; после устранения ошибки можно нажать «Повторить ответ AI».':''));
   $('file-status').textContent='';
   waiting(false);return;
  }
+ if(!isCurrentChat(epoch,ownerId))return;
  waiting(false);await requestAI();
 }
 
@@ -354,12 +373,19 @@ async function checkCoreIntegrity(){
 }
 async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('Открой AI-чат из карточки нужного кейса.');setStatus('Некорректная ссылка на кейс.');return}if(!window.supabase?.createClient){error('Библиотека Supabase не загрузилась. Проверь интернет.');return}
  db=window.supabase.createClient(SUPABASE_PROJECT_URL,PUBLIC,{auth:{persistSession:true,autoRefreshToken:true}});
+ db.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT'||(user&&session?.user?.id!==user.id))resetChatSession();
+  else if(event==='SIGNED_IN'&&!user)setStatus('Вход выполнен. Обнови страницу, чтобы открыть кейс.');
+ });
+ const openingEpoch=sessionEpoch;
  void checkCoreIntegrity();
  const {data:session,error:sessionError}=await db.auth.getSession();
+ if(openingEpoch!==sessionEpoch)return;
  if(sessionError||!session.session){$('login-note').classList.remove('hidden');$('case-title').textContent='Нужен вход в аккаунт';$('messages').textContent='';setStatus('Войди на сайте, затем вернись по этой ссылке.');return}
- const check=await db.auth.getUser();if(check.error||!check.data.user){$('login-note').classList.remove('hidden');error('Войди повторно в личный кабинет.');return}
+ const check=await db.auth.getUser();if(openingEpoch!==sessionEpoch)return;if(check.data?.user?.id!==session.session.user.id){resetChatSession();return}if(check.error||!check.data.user){$('login-note').classList.remove('hidden');error('Войди повторно в личный кабинет.');return}
  user=check.data.user;
  const {data,error:err}=await db.from('workspace_items').select('id,kind,title,notes,prompt,chat_url').eq('id',caseId).single();
+ if(openingEpoch!==sessionEpoch||user?.id!==check.data.user.id)return;
  if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
  caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=safeExternalChatLink(data.chat_url);
  ready(true);waiting(false);await history();
