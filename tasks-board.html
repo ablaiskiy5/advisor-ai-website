@@ -61,7 +61,8 @@ function renderFocus(list,today){
  for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
- loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;
+ loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;busy=false;
+  $('organize').disabled=false;$('save-drafts').disabled=false;
  $('brain').value='';$('drafts').textContent='';$('edit-title').value='';$('edit-description').value='';
  $('review').classList.add('hidden');$('task-editor').classList.add('hidden');
  render();feedback(message);
@@ -131,7 +132,7 @@ async function submitTaskEditor(event){
   $('task-editor').classList.add('hidden');editingId=null;await load();
   if(current())feedback('Задача сохранена');
  }catch(err){if(current())$('edit-note').textContent='Не удалось сохранить: '+err.message}
- finally{busy=false}
+ finally{if(current())busy=false}
 }
 async function editTask(item){openTaskEditor(item)}
 function review(data){
@@ -161,7 +162,7 @@ async function organize(){
   if(!current())return;
   review(data.tasks);feedback('Предложения готовы. Проверь и сохрани.');
  }catch(e){if(current())feedback('Не удалось разобрать: '+e.message)}
- finally{busy=false;$('organize').disabled=false}
+ finally{if(current()){busy=false;$('organize').disabled=false}}
 }
 async function saveDrafts(){
  if(busy)return;
@@ -182,7 +183,7 @@ async function saveDrafts(){
   if(error)throw Error(error.message);
   $('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load();
  }catch(e){if(current())feedback('Не удалось сохранить: '+e.message)}
- finally{busy=false;$('save-drafts').disabled=false}
+ finally{if(current()){busy=false;$('save-drafts').disabled=false}}
 }
 async function manual(){openTaskEditor(null)}
 
