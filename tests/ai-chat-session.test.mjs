@@ -13,6 +13,7 @@ test('sign-out clears chat content, drafts, export source and owner state',()=>{
  const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
+  exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  runInNewContext(helpers,ctx);
  assert.equal(ctx.isCurrentChat(0,'owner-A'),true);
@@ -47,6 +48,7 @@ test('delayed history cannot restore old-owner messages after sign-out',async()=
  const delayed=new Promise(resolve=>{resolveQuery=resolve});
  const db={from(){return {select(){return this},eq(){return this},order(){return this},limit(){return delayed}}}};
  const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'previous answer',pendingFiles:[],working:false,db,caseId:'case-A',
+  exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  const historyEnd=html.indexOf('async function requestAI()',end);
  runInNewContext(helpers+'\n'+html.slice(end,historyEnd),ctx);

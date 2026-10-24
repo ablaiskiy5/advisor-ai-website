@@ -47,6 +47,8 @@ const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 let sessionEpoch=0;
+const exhaustedRetryMessages=new Set();
+let latestUserMessageId=null;
 const error=s=>$('error').textContent=s||'';
 function safeExternalChatLink(value){
  if(typeof value!=='string'||!value.trim())return 'https://chatgpt.com/';
@@ -98,6 +100,7 @@ function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('retry').disa
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
  sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
+ exhaustedRetryMessages.clear();latestUserMessageId=null;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
  $('file-list').textContent='';$('file-status').textContent='';$('result-status').textContent='';
  $('context').textContent='';$('print-report').textContent='';$('quick-actions').textContent='';
@@ -106,7 +109,8 @@ function resetChatSession(){
  setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
  error('');waiting(false);
 }
-async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';waiting(working);const list=$('messages');list.textContent='';
+async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+ latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
  const visibleMessageIds=(data||[]).map(m=>m.id);
@@ -131,7 +135,7 @@ async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoc
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user'))}
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId))}
 async function requestAI(){
  if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;
  waiting(true);error('');$('file-status').textContent='Advisor AI анализирует вопрос и доступные вложения кейса…';
@@ -158,6 +162,7 @@ async function requestAI(){
    const quota=/лимит AI-запросов|Общий лимит AI|дневной лимит|лимит.*исчерпан/i.test(message);
    const restricted=/участникам пилота|доступ.*отключён|AI-доступ.*не разрешён/i.test(message);
    if(exhausted){
+    if(latestUserMessageId)exhaustedRetryMessages.add(latestUserMessageId);
     $('retry').classList.add('hidden');
     error('Три попытки обработки этого сообщения использованы. Отправь новый вопрос, если нужно продолжить. '+message);
    }else if(quota){
