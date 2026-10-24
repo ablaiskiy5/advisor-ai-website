@@ -2,7 +2,7 @@
 
 Investment-advisor workbench built as a static GitHub Pages frontend with Supabase Auth, RLS-protected cases, portfolio analytics, private AI chat, task organization and document exports.
 
-**For the next developer/ChatGPT conversation start with [PROJECT_STATE.md](PROJECT_STATE.md).** It tracks the verified main branch, production architecture, CI results, security warnings and next implementation steps. Detailed architectural constraints: [docs/ADVISOR_AI_CORE.md](docs/ADVISOR_AI_CORE.md).
+**For the next developer/ChatGPT conversation start with [PROJECT_STATE.md](PROJECT_STATE.md).** It tracks the verified main branch, production architecture, CI results, security warnings and next implementation steps. Autonomous development approach: [docs/DEVELOPMENT_PLAYBOOK.md](docs/DEVELOPMENT_PLAYBOOK.md). Detailed architectural constraints: [docs/ADVISOR_AI_CORE.md](docs/ADVISOR_AI_CORE.md).
 
 ## Pages
 
