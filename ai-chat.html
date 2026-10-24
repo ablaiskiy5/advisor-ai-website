@@ -152,7 +152,23 @@ async function requestAI(){
    $('file-status').textContent='Проверка инструментов: '+parts.join(' · ');
   }
  }catch(e){
-  if(isCurrentChat(epoch,ownerId))error('Ответ не получен: '+e.message+'. Вопрос и загруженные вложения сохранены. Можно нажать «Повторить ответ AI» без повторной загрузки.');
+  if(isCurrentChat(epoch,ownerId)){
+   const message=String(e?.message||'Неизвестная ошибка');
+   const exhausted=/Лимит повторных попыток|retry_limit/i.test(message);
+   const quota=/лимит AI-запросов|Общий лимит AI|дневной лимит|лимит.*исчерпан/i.test(message);
+   const restricted=/участникам пилота|доступ.*отключён|AI-доступ.*не разрешён/i.test(message);
+   if(exhausted){
+    $('retry').classList.add('hidden');
+    error('Три попытки обработки этого сообщения использованы. Отправь новый вопрос, если нужно продолжить. '+message);
+   }else if(quota){
+    error('Лимит AI достигнут. Подожди восстановления лимита за 24 часа. Вопрос и вложения сохранены. '+message);
+   }else if(restricted){
+    $('retry').classList.add('hidden');
+    error('Для AI нужен подтверждённый email из списка участников пилота. '+message);
+   }else{
+    error('Ответ не получен: '+message+'. Вопрос и вложения сохранены. Можно нажать «Повторить ответ AI» (не более трёх попыток на вопрос).');
+   }
+  }
  }finally{if(isCurrentChat(epoch,ownerId))waiting(false)}
 }
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
