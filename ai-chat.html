@@ -220,15 +220,32 @@ async function makeSummary(){
  $('question').value=summaryPrompts[caseData.kind]||summaryPrompts.tasks;
  await send();
 }
-async function saveResult(){if(working||!lastAnswer||!caseData)return;const btn=$('save-result');btn.disabled=true;$('result-status').textContent='Сохраняю итог в карточке…';try{
- const {data:fresh,error:readError}=await db.from('workspace_items').select('notes').eq('id',caseId).single();if(readError)throw readError;
- const prior=fresh.notes||'';if(prior.includes(lastAnswer.trim())){ $('result-status').textContent='Этот ответ уже сохранён в заметках кейса.';return }const header='Итог Advisor AI · '+new Date().toLocaleString('ru-RU');
- const addition='\n\n──── '+header+' ────\n'+lastAnswer.trim();
- const notes=(prior+addition).trim();if(notes.length>50000)throw Error('В карточке уже слишком много текста. Скачай итог файлом.');
- const {error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId);if(updateError)throw updateError;
- caseData.notes=notes;$('result-status').textContent='Итог сохранён в заметках карточки. Открой кабинет, чтобы посмотреть и отредактировать.';}
- catch(e){$('result-status').textContent='Не удалось сохранить итог: '+(e.message||'ошибка доступа');}
- finally{btn.disabled=working||!lastAnswer}}
+async function saveResult(){
+ if(working||!lastAnswer||!caseData||!user)return;
+ const epoch=sessionEpoch,ownerId=user.id,answer=lastAnswer.trim(),savedCase=caseData;
+ if(!answer)return;
+ const btn=$('save-result');btn.disabled=true;$('result-status').textContent='Сохраняю итог в карточке…';
+ try{
+  const {data:fresh,error:readError}=await db.from('workspace_items').select('notes').eq('id',caseId).eq('user_id',ownerId).single();
+  if(!isCurrentChat(epoch,ownerId))return;
+  if(readError)throw readError;
+  const prior=fresh.notes||'';
+  if(prior.includes(answer)){$('result-status').textContent='Этот ответ уже сохранён в заметках кейса.';return}
+  const header='Итог Advisor AI · '+new Date().toLocaleString('ru-RU');
+  const addition='\n\n──── '+header+' ────\n'+answer;
+  const notes=(prior+addition).trim();
+  if(notes.length>50000)throw Error('В карточке уже слишком много текста. Скачай итог файлом.');
+  const {error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId).eq('user_id',ownerId);
+  if(!isCurrentChat(epoch,ownerId))return;
+  if(updateError)throw updateError;
+  savedCase.notes=notes;
+  $('result-status').textContent='Итог сохранён в заметках карточки. Открой кабинет, чтобы посмотреть и отредактировать.';
+ }catch(e){
+  if(isCurrentChat(epoch,ownerId))$('result-status').textContent='Не удалось сохранить итог: '+(e.message||'ошибка доступа');
+ }finally{
+  if(isCurrentChat(epoch,ownerId))btn.disabled=working||!lastAnswer;
+ }
+}
 function printResult(){if(!lastAnswer||!caseData)return;const area=$('print-report');area.textContent='';const title=document.createElement('h1');title.textContent='Advisor AI — '+caseData.title;const date=document.createElement('p');date.textContent='Дата: '+new Date().toLocaleString('ru-RU');const body=document.createElement('div');body.className='print-content';body.textContent=lastAnswer;area.append(title,date,body);window.print()}
 function fileName(){return (caseData?.title||'case').replace(/[\\/:*?"<>|]/g,' ').slice(0,60).trim()||'case'}
 function printableContent(){
