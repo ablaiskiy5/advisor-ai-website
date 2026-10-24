@@ -2,6 +2,13 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Task editor session safety — PR #86 (2026-10-24)
+
+- [PR #86](https://github.com/ablaiskiy5/advisor-ai-website/pull/86) captures authenticated owner and session epoch before the task editor writes to Supabase. A delayed success or error after sign-out, account switch or same-account re-login cannot close the new editor, display the previous session's error, or refresh tasks under the wrong session.
+- Synthetic regression tests exercise normal save, stale success and stale error. No actual two-account browser test, production task write or private data access was performed.
+- Read-only production verification: private USER plugin **2.2.0**; Supabase chat Edge Function **v27**, task organizer **v2**, shared MCP **v4**; nine public tables report RLS enabled. Four backend-only tables intentionally have no direct client policies. Security advisor still warns that leaked-password protection is disabled.
+- Release evidence and merge status must be confirmed from the PR and GitHub Actions before claiming deployment.
+
 ## In-flight task AI response isolation — PR #83 (2026-10-24)
 
 - [PR #83](https://github.com/ablaiskiy5/advisor-ai-website/pull/83) guards AI-generated task proposals and stale error messages by the authenticated user ID **and** a session epoch. A reply arriving after sign-out, account switch, or sign-out/re-login to the same account is discarded instead of repopulating private draft tasks.
