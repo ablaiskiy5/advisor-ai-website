@@ -108,7 +108,7 @@ test('normal positive-price holdings do not trigger zero-price alerts', () => {
 test('coverage audit discloses missing cash, leverage, FX and NAV reconciliation',()=>{
  const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 2; 100','BOND:UST10; 1; 100; 5'])));
  assert.match(memo,/Денежные средства или обязательства не указаны/);
- assert.match(memo,/не равна подтверждённым чистым активам \(NAV\)/);
+ assert.match(memo,/NAV не рассчитывается/);
  assert.match(memo,/валютная экспозиция/);
  assert.match(memo,/дата оценки, источник котировок/);
  assert.match(html,/id="r-coverage"/);
