@@ -19,7 +19,7 @@ function harness() {
 render=()=>{};
 let exported=[];
 downloadExport=(name,body,mime)=>exported.push({name,body,mime});
-({load,exportCsv,exportCalendar,handleTaskAuthChange,setup:(database,identity)=>{db=database;user=identity},
+({load,change,exportCsv,exportCalendar,handleTaskAuthChange,setup:(database,identity)=>{db=database;user=identity},
  snapshot:()=>({count:items.length,complete:taskListComplete,userId:user?.id||null,ids:items.map(x=>x.id)}),
  exports:()=>exported,resetExports:()=>{exported=[]}})
 `, { Date, Intl, TextEncoder, document: { getElementById: () => info }, setTimeout: fn => timers.push(fn) });
@@ -167,4 +167,75 @@ test('stale paginated response cannot overwrite tasks after account switch', asy
   assert.equal(app.snapshot().complete, true);
   assert.equal(app.snapshot().count, 1);
   assert.equal(app.snapshot().ids[0], 'second-user-task');
+});
+
+function deferredQuickActionDb() {
+  const requests = [];
+  let release;
+  return {
+    requests,
+    from(table) {
+      assert.equal(table, 'advisor_tasks');
+      return {
+        update(fields) { requests.push({ fields, filters: [] }); return this; },
+        eq(field, value) {
+          requests.at(-1).filters.push([field, value]);
+          if (field === 'user_id') return new Promise(resolve => { release = resolve; });
+          return this;
+        }
+      };
+    },
+    finish(result) {
+      assert.equal(typeof release, 'function', 'Quick action must await the owner-scoped write');
+      release(result);
+    }
+  };
+}
+
+test('quick action applies a successful write in the current owner session', async () => {
+  const app = harness(), db = deferredQuickActionDb();
+  const task = { id: 'synthetic-task', status: 'todo' };
+  app.setup(db, { id: 'synthetic-user' });
+  const pending = app.change(task, { status: 'done' });
+  assert.deepEqual(db.requests[0].filters, [['id', 'synthetic-task'], ['user_id', 'synthetic-user']]);
+  db.finish({ error: null });
+  await pending;
+  assert.equal(task.status, 'done');
+});
+
+test('late quick-action success cannot mutate old task after account switch', async () => {
+  const app = harness(), db = deferredQuickActionDb();
+  const task = { id: 'old-task', status: 'todo' };
+  app.setup(db, { id: 'synthetic-user' });
+  const pending = app.change(task, { status: 'done' });
+  app.handleTaskAuthChange('SIGNED_IN', { user: { id: 'second-user' } });
+  const message = app.info.textContent;
+  db.finish({ error: null });
+  await pending;
+  assert.equal(task.status, 'todo', 'Old task object must remain unchanged');
+  assert.equal(app.snapshot().userId, 'second-user');
+  assert.equal(app.info.textContent, message, 'Old action must not update new session feedback');
+});
+
+test('late quick-action error is ignored after same-account sign-out and re-login', async () => {
+  const app = harness(), db = deferredQuickActionDb();
+  const task = { id: 'old-task', status: 'todo' };
+  app.setup(db, { id: 'synthetic-user' });
+  const pending = app.change(task, { status: 'done' });
+  app.handleTaskAuthChange('SIGNED_OUT', null);
+  app.setup(db, { id: 'synthetic-user' });
+  const message = app.info.textContent;
+  db.finish({ error: { message: 'Synthetic old-session failure' } });
+  await pending;
+  assert.equal(task.status, 'todo');
+  assert.equal(app.info.textContent, message);
+  assert.doesNotMatch(app.info.textContent, /old-session failure/);
+});
+
+test('quick action without authentication does not write to Supabase', async () => {
+  const app = harness(), db = deferredQuickActionDb();
+  app.setup(db, null);
+  await app.change({ id: 'synthetic-task', status: 'todo' }, { status: 'done' });
+  assert.equal(db.requests.length, 0);
+  assert.match(app.info.textContent, /Сначала войди/);
 });
