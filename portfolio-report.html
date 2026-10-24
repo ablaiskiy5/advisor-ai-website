@@ -37,6 +37,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
  </section>
 <section class="panel"><h2>Целевой состав и перераспределение</h2><div id="r-target"></div></section>
 <section class="panel"><h2>Сравнение текущего и целевого портфеля</h2><div id="r-comparison"></div><p class="foot">Сценарий: пропорциональное изменение позиций внутри каждого класса. Без новых инструментов, изменения цен, комиссий и налогов. Не является торговым планом.</p></section><section class="panel"><h2>Состав портфеля</h2><div class="tablewrap"><table><thead><tr><th>Инструмент</th><th>Класс</th><th class="num">Кол-во</th><th class="num">Цена USD</th><th class="num">Стоимость USD</th><th class="num">Доля</th><th class="num">Мод. дюрация</th></tr></thead><tbody id="r-rows"></tbody></table></div></section>
+<section class="panel"><h2>Инвестиционное заключение (черновик)</h2><div class="actions no-print"><button class="button" id="copy-conclusion" type="button" disabled>Скопировать заключение</button><button class="button" id="download-conclusion" type="button" disabled>Скачать .txt</button><span id="conclusion-status" class="foot" role="status" aria-live="polite"></span></div><div id="r-conclusion" style="white-space:pre-line;line-height:1.75"></div><p class="foot">Перед отправкой клиенту проверь источники, актуальные цены и инвестиционный профиль.</p></section>
 <section class="panel"><h2>Выводы и контрольные вопросы</h2><ul id="r-checks"></ul></section>
 <div class="notice">Все суммы рассчитаны на основе пользовательских цен в USD. Предполагаются длинные позиции и отсутствие денежного остатка, обязательств, валютных пересчётов, комиссий и налогов. Концентрационные показатели не измеряют корреляции и кредитный риск. Дюрационный сценарий — линейная оценка движения цены облигаций при параллельном изменении их доходностей, без учёта выпуклости. Отчёт не является индивидуальной инвестиционной рекомендацией.</div>
 <p class="foot">Advisor AI · Автоматически рассчитанный отчёт. Перед передачей клиенту проверь исходные цены, количество бумаг, валюты, дюрацию и полноту исходного портфеля.</p>
@@ -47,7 +48,7 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 const URL_SUPA='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 const $=x=>document.getElementById(x),caseId=new URLSearchParams(location.search).get('case');
 const PORT_START='[ADVISOR_AI_PORTFOLIO_BEGIN]',PORT_END='[ADVISOR_AI_PORTFOLIO_END]';
-let exportedRows=null,currentPortfolioData=null;
+let exportedRows=null,currentPortfolioData=null,currentInvestmentConclusion='';
 const cash=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>(100*n).toFixed(1)+'%';
 function addLine(id,text){const p=document.createElement('p');p.textContent=text;$(id).append(p)}
 function parseSaved(notes){
@@ -206,6 +207,53 @@ function renderComparison(data){
  table2.append(body2);const wrap2=document.createElement('div');wrap2.className='tablewrap';wrap2.append(table2);out.append(wrap2);
  addLine('r-comparison','Сравнение рассчитано при сохранении пропорций инструментов внутри каждого класса активов.');
 }
+
+function buildInvestmentConclusion(data){
+ if(!data||!Number.isFinite(data.total)||data.total<=0||!Array.isArray(data.rows)||!data.rows.length)throw Error('Для заключения требуется корректный портфель.');
+ const money=n=>cash(n)+' USD';
+ const bondWeight=data.bondValue/data.total,equityWeight=data.equityValue/data.total;
+ const largest=data.rows[0],largestWeight=largest.value/data.total;
+ const lines=[
+  'ЧЕРНОВИК ИНВЕСТИЦИОННОГО ЗАКЛЮЧЕНИЯ',
+  'Основа: сохранённые пользователем количества и цены, не биржевые котировки.',
+  '',
+  '1. Структура',
+  'Стоимость: '+money(data.total)+'. Позиций: '+data.rows.length+'.',
+  'Акции: '+pct(equityWeight)+'. Облигации: '+pct(bondWeight)+'.',
+  'Крупнейшая позиция: '+largest.name+' ('+pct(largestWeight)+'). Топ-3: '+pct(data.top3)+'.',
+  'Индекс концентрации HHI: '+data.hhi.toFixed(4)+'; эффективное число позиций: '+(1/data.hhi).toFixed(2)+'.',
+  '',
+  '2. Ключевые риски'
+ ];
+ if(largestWeight>0.35)lines.push('• Высокая концентрация: крупнейшая позиция превышает 35% портфеля.');
+ else lines.push('• Крупнейшая позиция ниже порога 35%; это не исключает отраслевой и корреляционный риск.');
+ if(data.top3>0.7)lines.push('• Три крупнейшие позиции превышают 70% стоимости портфеля.');
+ if(data.bondValue>0){
+  lines.push('• Взвешенная модифицированная дюрация облигаций: '+data.duration.toFixed(2)+' года.');
+  lines.push('• Рост доходностей облигаций на 100 б.п.: приблизительно '+money(-data.bondValue*data.duration/100)+' по всему портфелю при прочих равных.');
+  if(data.duration>7)lines.push('• Дюрация выше 7 лет: повышенная чувствительность облигаций к изменению доходностей.');
+ }else lines.push('• Облигации отсутствуют в указанных данных; защита через долговой сегмент не моделируется.');
+ lines.push('• Гипотетическое снижение всех акций на 20% при неизменности прочих активов: '+money(-data.equityValue*0.2)+' ('+pct(-equityWeight*0.2)+' портфеля).');
+ lines.push('', '3. Возможное перераспределение');
+ if(data.target===null){
+  lines.push('• Целевая доля облигаций не задана. Сначала согласовать риск-профиль и целевую структуру; торговый план не рассчитан.');
+ }else{
+  const delta=data.total*data.target/100-data.bondValue;
+  lines.push('• Целевая доля облигаций: '+data.target.toFixed(1)+'%; текущая: '+pct(bondWeight)+'.');
+  if(Math.abs(delta)<0.005)lines.push('• По общей доле облигаций портфель соответствует выбранной цели.');
+  else lines.push('• Арифметически '+(delta>0?'увеличить':'уменьшить')+' долговой сегмент на '+money(Math.abs(delta))+' при противоположном изменении акций; без учёта издержек.');
+  const allocation=projectAllocation(data,data.target);
+  if(!allocation.possible)lines.push('• Состав целевого портфеля нельзя рассчитать только из текущих инструментов: '+allocation.reason);
+  else lines.push('• Модель сохраняет пропорции внутри каждого класса, не подбирает новые бумаги и не формирует торговые поручения.');
+ }
+ lines.push('','4. Проверить до представления клиенту',
+ '• Актуальность котировок и дату оценки; валюты, денежные средства, обязательства и плечо.',
+ '• Секторную и географическую концентрацию, корреляции, кредитное качество, ликвидность и сроки погашения.',
+ '• Горизонт инвестирования, ограничения, налоги, комиссии и допустимую просадку.',
+ '',
+ 'Статус: аналитический черновик для проверки советником. Не является индивидуальной инвестиционной рекомендацией; не содержит онлайн-котировок или готовых ордеров.');
+ return lines.join('\n');
+}
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Сформирован: '+new Date().toLocaleString('ru-RU')+' · Стоимость на основе введённых данных';
  $('r-total').textContent=cash(data.total)+' USD';$('r-equity').textContent=pct(data.equityValue/data.total);$('r-bonds').textContent=pct(data.bondValue/data.total);$('r-count').textContent=data.rows.length;
@@ -220,6 +268,9 @@ function renderReport(data,title){
  renderCombinedStress(data);
  renderCustomPortfolioStress(data);
  renderComparison(data);
+ currentInvestmentConclusion=buildInvestmentConclusion(data);
+ $('r-conclusion').textContent=currentInvestmentConclusion;
+ $('copy-conclusion').disabled=false;$('download-conclusion').disabled=false;
  if(data.target===null)addLine('r-target','Целевая доля облигаций не указана.');
  else{
   const delta=data.total*data.target/100-data.bondValue;
@@ -255,6 +306,23 @@ for(const id of ['scenario-equity','scenario-yield'])$(id).addEventListener('inp
  if(currentPortfolioData)renderCustomPortfolioStress(currentPortfolioData);
 });
 $('print').addEventListener('click',()=>window.print());
+$('copy-conclusion').addEventListener('click',async()=>{
+ if(!currentInvestmentConclusion)return;
+ try{
+  await navigator.clipboard.writeText(currentInvestmentConclusion);
+  $('conclusion-status').textContent='Заключение скопировано. Проверь перед отправкой.';
+ }catch{
+  $('conclusion-status').textContent='Буфер обмена недоступен. Используй кнопку «Скачать .txt».';
+ }
+});
+$('download-conclusion').addEventListener('click',()=>{
+ if(!currentInvestmentConclusion)return;
+ const blob=new Blob(['\uFEFF'+currentInvestmentConclusion],{type:'text/plain;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='advisor-ai-investment-conclusion.txt';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),2000);
+ $('conclusion-status').textContent='Черновик сохранён. Проверь его перед отправкой.';
+});
 $('download').addEventListener('click',()=>{
  if(!exportedRows)return;
  const csv='Инструмент;Класс;Количество;Цена USD;Стоимость USD;Доля %;Мод. дюрация\n'+exportedRows.map(r=>[r.name,r.bond?'Облигация':'Акция',r.qty,r.price,r.value,100*r.value/exportedRows.reduce((a,x)=>a+x.value,0),r.bond?r.duration:''].join(';')).join('\n');

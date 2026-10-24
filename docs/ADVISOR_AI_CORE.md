@@ -1,12 +1,12 @@
 # Advisor AI — unified architecture and status
 
-Last verified: 2026-10-23. This is an engineering status file, not a claim of successful end-to-end user testing.
+Last verified: 2026-10-24. For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
 
 ## Production components
 
 - **ChatGPT Plugin**: existing private `Advisor AI | Investment Intelligence`, release **2.2.0**. The plugin package contains its comprehensive 2.1 skill, retained academy/source files, and a remote `.mcp.json` connection to the shared mathematical tools.
 - **Workspace frontend**: GitHub Pages `workspace.html`, `ai-chat.html`, `tasks-board.html`, `bond-analysis.html`, and `portfolio-report.html`.
-- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v20**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
+- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v21**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
 - **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v4**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
 - **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` with capped AI proposals.
 - **Files**: private `advisor-chat-attachments` bucket with owner restrictions; screenshot/PDF analysis via `advisor-ai-chat`.
@@ -16,6 +16,8 @@ Last verified: 2026-10-23. This is an engineering status file, not a claim of su
 **Implemented:** shared analytical method, shared mathematical service URL and tool catalogue. Workspace reads the plugin skill content copied into its deployed server code at its published release. The plugin package configures the same remote mathematical MCP server. No user-client credentials are exposed by these public deterministic tools. The chat now reports actual web/MCP tool usage counts, warns if current market claims lack a successful web search, and refuses to save incomplete token-limited reports as final.
 
 **Not yet implemented:** ChatGPT Plugin conversations do not automatically share the Workspace user's Supabase identity, case history, task board or customer files. The platform plugin object is **not an API endpoint** that a GitHub Pages app can directly invoke. Private-data integration requires OAuth 2.1 authorization and user consent using Supabase Auth's OAuth Server plus RLS-scoped MCP handlers. Do not implement cross-account access using anonymous endpoints or service-role keys in the browser.
+
+**Verified externally on 2026-10-24:** the public shared MCP suite (4 calculations and invalid-input rejection), production repository CI and GitHub Pages deployment for PR #57. This is not equivalent to user-level authentication or AI model invocation.
 
 **Not end-to-end verified:** Chrome/mobile file upload and response completion, actual PPTX/PDF generation in a user browser, whether the plugin runtime has refreshed the newly added MCP server after release, and the quality/availability of live web-search answers through the model API. Unit/syntax checks and publication are not a replacement for these tests.
 
@@ -52,3 +54,7 @@ Last verified: 2026-10-23. This is an engineering status file, not a claim of su
 - Do not execute transactions, submit orders, email clients or schedule external events without explicit approval.
 - Run syntax and math checks before release; use PRs and cite actual merge commits.
 - Verify live integrations with authenticated requests before describing them as working.
+
+## Live security advisory (2026-10-24)
+
+Supabase security advisor reports leaked-password protection disabled (WARN), plus two RLS-enabled backend tables with no policies (INFO). Keep backend-only tables inaccessible from public users; inspect actual grants and privileged paths before changing policies. See [PROJECT_STATE.md](../PROJECT_STATE.md) for next steps and remediation links.
