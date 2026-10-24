@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## Workspace HTML integrity — PR #78 (2026-10-24)
+
+- [PR #78](https://github.com/ablaiskiy5/advisor-ai-website/pull/78) removes 28,835 characters of accidentally appended duplicate JavaScript/markup after the first complete `workspace.html` document. The retained inline JavaScript was syntax-checked; the original page functionality was not intentionally changed.
+- Adds a regression to require exactly one complete closing document and no stray trailing source, alongside the existing Workspace syntax and portfolio math tests.
+- Frontend and test only; no Supabase schema, RLS, plugin release, market data, client information or credentials changed. GitHub CI and Pages deployment are separate release gates; authenticated browser and mobile Safari tests remain outstanding.
+
 ## AI chat session isolation — PR #77 (2026-10-24)
 
 - [PR #77](https://github.com/ablaiskiy5/advisor-ai-website/pull/77) clears private AI-chat messages, last answer/export source, drafts, pending attachments, printed report and case context when Supabase signals sign-out or a different account. Old in-flight history/attachment and AI/upload responses are ignored using a session epoch and owner check.
