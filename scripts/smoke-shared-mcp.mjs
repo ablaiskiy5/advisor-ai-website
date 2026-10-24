@@ -37,15 +37,27 @@ async function run(){
  };
  const bond=await invoke('bond_current_yield',{face:1000,coupon_percent:6,price:950});
  equalNumber(bond.current_yield_percent,6.315789473684211,'Bond current yield');
+ const par=await invoke('bond_current_yield',{face:1000,coupon_percent:6,price:1000});
+ equalNumber(par.current_yield_percent,6,'At-par bond current yield equals coupon rate');
  const concentration=await invoke('portfolio_concentration',{holdings:[{ticker:'A',value:70},{ticker:'B',value:30}]});
  equalNumber(concentration.hhi,0.58,'Concentration HHI');
+ const scaled=await invoke('portfolio_concentration',{holdings:[{ticker:'A',value:700},{ticker:'B',value:300}]});
+ equalNumber(scaled.hhi,concentration.hhi,'HHI is invariant to portfolio size');
+ equalNumber(scaled.top1_percent,concentration.top1_percent,'Largest holding weight is invariant to portfolio size');
+ equalNumber(concentration.effective_positions,1/concentration.hhi,'Effective positions is inverse HHI');
  const within=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'NVDA',amount_usd:25000},{name:'AMZN',amount_usd:25000},{name:'QQQ',amount_usd:30000},{name:'XBI',amount_usd:20000}]});
  assert(within.within_pool&&within.remaining_usd===0,'Correct pool allocation');
  const over=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'NVDA',amount_usd:100000},{name:'AMZN',amount_usd:100000},{name:'QQQ',amount_usd:100000},{name:'XBI',amount_usd:100000}]});
  assert(!over.within_pool&&over.remaining_usd===-300000,'Excessive pool allocation must fail');
  const shock=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:100});
  equalNumber(shock.portfolio_change_percent,-1.5,'Duration stress');
+ const fallingYields=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:-100});
+ equalNumber(fallingYields.portfolio_change_percent,1.5,'Duration stress reverses sign when yields fall');
+ equalNumber(shock.change_usd+fallingYields.change_usd,0,'Linear duration shocks are symmetric');
+ const noShock=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:0});
+ equalNumber(noShock.change_usd,0,'Zero yield shock has zero impact');
  await reject('bond_current_yield',{face:1000,coupon_percent:6,price:0},'Zero bond price');
+ await reject('bond_current_yield',{face:1000,coupon_percent:101,price:950},'Coupon rate above 100%');
  await reject('portfolio_concentration',{holdings:[{ticker:'A',value:100},{ticker:'a',value:1}]},'Duplicate tickers (case-insensitive)');
  await reject('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'Invalid',amount_usd:-1}]},'Negative allocation');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:1000001,modified_duration:5,yield_change_bp:100},'Bond notional greater than portfolio');
@@ -53,6 +65,7 @@ async function run(){
  await reject('bond_current_yield',{face:1000,coupon_percent:'6',price:950},'String instead of numeric coupon');
  await reject('portfolio_concentration',{holdings:[]},'Empty holdings');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:-1,modified_duration:5,yield_change_bp:100},'Negative bond notional');
- console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic and 8 rejection checks');
+ await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:10001},'Yield shock beyond limit');
+ console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 10 rejection checks');
 }
 run().catch(error=>{console.error(error.message);process.exitCode=1});
