@@ -39,3 +39,22 @@ test('in-flight history, AI and upload paths verify current session',()=>{
  const send=html.slice(html.indexOf('async function send()'),html.indexOf('const quickOptions='));
  assert.ok((send.match(/isCurrentChat\(epoch,ownerId\)/g)||[]).length>=5);
 });
+
+test('delayed history cannot restore old-owner messages after sign-out',async()=>{
+ const nodes=Object.fromEntries(['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title']
+  .map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
+ let resolveQuery;
+ const delayed=new Promise(resolve=>{resolveQuery=resolve});
+ const db={from(){return {select(){return this},eq(){return this},order(){return this},limit(){return delayed}}}};
+ const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'previous answer',pendingFiles:[],working:false,db,caseId:'case-A',
+  $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
+ const historyEnd=html.indexOf('async function requestAI()',end);
+ runInNewContext(helpers+'\n'+html.slice(end,historyEnd),ctx);
+ const pending=ctx.history();
+ ctx.resetChatSession();
+ resolveQuery({data:[{id:'old-message',role:'assistant',content:'PRIVATE OLD MESSAGE'}],error:null});
+ await pending;
+ assert.equal(ctx.lastAnswer,'');
+ assert.equal(nodes.messages.textContent,'');
+ assert.equal(ctx.caseData,null);
+});
