@@ -82,3 +82,11 @@ test('client data is rendered as text and copy/export require a user click', () 
  assert.ok(script, 'Browser script must exist');
  assert.doesNotThrow(() => new Function(script[1]), 'Browser JavaScript must parse');
 });
+
+test('portfolio report explicitly distinguishes creation time from unverified valuation date', () => {
+ const memo=buildInvestmentConclusion(parseSaved(input(['AAPL; 1; 100'])));
+ assert.match(memo,/Дата оценки и источник котировок не подтверждены/);
+ assert.match(html,/id="r-valuation-warning"[^>]*Дата оценки и источник котировок не подтверждены/);
+ assert.match(html,/Отчёт сформирован:/);
+ assert.match(html,/Дата оценки активов: не подтверждена/);
+});
