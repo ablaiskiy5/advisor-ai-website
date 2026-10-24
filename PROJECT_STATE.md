@@ -2,6 +2,12 @@
 
 **Verified:** 2026-10-24 (Asia/Almaty), from connected GitHub and Supabase. This is the canonical handoff for new chats/agents. Do not assume a feature is live merely because it is in the repository. Update this file with every release.
 
+## AI task batch-save session isolation — PR #87 (2026-10-24)
+
+- [PR #87](https://github.com/ablaiskiy5/advisor-ai-website/pull/87) captures the authenticated owner and session epoch before inserting AI-proposed task cards. Late successes and errors after sign-out, account switch or same-account re-login no longer clear the next session's draft, close its review, show the old session's error or refresh tasks for the wrong account.
+- Four synthetic tests cover normal owner-scoped insertion, stale success, stale failure and missing authentication. No customer data, Supabase policies, plugin files or production server functions changed.
+- **Release gate:** confirm all applicable PR checks, merge and main-branch checks before reporting publication. Authenticated two-user browser testing is still outstanding.
+
 ## Task editor session safety — PR #86 (2026-10-24)
 
 - [PR #86](https://github.com/ablaiskiy5/advisor-ai-website/pull/86) captures authenticated owner and session epoch before the task editor writes to Supabase. A delayed success or error after sign-out, account switch or same-account re-login cannot close the new editor, display the previous session's error, or refresh tasks under the wrong session.
