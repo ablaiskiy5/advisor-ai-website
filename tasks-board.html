@@ -17,7 +17,7 @@
 'use strict';
 const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
 const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
-let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0;
+let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0;
 const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
 function feedback(text){$('info').textContent=text}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -61,7 +61,7 @@ function renderFocus(list,today){
  for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
- loadRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;
+ loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;
  $('brain').value='';$('drafts').textContent='';$('edit-title').value='';$('edit-description').value='';
  $('review').classList.add('hidden');$('task-editor').classList.add('hidden');
  render();feedback(message);
@@ -133,13 +133,21 @@ function review(data){
  $('review-note').textContent='Проверь даты: AI может ошибаться.';
 }
 async function organize(){
- if(busy)return;const text=$('brain').value.trim();if(text.length<3){feedback('Напиши дела в свободной форме');return}
+ if(busy)return;
+ const ownerId=user?.id,sessionEpoch=authRevision;
+ if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
+ const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
+ const text=$('brain').value.trim();if(text.length<3){feedback('Напиши дела в свободной форме');return}
  busy=true;$('organize').disabled=true;feedback('Разбираю задачи…');
  try{const {data,error}=await db.functions.invoke('advisor-ai-organize-tasks',{body:{text}});
-  if(error){let detail='';try{detail=(await error.context?.json())?.error||''}catch{}throw Error(detail||error.message)}
+  // An AI reply may arrive after sign-out or a switch to another (or the same) account.
+  // Never repopulate private proposals or surface the old session's response.
+  if(!current())return;
+  if(error){let detail='';try{detail=(await error.context?.json())?.error||''}catch{}if(!current())return;throw Error(detail||error.message)}
   if(data?.error)throw Error(data.error);if(!data?.tasks?.length)throw Error('Не удалось выделить задачи');
+  if(!current())return;
   review(data.tasks);feedback('Предложения готовы. Проверь и сохрани.');
- }catch(e){feedback('Не удалось разобрать: '+e.message)}
+ }catch(e){if(current())feedback('Не удалось разобрать: '+e.message)}
  finally{busy=false;$('organize').disabled=false}
 }
 async function saveDrafts(){
