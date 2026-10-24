@@ -17,6 +17,8 @@ async function run(){
  const discovery=await call('server/discover');
  assert(discovery.resultType==='complete'&&discovery.cacheScope==='public','Public MCP discovery contract');
  const listed=await call('tools/list');
+ assert(Array.isArray(listed.tools),'MCP tool list must be an array');
+ assert(listed.tools.every(x=>x.name&&x.description&&x.inputSchema?.type==='object'),'Public tool metadata must be usable');
  const expected=['bond_current_yield','portfolio_concentration','trade_risk_budget','bond_duration_shock'];
  for(const name of expected)assert(listed.tools?.some(x=>x.name===name),'Missing '+name);
  assert(listed.tools.length===expected.length,'Unexpected tool exposed on public MCP');
@@ -48,6 +50,9 @@ async function run(){
  await reject('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'Invalid',amount_usd:-1}]},'Negative allocation');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:1000001,modified_duration:5,yield_change_bp:100},'Bond notional greater than portfolio');
  await reject('private_case_list',{},'Undeclared private tool');
- console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic and 5 rejection checks');
+ await reject('bond_current_yield',{face:1000,coupon_percent:'6',price:950},'String instead of numeric coupon');
+ await reject('portfolio_concentration',{holdings:[]},'Empty holdings');
+ await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:-1,modified_duration:5,yield_change_bp:100},'Negative bond notional');
+ console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic and 8 rejection checks');
 }
 run().catch(error=>{console.error(error.message);process.exitCode=1});
