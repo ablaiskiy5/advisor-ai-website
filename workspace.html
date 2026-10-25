@@ -158,10 +158,16 @@ function buildPortfolioText(summary){const f=n=>n.toLocaleString('en-US',{maximu
 }
 function summarizeHoldings(summary){const fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});const pct=n=>(n*100).toFixed(1)+'%';return 'Стоимость по введённым ценам: '+fmt(summary.total)+' USD.\nПозиций: '+summary.rows.length+'. Крупнейшая: '+summary.rows[0].ticker+' ('+pct(summary.top1)+'). Топ-3: '+pct(summary.top3)+'. Топ-5: '+pct(summary.top5)+'.\nHHI: '+summary.hhi.toFixed(4)+'. Эффективное число позиций: '+summary.effectiveCount.toFixed(2)+'.\nАкции: '+pct(summary.equityValue/summary.total)+'. Облигации: '+pct(summary.bondValue/summary.total)+'. Взвешенная дюрация облигаций: '+summary.bondDuration.toFixed(2)+' года. Сдвиг доходностей облигаций +100 б.п. при прочих равных: портфель '+pct(summary.rateShock100bp)+' (первый порядок).\nУсловный стресс: '+summary.rows[0].ticker+' -20% при прочих равных → портфель '+pct(summary.largestShock)+'. Все позиции -10% → портфель -10.0%.\n\n'+summary.rows.slice(0,30).map(r=>r.ticker+' · '+fmt(r.value)+' USD · '+pct(r.value/summary.total)).join('\n')+(summary.rows.length>30?'\n… и ещё '+(summary.rows.length-30)+' позиций.':'')}
 function splitCsvLine(line,delimiter){
- const result=[];let field='',quoted=false;
+ const result=[];let field='',quoted=false,closed=false;
  for(let i=0;i<line.length;i++){const c=line[i];
-  if(c==='"'){if(quoted&&line[i+1]==='"'){field+='"';i++}else quoted=!quoted}
-  else if(c===delimiter&&!quoted){result.push(field.trim());field=''}
+  if(c==='"'){
+   if(quoted&&line[i+1]==='"'){field+='"';i++}
+   else if(quoted){quoted=false;closed=true}
+   else if(field.trim()||closed)throw Error('Некорректные кавычки в CSV.');
+   else{field='';quoted=true}
+  }
+  else if(c===delimiter&&!quoted){result.push(field.trim());field='';closed=false}
+  else if(closed){if(!/\s/.test(c))throw Error('Лишние символы после закрывающей кавычки CSV.')}
   else field+=c;
  }
  if(quoted)throw Error('Незакрытая кавычка в CSV.');
