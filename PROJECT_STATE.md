@@ -1,3 +1,9 @@
+## Ambiguous portfolio CSV headers — 2026-10-26
+
+- Headered portfolio CSV/TSV imports now reject duplicate recognized columns (for example, two Price columns, or Qty and Quantity together). Previously the importer silently selected the first match, which could value a security using the wrong source field.
+- Regression tests exercise duplicated price, quantity, type and duration headers, plus a valid CSV with optional quoted metadata. The existing parser, financial calculations, authentication and owner-scoped save paths are unchanged.
+- Scope: static Workspace frontend, synthetic tests and documentation only. No private holdings, plugin files, Supabase database/RLS/functions, secrets, paid quotas, trades or messages changed. Release requires PR CI, merge and deployed Pages verification. Two-account authenticated browser E2E remains unverified.
+
 ## Headered portfolio CSV row-width validation — 2026-10-25
 
 - The Workspace CSV/TSV holdings importer now rejects data rows whose field count differs from the recognized header. Previously extra fields were silently ignored, potentially concealing a malformed broker export; missing fields could be misaligned. The error identifies the source line and asks the user to check separators and quoting.
