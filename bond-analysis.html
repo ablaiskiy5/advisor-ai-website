@@ -71,11 +71,15 @@ function invalidateBondResult(){
  cell.colSpan=3;cell.textContent='Нет расчёта';row.append(cell);$('scenarios').append(row);
  $('explain').textContent='Параметры изменены. Нажмите «Рассчитать», чтобы обновить результаты.';
 }
+function requiredBondNumber(id){
+ const value=String($(id).value??'').trim();
+ return value===''?NaN:Number(value);
+}
 function run(){
  $('copy').textContent='Копировать итоги';
  $('error').textContent='';
  try{
-  const face=Number($('face').value),price=Number($('price').value),coupon=Number($('coupon').value)/100,years=Number($('years').value),frequency=Number($('frequency').value);
+  const face=requiredBondNumber('face'),price=requiredBondNumber('price'),coupon=requiredBondNumber('coupon')/100,years=requiredBondNumber('years'),frequency=requiredBondNumber('frequency');
   const d=calculateBond({face,price,coupon,years,frequency});
   $('current').textContent=pct(d.current);$('ytm').textContent=pct(d.ytm);$('duration').textContent=fmt(d.modified);
   $('dv01').textContent=fmt(d.dv01,4);
@@ -88,7 +92,13 @@ function run(){
    '\nТекущая доходность: '+pct(d.current)+'\nYTM: '+pct(d.ytm)+'\nДюрация Маколея: '+fmt(d.mac)+' лет\nМодифицированная дюрация: '+fmt(d.modified)+' лет\nDV01: '+fmt(d.dv01,4)+' USD\nВыпуклость: '+fmt(d.convexity,4)+
    '\nЦена с учётом НКД; равные купонные периоды, без дефолта, налогов и досрочного погашения.\n';
   $('copy').disabled=false;
- }catch(e){$('error').textContent=e.message;resultText='';$('copy').disabled=true;for(const id of ['current','ytm','duration','dv01'])$(id).textContent='—';$('scenarios').textContent='';}
+ }catch(e){
+  $('error').textContent=e.message;resultText='';$('copy').disabled=true;
+  for(const id of ['current','ytm','duration','dv01'])$(id).textContent='—';
+  $('explain').textContent='Расчёт недоступен. Исправьте параметры и повторите расчёт.';
+  $('scenarios').textContent='';
+  const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=3;td.textContent='Нет расчёта';tr.append(td);$('scenarios').append(tr);
+ }
 }
 $('bond-form').addEventListener('input',invalidateBondResult);
 $('bond-form').addEventListener('change',invalidateBondResult);
