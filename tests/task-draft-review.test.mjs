@@ -86,3 +86,13 @@ test('overlong edited details are rejected before database insertion', async () 
   assert.equal(inserts.length, 0);
   assert.match(elements.info.textContent, /Проверь название, дату и детали/);
 });
+
+test('AI task review discloses the 30-card cap and never silently hides extra proposals', () => {
+  assert.match(html, /не более 30 карточек за один раз/);
+  for (const [count, expected] of [[2, /Проверь даты и полноту списка/], [30, /Достигнут лимит 30 карточек/], [31, /Показаны первые 30 из 31 предложений/]]) {
+    const { review, elements } = harness();
+    review(Array.from({ length: count }, (_, i) => ({ title: 'Дело ' + (i + 1) })));
+    assert.equal(elements.drafts.children.length, Math.min(count, 30));
+    assert.match(elements['review-note'].textContent, expected);
+  }
+});
