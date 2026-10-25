@@ -74,3 +74,13 @@ test('invalid coupon, frequency and fractional coupon periods are rejected', () 
   assert.throws(() => calculateBond({ ...base, frequency: 3 }), /Недопустимая/);
   assert.throws(() => calculateBond({ ...base, years: 1.25 }), /целое число купонных периодов/);
 });
+
+test('extreme premium outside the YTM search bracket is rejected', () => {
+  for (const coupon of [0, 0.06]) {
+    assert.throws(
+      () => calculateBond({ face: 1000, price: 1e300, coupon, years: 3, frequency: 2 }),
+      /Невозможно определить YTM в поддерживаемом диапазоне/,
+      'Do not silently return the lower YTM boundary for an unbracketed price'
+    );
+  }
+});
