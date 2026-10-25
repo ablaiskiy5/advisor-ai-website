@@ -45,3 +45,18 @@ test('production inline Workspace JavaScript still parses', () => {
  assert.ok(inline);
  assert.doesNotThrow(() => new Function(inline));
 });
+
+test('ambiguous comma-grouped broker numbers cannot silently misvalue positions', () => {
+ for (const csv of [
+  'Ticker,Quantity,Price\nAAPL,"1,000",100',
+  'Ticker,Quantity,Price\nAAPL,1,"1,000"',
+  'Ticker;Quantity;Price\nAAPL;10,000;100',
+  'Ticker;Quantity;Price;Type;Duration\nUST;1;950;Bond;4,500'
+ ]) {
+  assert.throws(() => normalizeHoldingsFile(csv), /Строка 2: неоднозначное число/);
+ }
+ // Explicit decimals with one/two digits, values below one and plain thousands remain valid.
+ assert.equal(normalizeHoldingsFile('Ticker;Quantity;Price\nAAPL;1,5;100,25'), 'AAPL; 1,5; 100,25');
+ assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price\nAAPL,"0,125",100'), 'AAPL; 0,125; 100');
+ assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price\nAAPL,1000,100.25'), 'AAPL; 1000; 100.25');
+});
