@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
 const html = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../tasks-board.html'), 'utf8');
-const names = ['validDate', 'addCalendarDays', 'almatyToday'];
+const names = ['validDate', 'addCalendarDays', 'almatyToday', 'postponeDueDate'];
 const lines = html.split('\n').filter(line => names.some(name => line.startsWith(`function ${name}(`)));
-assert.equal(lines.length, 3, 'Date helpers must be present in tasks-board.html');
-const { validDate, addCalendarDays, almatyToday } = runInNewContext(
-  lines.join('\n') + '\n({validDate,addCalendarDays,almatyToday})', { Date, Intl }
+assert.equal(lines.length, 4, 'Date helpers must be present in tasks-board.html');
+const { validDate, addCalendarDays, almatyToday, postponeDueDate } = runInNewContext(
+  lines.join('\n') + '\n({validDate,addCalendarDays,almatyToday,postponeDueDate})', { Date, Intl }
 );
 
 test('date-only validation is timezone-independent', () => {
@@ -24,6 +24,18 @@ test('postpone and weekly filter cross month/year boundaries correctly', () => {
   assert.equal(addCalendarDays('2028-02-29', 1), '2028-03-01');
   assert.equal(addCalendarDays('2026-12-31', 1), '2027-01-01');
   assert.equal(addCalendarDays('2026-12-28', 7), '2027-01-04');
+});
+
+
+test('postpone overdue and undated tasks to tomorrow, future tasks by one day', () => {
+  const today = '2026-10-25';
+  assert.equal(postponeDueDate('2026-10-01', today), '2026-10-26');
+  assert.equal(postponeDueDate('2026-10-25', today), '2026-10-26');
+  assert.equal(postponeDueDate(null, today), '2026-10-26');
+  assert.equal(postponeDueDate('2026-10-28', today), '2026-10-29');
+  assert.equal(postponeDueDate('2026-12-31', '2026-12-30'), '2027-01-01');
+  assert.match(html, /due_date:postponeDueDate\(row\.due_date\)/);
+  assert.match(html, /'На завтра'/);
 });
 
 test('Almaty day boundaries do not depend on browser timezone', () => {
