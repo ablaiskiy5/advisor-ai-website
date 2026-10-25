@@ -1,3 +1,9 @@
+## Ambiguous comma-grouped portfolio CSV values — 2026-10-26
+
+- Broker CSV/TSV imports now reject ambiguous numbers such as `"1,000"` in quantity, price or bond duration, rather than interpreting them as decimal `1.000` and potentially misvaluing holdings. The error names the source row and field and asks for ungrouped thousands or dot decimals.
+- Synthetic regressions cover ambiguous quoted and semicolon-delimited values, accepted ordinary decimal commas and plain thousands, plus production parser syntax/math. Manual holdings entry is unchanged.
+- Static Workspace frontend, tests and documentation only. No client records, plugin, RLS, Supabase functions, paid settings, secrets, trades or messages touched. Merge only after GitHub Actions CI succeeds; authenticated two-account E2E remains outstanding.
+
 ## Strict quoted portfolio CSV fields — 2026-10-26
 
 - Portfolio CSV/TSV import now rejects malformed quoted values (for example `"10"0` in a price field) instead of silently joining fragments into a different number. Valid quoted fields, commas inside optional metadata, escaped double quotes, and whitespace after closing quotes remain supported.
