@@ -1,13 +1,15 @@
 #!/usr/bin/env node
+import { requireMcpResult } from './mcp-response.mjs';
 // Deterministic public MCP smoke test. No login, secrets or client data required.
 const endpoint=process.env.ADVISOR_AI_MCP_URL||'https://xhewhzgzzonpgsjznmyl.supabase.co/functions/v1/advisor-ai-shared-tools';
 if(!/^https:\/\//.test(endpoint))throw Error('HTTPS endpoint required');
 let seq=0;
 async function call(method,params={}){
- const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:++seq,method,params}),signal:AbortSignal.timeout(15000)});
+ const requestId=++seq;
+ const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:AbortSignal.timeout(15000)});
  const data=await response.json();
- if(!response.ok||data.error)throw Error(method+' returned '+response.status+': '+JSON.stringify(data.error||data).slice(0,300));
- return data.result;
+ if(!response.ok||data?.error)throw Error(method+' returned '+response.status+': '+JSON.stringify(data?.error||data).slice(0,300));
+ return requireMcpResult(data,requestId,method);
 }
 function assert(cond,message){if(!cond)throw Error('FAIL: '+message)}
 function equalNumber(actual,expected,label,epsilon=1e-8){assert(Math.abs(actual-expected)<=epsilon,label+': expected '+expected+', got '+actual)}
