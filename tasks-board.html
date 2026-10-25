@@ -242,14 +242,14 @@ function exportCalendar(){
  if(!taskListComplete)return feedback('Сначала полностью обнови список задач.');
  const active=items.filter(t=>t.status!=='done'&&t.due_date&&validDate(t.due_date));
  if(!active.length)return feedback('Нет активных задач с назначенной датой');
- downloadExport('AdvisorAI-calendar-'+new Date().toISOString().slice(0,10)+'.ics',tasksIcs(active),'text/calendar;charset=utf-8');
+ downloadExport('AdvisorAI-calendar-'+almatyToday()+'.ics',tasksIcs(active),'text/calendar;charset=utf-8');
  feedback('Скачано '+active.length+' задач для календаря. Импортируй файл в календарь самостоятельно: напоминания не включаются автоматически.');
 }
 function exportCsv(){
  if(!user)return feedback('Сначала войди в аккаунт');
  if(!taskListComplete)return feedback('Сначала полностью обнови список задач.');
  if(!items.length)return feedback('Список задач пуст');
- downloadExport('AdvisorAI-tasks-'+new Date().toISOString().slice(0,10)+'.csv',tasksCsv(items),'text/csv;charset=utf-8');
+ downloadExport('AdvisorAI-tasks-'+almatyToday()+'.csv',tasksCsv(items),'text/csv;charset=utf-8');
  feedback('Скачано '+items.length+' задач в CSV. Все доступные задачи включены.');
 }
 
