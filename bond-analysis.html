@@ -37,6 +37,8 @@ function bondPrice(face,coupon,periods,frequency,yieldAnnual){
 }
 function solveYtm(face,price,coupon,periods,frequency){
  let lo=-frequency*0.9999,hi=0.5*frequency;
+ // A root outside the supported negative-yield bracket must not be reported as the boundary.
+ if(bondPrice(face,coupon,periods,frequency,lo)<price)throw Error('Невозможно определить YTM в поддерживаемом диапазоне.');
  for(let i=0;i<35&&bondPrice(face,coupon,periods,frequency,hi)>price;i++)hi=hi*2+frequency*0.1;
  if(bondPrice(face,coupon,periods,frequency,hi)>price)throw Error('Невозможно определить YTM в поддерживаемом диапазоне.');
  for(let i=0;i<180;i++){let m=(lo+hi)/2;if(bondPrice(face,coupon,periods,frequency,m)>price)lo=m;else hi=m;}
