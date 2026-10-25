@@ -8,7 +8,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script, 'Browser diagnostic must contain an inline script');
 const allowlist = ['bond_current_yield', 'portfolio_concentration', 'trade_risk_budget', 'bond_duration_shock'];
 
-async function runBrowserCheck(toolNames, invalidSchema = false) {
+async function runBrowserCheck(toolNames, invalidSchema = false, responseOverride = {}) {
   const elements = new Map();
   const document = {
     getElementById(id) {
@@ -49,7 +49,9 @@ async function runBrowserCheck(toolNames, invalidSchema = false) {
       throw Error('Unexpected MCP method: ' + request.method);
     }
     return { ok: true, status: 200, text: async () => JSON.stringify({
-      jsonrpc: '2.0', id: request.id, result,
+      jsonrpc: responseOverride.jsonrpc ?? '2.0',
+      id: responseOverride.id ?? request.id,
+      ...(responseOverride.missingResult ? {} : { result }),
     }) };
   };
   vm.runInNewContext(script, { document, fetch, AbortController, setTimeout, clearTimeout });
@@ -84,4 +86,23 @@ test('browser MCP diagnostic fails for missing input schema', async () => {
   const result = await runBrowserCheck(allowlist, true);
   assert.match(result.overall, /Пройдено 6 из 7/);
   assert.match(result.details, /схема инструмента/);
+});
+
+
+test('browser MCP diagnostic rejects a response with a different request ID', async () => {
+  const result = await runBrowserCheck(allowlist, false, { id: 999 });
+  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.details, /ID запроса/);
+});
+
+test('browser MCP diagnostic rejects an invalid JSON-RPC version', async () => {
+  const result = await runBrowserCheck(allowlist, false, { jsonrpc: '1.0' });
+  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.details, /JSON-RPC/);
+});
+
+test('browser MCP diagnostic rejects responses missing the result field', async () => {
+  const result = await runBrowserCheck(allowlist, false, { missingResult: true });
+  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.details, /JSON-RPC/);
 });
