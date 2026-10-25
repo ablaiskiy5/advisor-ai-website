@@ -1,3 +1,9 @@
+## Headered portfolio CSV row-width validation — 2026-10-25
+
+- The Workspace CSV/TSV holdings importer now rejects data rows whose field count differs from the recognized header. Previously extra fields were silently ignored, potentially concealing a malformed broker export; missing fields could be misaligned. The error identifies the source line and asks the user to check separators and quoting.
+- Synthetic regression tests exercise both extra and missing fields, valid optional metadata with a quoted comma, and semicolon-delimited CSV. Existing portfolio math, price validation and owner/session guards remain unchanged.
+- Scope: static frontend, tests and documentation only. No private client data, Supabase schema/RLS/functions, plugin release, keys, paid quotas, trades or messages changed. Merge requires successful PR CI; browser two-account E2E remains unverified.
+
 ## Extended RLS and shared MCP review — 2026-10-25
 
 - Inspected live policies for `advisor_tasks`, `portfolio_snapshots`, `advisor_ai_attachments`, and `storage.objects` in the `advisor-chat-attachments` bucket. Owner predicates exist for reads/writes; attachment INSERT also checks owner case and matching user message.

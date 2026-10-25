@@ -188,6 +188,7 @@ function normalizeHoldingsFile(text){
  const out=[];
  for(let i=start;i<decoded.length;i++){
   const cells=decoded[i];
+  if(hasHeader&&cells.length!==decoded[0].length)throw Error('Строка '+(i+1)+': количество столбцов не совпадает с заголовком CSV. Проверь разделители и кавычки.');
   let symbol,quantity,price,duration,isBond;
   if(hasHeader){
    symbol=cells[ti]||'';quantity=cells[qi]||'';price=cells[pi]||'';
