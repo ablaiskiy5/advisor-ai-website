@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
 const html = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../bond-analysis.html'), 'utf8');
-const script = html.match(/<script>\\s*([\\s\\S]*?)<\\/script>/)?.[1];
+const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script, 'Use the real browser calculator script');
 
 function createPage() {
@@ -65,7 +65,7 @@ test('select changes invalidate reports and the example button restores a fresh 
   assert.equal(page.copy.disabled, true);
   assert.equal(page.ytm.textContent, '—');
   page.example.listeners.click();
-  assert.equal(page.frequency.value, 2);
+  assert.equal(String(page.frequency.value), '2');
   assert.equal(page.copy.disabled, false);
   assert.equal(page.scenarios.children.length, 7);
   assert.match(page.explain.textContent, /Текущая доходность/);
