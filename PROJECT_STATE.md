@@ -1,3 +1,9 @@
+## AI task draft description review — PR #110 (2026-10-25)
+
+- [PR #110](https://github.com/ablaiskiy5/advisor-ai-website/pull/110) exposes AI-proposed task descriptions as editable, HTML-escaped text before the user confirms saving. Previously the proposed description was hidden and persisted unchanged.
+- Task batch save now persists the reviewed description and rejects values longer than 3,000 characters. Synthetic Node tests cover HTML escaping, edits and invalid length; the owner-scoped insert remains unchanged.
+- Scope: static task-board UI, synthetic tests and this handoff note. No private tasks, Supabase RLS/schema, plugin, Edge Functions, credentials or paid settings changed. **Release gate:** verify PR CI, merge, merged-main checks and Pages publication. Authenticated two-account browser E2E remains outstanding.
+
 ## Task overdue rescheduling — PR #107 (2026-10-25)
 
 - [PR #107](https://github.com/ablaiskiy5/advisor-ai-website/pull/107) changes the task-board quick action so overdue, due-today and undated tasks move to **tomorrow** in Almaty time. Future-dated tasks still move forward exactly one calendar day. The button labels reflect these distinct actions.

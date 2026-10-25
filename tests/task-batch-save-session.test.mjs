@@ -22,7 +22,7 @@ function harness(){
  }};
  const inputs={
   include:{checked:true},title:{value:'Synthetic proposal'},
-  area:{value:'work'},priority:{value:'high'},due_date:{value:'2026-10-25'}
+  area:{value:'work'},priority:{value:'high'},due_date:{value:'2026-10-25'},description:{value:'Reviewed synthetic details'}
  };
  document.getElementById('drafts').children=[{
   dataset:{index:'0'},

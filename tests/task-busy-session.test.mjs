@@ -40,7 +40,7 @@ function harness(){
   querySelector:selector=>{
    const field=selector.match(/^\[data-field="([^"]+)"\]$/)?.[1];
    const fields={include:{checked:true},title:{value:'Synthetic proposal'},
-    area:{value:'work'},priority:{value:'normal'},due_date:{value:'2026-10-25'}};
+    area:{value:'work'},priority:{value:'normal'},due_date:{value:'2026-10-25'},description:{value:'Reviewed synthetic details'}};
    assert.ok(fields[field],selector);return fields[field];
   }
  }];
