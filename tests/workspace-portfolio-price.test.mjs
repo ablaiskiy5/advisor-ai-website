@@ -36,3 +36,10 @@ test('valid portfolio valuation, concentration and bond duration stay unchanged'
   assert.equal(portfolio.bondDuration, 4);
   assert.ok(Math.abs(portfolio.rateShock100bp + 0.024) < 1e-12);
 });
+
+test('headered CSV rejects missing or extra fields instead of silently dropping data', () => {
+  assert.throws(() => normalizeHoldingsFile('Ticker,Quantity,Price,Type\nAAPL,10,100,Stock,EXTRA'), /Строка 2: количество столбцов/);
+  assert.throws(() => normalizeHoldingsFile('Ticker,Quantity,Price,Type\nAAPL,10,100'), /Строка 2: количество столбцов/);
+  assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price,Type,Notes\nAAPL,10,100,Stock,"review, ok"'), 'AAPL; 10; 100');
+  assert.equal(normalizeHoldingsFile('Ticker;Quantity;Price;Type\nAAPL;10;100;Stock'), 'AAPL; 10; 100');
+});
