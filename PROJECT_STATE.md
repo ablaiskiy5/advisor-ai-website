@@ -1,3 +1,8 @@
+## MCP initialization compatibility check — 2026-10-25
+
+- Browser MCP health diagnostic now rejects an `initialize` response if the negotiated protocol differs from `2025-06-18` or if `capabilities.tools` is absent/malformed, rather than reporting the initialization as healthy based only on the server name. The deployed shared MCP v4 was inspected read-only and returns the expected protocol and tools capability.
+- Two synthetic regressions cover mismatched protocol and missing tools capability. This is frontend diagnostics and tests only: no client data, OAuth, plugin release, Supabase function/RLS, secrets, paid settings, or trading operations change. PR CI, merged-main checks, and Pages publication are required to call it released.
+
 ## Task export filenames use Almaty calendar day — 2026-10-25
 
 - Task CSV and calendar (.ics) downloads now label their filenames using the existing `almatyToday()` helper rather than the UTC date. Between 00:00 and 04:59 in Almaty, the previous implementation could put yesterday's date in the filename despite exporting today's data.

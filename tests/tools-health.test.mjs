@@ -20,7 +20,7 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
     const request = JSON.parse(options.body);
     let result;
     if (request.method === 'initialize') {
-      result = { serverInfo: { name: 'advisor-ai-shared-tools' } };
+      result = { protocolVersion: responseOverride.protocolVersion ?? '2025-06-18', capabilities: responseOverride.missingToolsCapability ? {} : { tools: {} }, serverInfo: { name: 'advisor-ai-shared-tools' } };
     } else if (request.method === 'tools/list') {
       result = { tools: toolNames.map((name, i) => ({
         name, description: 'Public deterministic calculator',
@@ -119,4 +119,17 @@ test('browser MCP diagnostic rejects invalid-input errors carrying structured da
   const result = await runBrowserCheck(allowlist, false, { invalidStructuredContent: true });
   assert.match(result.overall, /Пройдено 6 из 7/);
   assert.match(result.details, /Нулевая цена не отклонена/);
+});
+
+
+test('browser MCP diagnostic rejects incompatible protocol versions', async () => {
+  const result = await runBrowserCheck(allowlist, false, { protocolVersion: '2024-11-05' });
+  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.details, /Несовместимый MCP протокол/);
+});
+
+test('browser MCP diagnostic rejects missing tools capability at initialization', async () => {
+  const result = await runBrowserCheck(allowlist, false, { missingToolsCapability: true });
+  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.details, /возможности сервера/);
 });
