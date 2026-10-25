@@ -116,6 +116,7 @@ function parseHoldings(text){
   const isBond=/^BOND:/i.test(v[0]);const symbol=isBond?v[0].slice(5):v[0];
   if(v.length!==(isBond?4:3))throw Error('Строка '+(k+1)+': для акции три колонки, для BOND: четыре (с дюрацией).');
   const [ticker,qtyText,priceText,durationText]=v;
+  if(priceText.trim()==='')throw Error('Строка '+(k+1)+': цена не указана. Если цена действительно нулевая, введи 0.');
   if(!/^[A-Za-z0-9.^_-]{1,24}$/.test(symbol))throw Error('Строка '+(k+1)+': неверное обозначение позиции.');
   const duration=isBond?(durationText.trim()===''?NaN:Number(durationText.replace(',','.'))):null;
   if(isBond&&(!Number.isFinite(duration)||duration<0||duration>100))throw Error('Строка '+(k+1)+': дюрация облигации должна быть 0–100 лет.');

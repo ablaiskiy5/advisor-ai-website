@@ -79,6 +79,7 @@ function parseSaved(notes){
  for(const [index,line] of m[1].trim().split(/\r?\n/).entries()){
   const v=line.split(';').map(x=>x.trim()),bond=/^BOND:/i.test(v[0]);
   if(v.length!==(bond?4:3)||!/^(?:BOND:)?[A-Za-z0-9.^_-]{1,24}$/i.test(v[0]))throw Error('Некорректная позиция '+(index+1));
+  if(v[2]==='')throw Error('Некорректные данные позиции '+(index+1)+': цена не указана.');
   const qty=Number(v[1]),price=Number(v[2]),duration=bond?Number(v[3]):null;
   if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0||(bond&&(!v[3]||!Number.isFinite(duration)||duration<0||duration>100)))throw Error('Некорректные данные позиции '+(index+1));
   const name=v[0].toUpperCase();if(seen.has(name))throw Error('Повторяющийся инструмент '+name);seen.add(name);
