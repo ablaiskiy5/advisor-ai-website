@@ -1,3 +1,9 @@
+## Manual portfolio input: ambiguous comma-grouped numbers — 2026-10-26
+
+- Manual portfolio positions now reject ambiguous comma-grouped numbers such as `1,000` in quantity, price or bond duration, matching the existing CSV import safety rule. This prevents a pasted 1000-unit holding from silently becoming 1 unit.
+- Synthetic regressions verify rejection and preserve valid decimal commas (`1,5`, `0,125`), ungrouped thousands, and portfolio arithmetic. Static frontend and tests only; no customer data, plugin, database/RLS, server functions, keys, quotas, trades or messages changed.
+- Authenticated two-account browser E2E remains unverified.
+
 ## Ambiguous comma-grouped portfolio CSV values — 2026-10-26
 
 - Broker CSV/TSV imports now reject ambiguous numbers such as `"1,000"` in quantity, price or bond duration, rather than interpreting them as decimal `1.000` and potentially misvaluing holdings. The error names the source row and field and asks for ungrouped thousands or dot decimals.

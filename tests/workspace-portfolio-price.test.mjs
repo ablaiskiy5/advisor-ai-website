@@ -55,3 +55,16 @@ test('headered CSV rejects duplicate mapped columns instead of choosing the firs
   }
   assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price,Type,Notes\nAAPL,10,100,Stock,"review, ok"'), 'AAPL; 10; 100');
 });
+
+test('manual holdings reject ambiguous thousands commas without changing decimal arithmetic', () => {
+  for (const [line, field] of [
+    ['AAPL; 1,000; 100', 'количество'],
+    ['AAPL; 2; 1,000', 'цена'],
+    ['BOND:UST2030; 2; 950; 1,000', 'дюрация'],
+  ]) {
+    assert.throws(() => parseHoldings(line), new RegExp('Строка 1: неоднозначное число в поле «' + field + '»'));
+  }
+  assert.equal(parseHoldings('AAPL; 1,5; 100\nMSFT; 1; 50').total, 200);
+  assert.equal(parseHoldings('AAPL; 1000; 10').total, 10000);
+  assert.equal(parseHoldings('AAPL; 2; 0,125').total, 0.25);
+});
