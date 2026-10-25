@@ -1,3 +1,9 @@
+## Chat-to-task transfer length safety — 2026-10-25
+
+- A chat-to-task handoff longer than the task AI parser's 10,000-character limit previously truncated the transferred draft silently. The receiver now retains the **entire** owner-scoped text and explicitly tells the user to split it; the organizer rejects over-limit input **before** invoking the paid AI endpoint.
+- Synthetic tests verify the original text survives, the warning appears and no AI call is made for oversized input. Existing owner checks and one-time handoff cleanup remain unchanged.
+- Scope: task-board frontend and synthetic tests only. No plugin release, database records, RLS policies, server functions, quotas, tariffs, secrets or client data changed. Release requires PR CI, merge and merged-main Pages verification; authenticated two-account browser E2E remains outstanding.
+
 ## AI task draft description review — PR #110 (2026-10-25)
 
 - [PR #110](https://github.com/ablaiskiy5/advisor-ai-website/pull/110) exposes AI-proposed task descriptions as editable, HTML-escaped text before the user confirms saving. Previously the proposed description was hidden and persisted unchanged.
