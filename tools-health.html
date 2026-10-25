@@ -23,10 +23,12 @@ const nearly=(a,b)=>typeof a==='number'&&Number.isFinite(a)&&Math.abs(a-b)<1e-8;
 async function rpc(method,params={}){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
  try{
-  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:++n,method,params}),signal:controller.signal,cache:'no-store'});
+  const requestId=++n;
+  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:controller.signal,cache:'no-store'});
   const text=await r.text();let data;
   try{data=JSON.parse(text)}catch{throw Error('Сервер не вернул JSON: HTTP '+r.status)}
-  if(!r.ok||data.error)throw Error('HTTP '+r.status+' / '+String(data.error?.message||'ошибка'));
+  if(!r.ok||data?.error)throw Error('HTTP '+r.status+' / '+String(data?.error?.message||'ошибка'));
+  if(data?.jsonrpc!=='2.0'||data.id!==requestId||!Object.prototype.hasOwnProperty.call(data,'result'))throw Error('Некорректный JSON-RPC ответ или ID запроса');
   return data.result;
  }finally{clearTimeout(timeout)}
 }
