@@ -30,7 +30,7 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
       switch (request.params.name) {
         case 'bond_current_yield':
           result = request.params.arguments.price === 0
-            ? { isError: true }
+            ? { isError: true, ...(responseOverride.invalidStructuredContent ? { structuredContent: { current_yield_percent: 0 } } : {}) }
             : { structuredContent: { current_yield_percent: 6.315789473684211 } };
           break;
         case 'trade_risk_budget':
@@ -52,6 +52,7 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
       jsonrpc: responseOverride.jsonrpc ?? '2.0',
       id: responseOverride.id ?? request.id,
       ...(responseOverride.missingResult ? {} : { result }),
+      ...(responseOverride.errorField ? { error: null } : {}),
     }) };
   };
   vm.runInNewContext(script, { document, fetch, AbortController, setTimeout, clearTimeout });
@@ -105,4 +106,17 @@ test('browser MCP diagnostic rejects responses missing the result field', async 
   const result = await runBrowserCheck(allowlist, false, { missingResult: true });
   assert.match(result.overall, /Пройдено 0 из 7/);
   assert.match(result.details, /JSON-RPC/);
+});
+
+
+test('browser MCP diagnostic rejects success envelopes with an error member, even null', async () => {
+  const result = await runBrowserCheck(allowlist, false, { errorField: true });
+  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.details, /JSON-RPC/);
+});
+
+test('browser MCP diagnostic rejects invalid-input errors carrying structured data', async () => {
+  const result = await runBrowserCheck(allowlist, false, { invalidStructuredContent: true });
+  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.details, /Нулевая цена не отклонена/);
 });
