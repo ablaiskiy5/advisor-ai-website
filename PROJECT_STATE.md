@@ -1,3 +1,10 @@
+## Task-board mobile controls and accessible feedback — 2026-10-25
+
+- At narrow phone widths (≤480px), task action, filter and toolbar buttons have a minimum 44px touch height; section headers can wrap instead of crowding actions off-screen. Keyboard users get a visible focus ring.
+- Task organizer, AI review and manual editor feedback are exposed through polite screen-reader status announcements. The same user-visible messages and underlying task logic remain unchanged.
+- Synthetic regression in `tests/task-dates.test.mjs` checks the production CSS and status attributes. This is static frontend-only: no private tasks, database/RLS, plugin, Edge Functions, credentials, quotas, tariffs or client data changed. Real-device mobile/browser and two-account authenticated E2E remain unverified.
+- Release gate: PR CI, merge, merged-main checks and Pages publication must pass before calling it deployed.
+
 ## MCP initialization compatibility check — 2026-10-25
 
 - Browser MCP health diagnostic now rejects an `initialize` response if the negotiated protocol differs from `2025-06-18` or if `capabilities.tools` is absent/malformed, rather than reporting the initialization as healthy based only on the server name. The deployed shared MCP v4 was inspected read-only and returns the expected protocol and tools capability.
