@@ -1,3 +1,9 @@
+## Strict quoted portfolio CSV fields — 2026-10-26
+
+- Portfolio CSV/TSV import now rejects malformed quoted values (for example `"10"0` in a price field) instead of silently joining fragments into a different number. Valid quoted fields, commas inside optional metadata, escaped double quotes, and whitespace after closing quotes remain supported.
+- A synthetic Node regression suite checks valid and malformed rows and production inline JavaScript syntax. This is static frontend/test-only; no market data, customer records, plugin, OAuth, Supabase database/RLS/functions, paid settings, secrets, trades or messages changed.
+- Release gate: PR CI, merge, merged-main checks and Pages publication. Authenticated two-account browser E2E remains outstanding.
+
 ## Ambiguous portfolio CSV headers — 2026-10-26
 
 - Headered portfolio CSV/TSV imports now reject duplicate recognized columns (for example, two Price columns, or Qty and Quantity together). Previously the importer silently selected the first match, which could value a security using the wrong source field.
