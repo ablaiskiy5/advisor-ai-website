@@ -118,5 +118,5 @@ test('browser MCP diagnostic rejects success envelopes with an error member, eve
 test('browser MCP diagnostic rejects invalid-input errors carrying structured data', async () => {
   const result = await runBrowserCheck(allowlist, false, { invalidStructuredContent: true });
   assert.match(result.overall, /Пройдено 6 из 7/);
-  assert.match(result.details, /нулевой цене/);
+  assert.match(result.details, /Нулевая цена не отклонена/);
 });
