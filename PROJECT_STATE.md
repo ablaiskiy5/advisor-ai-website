@@ -1,3 +1,9 @@
+## Task export filenames use Almaty calendar day — 2026-10-25
+
+- Task CSV and calendar (.ics) downloads now label their filenames using the existing `almatyToday()` helper rather than the UTC date. Between 00:00 and 04:59 in Almaty, the previous implementation could put yesterday's date in the filename despite exporting today's data.
+- An offline regression freezes time at 2026-10-24 20:30 UTC (2026-10-25 01:30 in Almaty) and checks **both actual export functions**. The export payload, owner-scoped task list, ICS/CSV escaping, authentication, server functions and database/RLS remain unchanged.
+- Release requires passing PR CI, merge, merged-main checks and Pages deployment; authenticated two-account browser testing remains outstanding.
+
 ## Chat-to-task transfer length safety — 2026-10-25
 
 - A chat-to-task handoff longer than the task AI parser's 10,000-character limit previously truncated the transferred draft silently. The receiver now retains the **entire** owner-scoped text and explicitly tells the user to split it; the organizer rejects over-limit input **before** invoking the paid AI endpoint.

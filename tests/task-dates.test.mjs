@@ -120,3 +120,30 @@ test('iCalendar exports only active dated tasks as private all-day events', () =
   assert.ok(!unfolded.includes('BEGIN:VALARM'), 'Import must not schedule reminders');
   assert.ok(ics.endsWith('\r\n'));
 });
+
+test('task CSV and calendar export filenames follow Almaty date, not UTC date', () => {
+  // At 20:30 UTC on 24 Oct it is already 25 Oct in Almaty.
+  class FixedDate extends Date {
+    constructor(...args) { super(...(args.length ? args : ['2026-10-24T20:30:00Z'])); }
+    static now() { return Date.parse('2026-10-24T20:30:00Z'); }
+  }
+  const info = { textContent: '' };
+  const app = runInNewContext(offlineScript + `
+    let capturedNames = [];
+    downloadExport = name => capturedNames.push(name);
+    user = { id: 'synthetic-owner' };
+    taskListComplete = true;
+    items = [{ id: 'synthetic-task', title: 'Synthetic', status: 'todo',
+      area: 'work', priority: 'normal', due_date: '2026-10-25', description: '' }];
+    ({ exportCsv, exportCalendar, capturedNames });
+  `, {
+    Date: FixedDate, Intl, TextEncoder,
+    document: { getElementById: () => info }
+  });
+  app.exportCsv();
+  app.exportCalendar();
+  assert.deepEqual(Array.from(app.capturedNames), [
+    'AdvisorAI-tasks-2026-10-25.csv',
+    'AdvisorAI-calendar-2026-10-25.ics'
+  ]);
+});
