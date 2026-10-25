@@ -1,3 +1,9 @@
+## Task CSV export: invisible formula prefixes — 2026-10-26
+
+- Task CSV export now treats zero-width spaces/joiners and word joiners before spreadsheet formula operators as unsafe prefixes and forces text interpretation with the existing leading apostrophe. Previously values such as U+200B followed by `=1+1` bypassed the guard.
+- Synthetic regression tests exercise these invisible prefixes, mixed padding and ordinary Unicode text. This is a static task-board frontend/test change; no private task data, Supabase schema/RLS/functions, plugin files, credentials, tariffs, trades or messages changed.
+- Authenticated two-account browser E2E and real spreadsheet-import behavior remain unverified. CI and GitHub Pages publication are separate release gates.
+
 ## Manual portfolio input: ambiguous comma-grouped numbers — 2026-10-26
 
 - Manual portfolio positions now reject ambiguous comma-grouped numbers such as `1,000` in quantity, price or bond duration, matching the existing CSV import safety rule. This prevents a pasted 1000-unit holding from silently becoming 1 unit.
