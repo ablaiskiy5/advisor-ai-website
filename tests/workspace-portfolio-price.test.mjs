@@ -43,3 +43,15 @@ test('headered CSV rejects missing or extra fields instead of silently dropping 
   assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price,Type,Notes\nAAPL,10,100,Stock,"review, ok"'), 'AAPL; 10; 100');
   assert.equal(normalizeHoldingsFile('Ticker;Quantity;Price;Type\nAAPL;10;100;Stock'), 'AAPL; 10; 100');
 });
+
+test('headered CSV rejects duplicate mapped columns instead of choosing the first value', () => {
+  for (const [csv, field] of [
+    ['Ticker,Quantity,Price,Price\nAAPL,10,100,101', 'цена'],
+    ['Ticker,Qty,Quantity,Price\nAAPL,10,11,100', 'количество'],
+    ['Ticker,Quantity,Price,Type,AssetType\nAAPL,10,100,Stock,Stock', 'тип'],
+    ['Ticker,Quantity,Price,Duration,Modified Duration\nBOND:UST,2,950,4,5', 'дюрация']
+  ]) {
+    assert.throws(() => normalizeHoldingsFile(csv), new RegExp('Повторяющиеся столбцы CSV: ' + field));
+  }
+  assert.equal(normalizeHoldingsFile('Ticker,Quantity,Price,Type,Notes\nAAPL,10,100,Stock,"review, ok"'), 'AAPL; 10; 100');
+});
