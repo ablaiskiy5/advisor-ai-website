@@ -93,3 +93,37 @@ test('invalid amounts, stops and missing tickers are rejected', () => {
 test('more than 30 positions are rejected', () => {
   assert.throws(() => compute(1_000_000, 10, 0.5, Array.from({ length: 31 }, (_, i) => p(`A${i}`, 1, 5))), /Максимум 30/);
 });
+
+test('blank required numbers fail closed and clear stale summaries and exports', () => {
+  const ids=['portfolio','pool','risk','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print'];
+  const defaults={portfolio:'1000000',pool:'10',risk:'0.5'};
+  const nodes=Object.fromEntries(ids.map(id=>[id,{value:defaults[id]??'',textContent:'',className:'',disabled:false}]));
+  const browserSource=script.slice(0,script.indexOf("$('portfolio').oninput=render;"));
+  assert.ok(browserSource.includes('function calculate()'), 'Test actual browser calculation handler');
+  const {calculate}=runInNewContext(browserSource+'\n({calculate})',{
+    document:{getElementById(id){assert.ok(nodes[id], 'Known element: '+id);return nodes[id]}}
+  });
+  calculate();
+  assert.notEqual(nodes.budget.textContent,'—');
+  assert.equal(nodes.copy.disabled,false);
+  assert.equal(nodes.print.disabled,false);
+  for(const id of ['pool','risk','portfolio']){
+    const previous=nodes[id].value;
+    nodes[id].value='';
+    calculate();
+    for(const metric of ['budget','allocated','remaining'])assert.equal(nodes[metric].textContent,'—');
+    assert.equal(nodes['portfolio-risk'].textContent,'');
+    assert.equal(nodes.largest.textContent,'');
+    assert.equal(nodes.copy.disabled,true);
+    assert.equal(nodes.print.disabled,true);
+    assert.match(nodes['budget-status'].textContent,/Проверь/);
+    nodes[id].value=previous;
+    calculate();
+    assert.notEqual(nodes.budget.textContent,'—');
+    assert.equal(nodes.copy.disabled,false);
+    assert.equal(nodes.print.disabled,false);
+  }
+  nodes.risk.value='0';
+  calculate();
+  assert.equal(nodes.print.disabled,false,'Explicit zero remains valid');
+});
