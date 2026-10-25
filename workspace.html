@@ -75,7 +75,12 @@ const validChat=x=>{
 const isCloud=()=>Boolean(cloud&&session);
 function isCurrentWorkspaceSession(revision,ownerId){return authRevision===revision&&session?.user?.id===ownerId}
 function handleWorkspaceAuthChange(event,nextSession){
- if(event==='PASSWORD_RECOVERY'){passwordRecovery=true;page='settings';render();return}
+ if(event==='PASSWORD_RECOVERY'){
+  const previousOwner=session?.user?.id||null,nextOwner=nextSession?.user?.id||null;
+  authRevision++;session=nextOwner?nextSession:null;
+  entries=[];snapshotsCache.clear();active=null;newCaseKind=null;busy=false;
+  passwordRecovery=true;page='settings';render();return;
+ }
  if(!['SIGNED_IN','SIGNED_OUT','INITIAL_SESSION'].includes(event))return;
  const previousOwner=session?.user?.id||null,nextOwner=event==='SIGNED_OUT'?null:(nextSession?.user?.id||null);
  if(previousOwner===nextOwner&&event!=='SIGNED_OUT'){session=nextSession||null;return}
