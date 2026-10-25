@@ -1,3 +1,9 @@
+## Task overdue rescheduling — PR #107 (2026-10-25)
+
+- [PR #107](https://github.com/ablaiskiy5/advisor-ai-website/pull/107) changes the task-board quick action so overdue, due-today and undated tasks move to **tomorrow** in Almaty time. Future-dated tasks still move forward exactly one calendar day. The button labels reflect these distinct actions.
+- Regression coverage includes overdue, today, undated, future and year-boundary dates, and checks the production button calls the helper. Static frontend/test change only; no private tasks, Supabase schema/RLS, plugin, Edge Functions, credentials, tariffs or messages changed.
+- **Release gate:** check PR CI, merge, merged-main checks and GitHub Pages publication. Authenticated two-user browser E2E remains outstanding.
+
 ## Portfolio file import session isolation — PR #99 (2026-10-25)
 
 - [PR #99](https://github.com/ablaiskiy5/advisor-ai-website/pull/99) guards the asynchronous portfolio CSV/text file importer against account switch, sign-out/re-login and navigation to a different case while `file.text()` is pending. Old results, errors and file-picker cleanup cannot modify the next editor.
