@@ -376,25 +376,27 @@ function docxParagraphs(content,api){
  return output;
 }
 async function downloadDocx(){
- if(!lastAnswer||!caseData)return;
+ if(!lastAnswer||!caseData||!user)return;
+ const epoch=sessionEpoch,ownerId=user.id,reportTitle=caseData.title||'Аналитический отчёт',reportText=lastAnswer,exportFileName=fileName();
  const button=$('download-docx');button.disabled=true;button.textContent='Создаю .docx…';
  try{
   const api=window.docx;
   if(!api?.Document||!api?.Packer||!api?.Paragraph||!api?.Table)throw Error('Библиотека DOCX не загрузилась');
   const children=[
    new api.Paragraph({children:[new api.TextRun({text:'ADVISOR AI · INVESTMENT INTELLIGENCE',bold:true,color:'345D9F',size:20})],spacing:{after:160}}),
-   new api.Paragraph({text:caseData.title||'Аналитический отчёт',heading:api.HeadingLevel.TITLE,spacing:{after:170}}),
+   new api.Paragraph({text:reportTitle,heading:api.HeadingLevel.TITLE,spacing:{after:170}}),
    new api.Paragraph({children:[new api.TextRun({text:'Дата: '+new Date().toLocaleDateString('ru-RU'),color:'61748F',size:19})],spacing:{after:260}}),
-   ...docxParagraphs(lastAnswer,api)
+   ...docxParagraphs(reportText,api)
   ];
-  const documentFile=new api.Document({creator:'Advisor AI',title:caseData.title||'Отчёт',sections:[{properties:{page:{margin:{top:850,right:850,bottom:850,left:850}}},children}]});
+  const documentFile=new api.Document({creator:'Advisor AI',title:reportTitle,sections:[{properties:{page:{margin:{top:850,right:850,bottom:850,left:850}}},children}]});
   const blob=await api.Packer.toBlob(documentFile);
+  if(!isCurrentChat(epoch,ownerId))return;
   if(blob.size<1000)throw Error('Получен некорректный файл');
   const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='AdvisorAI-'+fileName()+'.docx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
+  a.href=url;a.download='AdvisorAI-'+exportFileName+'.docx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
   $('result-status').textContent='Скачан настоящий редактируемый Word .docx. Проверь таблицы и факты перед отправкой.';
- }catch(e){$('result-status').textContent='Не удалось создать .docx: '+e.message+'. Можно воспользоваться Word (.doc) или PDF.'}
- finally{button.disabled=working||!lastAnswer;button.textContent='⬇ Редактируемый Word (.docx)'}
+ }catch(e){if(isCurrentChat(epoch,ownerId))$('result-status').textContent='Не удалось создать .docx: '+e.message+'. Можно воспользоваться Word (.doc) или PDF.'}
+ finally{if(isCurrentChat(epoch,ownerId)){button.disabled=working||!lastAnswer;button.textContent='⬇ Редактируемый Word (.docx)'}}
 }
 function downloadWord(){
  if(!lastAnswer||!caseData)return;
