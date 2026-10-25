@@ -59,6 +59,16 @@ test('seven-day scope includes today plus six days, not eight days', () => {
   }
 });
 
+test('narrow task board keeps action buttons usable and feedback accessible', () => {
+  assert.match(html, /@media\(max-width:480px\)\{\.sectionhead\{flex-wrap:wrap\}/);
+  assert.match(html, /\.sectionhead \.tools\{width:100%;justify-content:flex-start\}/);
+  assert.match(html, /\.task \.actions \.btn,\.scopebar \.btn,\.tools \.btn\{min-height:44px\}/);
+  assert.match(html, /\.btn:focus-visible\{outline:3px solid #b7d0ff;outline-offset:2px\}/);
+  for (const id of ['info', 'review-note', 'edit-note']) {
+    assert.match(html, new RegExp('id="' + id + '"[^>]*role="status" aria-live="polite"'));
+  }
+});
+
 test('inline task-board JavaScript parses', () => {
   const inlineScript = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/)?.[1];
   assert.ok(inlineScript, 'Inline task-board script must exist');
