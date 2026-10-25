@@ -25,6 +25,7 @@ function dateLabel(date){if(!date)return 'Без срока';const d=new Date(da
 function validDate(date){if(!date)return true;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const d=new Date(date+'T00:00:00Z');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===date}
 function addCalendarDays(date,days){const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
 function almatyToday(now=new Date()){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Almaty',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return parts.year+'-'+parts.month+'-'+parts.day}
+function postponeDueDate(date,today=almatyToday()){return addCalendarDays(date&&validDate(date)&&date>today?date:today,1)}
 function render(){
  const today=almatyToday();
  const week=addCalendarDays(today,6);
@@ -45,7 +46,7 @@ function render(){
    if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
    if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
    if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
-   button('Перенести +1 день',()=>change(row,{due_date:addCalendarDays(row.due_date||almatyToday(),1)}));button('Дата / правка',()=>editTask(row));
+   button(row.due_date&&row.due_date>almatyToday()?'Перенести +1 день':'На завтра',()=>change(row,{due_date:postponeDueDate(row.due_date)}));button('Дата / правка',()=>editTask(row));
    card.append(actions);el.append(card);
   }
  }
