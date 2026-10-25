@@ -59,7 +59,20 @@ function calculateBond(o){
  const mac=weighted/price,modified=mac/(1+r),dv01=price*modified*0.0001,convexity=convex/(price*frequency*frequency);
  return {current,ytm,mac,modified,dv01,convexity,periods,face,price,coupon,frequency};
 }
+function invalidateBondResult(){
+ if(!resultText)return;
+ resultText='';
+ $('copy').disabled=true;
+ $('copy').textContent='Копировать итоги';
+ $('error').textContent='';
+ for(const id of ['current','ytm','duration','dv01'])$(id).textContent='—';
+ $('scenarios').textContent='';
+ const row=document.createElement('tr'),cell=document.createElement('td');
+ cell.colSpan=3;cell.textContent='Нет расчёта';row.append(cell);$('scenarios').append(row);
+ $('explain').textContent='Параметры изменены. Нажмите «Рассчитать», чтобы обновить результаты.';
+}
 function run(){
+ $('copy').textContent='Копировать итоги';
  $('error').textContent='';
  try{
   const face=Number($('face').value),price=Number($('price').value),coupon=Number($('coupon').value)/100,years=Number($('years').value),frequency=Number($('frequency').value);
@@ -77,6 +90,8 @@ function run(){
   $('copy').disabled=false;
  }catch(e){$('error').textContent=e.message;resultText='';$('copy').disabled=true;for(const id of ['current','ytm','duration','dv01'])$(id).textContent='—';$('scenarios').textContent='';}
 }
+$('bond-form').addEventListener('input',invalidateBondResult);
+$('bond-form').addEventListener('change',invalidateBondResult);
 $('bond-form').addEventListener('submit',e=>{e.preventDefault();run()});
 $('example').addEventListener('click',()=>{$('face').value=1000;$('price').value=950;$('coupon').value=6;$('years').value=3;$('frequency').value=2;run()});
 $('copy').addEventListener('click',async()=>{if(!resultText)return;try{await navigator.clipboard.writeText(resultText);$('copy').textContent='Скопировано ✓'}catch{$('error').textContent='Браузер заблокировал копирование.'}});
