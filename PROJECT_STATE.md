@@ -1,3 +1,10 @@
+## Database RLS isolation smoke checks — 2026-10-25
+
+- Ran six synthetic, transaction-rolled-back SQL checks against deployed Supabase RLS with the `authenticated` role and explicit owner vs. unrelated `request.jwt.claim.sub`. Used an existing account UUID as the owner, but no real case/message content; inserted only synthetic test case and chat message inside transactions.
+- PASS: owner reads own workspace case; unrelated identity cannot read case; unrelated identity cannot read chat; unrelated identity cannot UPDATE case; unrelated identity cannot DELETE case; owner reads own chat.
+- Both SQL transactions ended with `ROLLBACK`; no test case/message persisted.
+- These are **database-level RLS smoke checks**, not independent signed-in browser users or a complete authorization audit. Outstanding: real two-user authenticated E2E, attachment/storage RLS, task and portfolio snapshot ownership, actual AI response, file exports and mobile-device QA. Do not use confidential client data for pilot until approved.
+
 ## AI task review warns about the 30-card limit — 2026-10-25
 
 - The deployed task organizer v3 requests a maximum of 30 task proposals (`maxItems: 30`), while the browser also displays at most 30. Previously neither the input guidance nor review screen made that limit clear; a long brain dump could appear fully processed even if some tasks were omitted.
