@@ -206,6 +206,11 @@ function normalizeHoldingsFile(text){
    isBond=/^BOND:/i.test(symbol);
    if(cells.length!==(isBond?4:3))throw Error('Строка '+(i+1)+': ожидается '+(isBond?4:3)+' столбца.');
   }
+  // A comma followed by exactly three digits is ambiguous: 1,000 may mean 1 or 1000.
+  // Fail closed on broker CSV imports rather than silently misvalue the position.
+  for(const [label,numberText] of [['количество',quantity],['цена',price],...(isBond?[['дюрация',duration]]:[])]){
+   if(/^[1-9]\d{0,2}(?:,\d{3})+$/.test(numberText))throw Error('Строка '+(i+1)+': неоднозначное число в поле «'+label+'» ('+numberText+'). Удали разделитель тысяч или используй точку для десятичной части.');
+  }
   const line=[symbol,quantity,price,...(isBond?[duration]:[])].join('; ');
   out.push(line);
  }
