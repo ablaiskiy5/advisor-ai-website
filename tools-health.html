@@ -27,8 +27,8 @@ async function rpc(method,params={}){
   const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:controller.signal,cache:'no-store'});
   const text=await r.text();let data;
   try{data=JSON.parse(text)}catch{throw Error('Сервер не вернул JSON: HTTP '+r.status)}
-  if(!r.ok||data?.error)throw Error('HTTP '+r.status+' / '+String(data?.error?.message||'ошибка'));
-  if(data?.jsonrpc!=='2.0'||data.id!==requestId||!Object.prototype.hasOwnProperty.call(data,'result'))throw Error('Некорректный JSON-RPC ответ или ID запроса');
+  if(!r.ok)throw Error('HTTP '+r.status+' / '+String(data?.error?.message||'ошибка'));
+  if(!data||typeof data!=='object'||Array.isArray(data)||data.jsonrpc!=='2.0'||data.id!==requestId||!Object.prototype.hasOwnProperty.call(data,'result')||Object.prototype.hasOwnProperty.call(data,'error'))throw Error('Некорректный JSON-RPC ответ или ID запроса');
   return data.result;
  }finally{clearTimeout(timeout)}
 }
@@ -42,7 +42,7 @@ async function run(){
   ['budget',async()=>{const v=await rpc('tools/call',{name:'trade_risk_budget',arguments:{portfolio_usd:1000000,pool_percent:10,positions:[{name:'A',amount_usd:100000},{name:'B',amount_usd:100000}]}});if(v?.isError||v.structuredContent?.within_pool!==false||!nearly(v.structuredContent?.remaining_usd,-100000))throw Error('Бюджет не ограничен');return 'Превышение найдено'}],
   ['hhi',async()=>{const v=await rpc('tools/call',{name:'portfolio_concentration',arguments:{holdings:[{ticker:'A',value:70},{ticker:'B',value:30}]}});if(v?.isError||!nearly(v.structuredContent?.hhi,.58))throw Error('Неверный HHI');return 'HHI = 0,58'}],
   ['duration',async()=>{const v=await rpc('tools/call',{name:'bond_duration_shock',arguments:{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:100}});if(v?.isError||!nearly(v.structuredContent?.portfolio_change_percent,-1.5))throw Error('Неверный стресс');return '−1,50%'}],
-  ['invalid',async()=>{const v=await rpc('tools/call',{name:'bond_current_yield',arguments:{face:1000,coupon_percent:6,price:0}});if(v?.isError!==true)throw Error('Нулевая цена принята ошибочно');return 'Неверная цена отклонена'}]
+  ['invalid',async()=>{const v=await rpc('tools/call',{name:'bond_current_yield',arguments:{face:1000,coupon_percent:6,price:0}});if(v?.isError!==true||Object.prototype.hasOwnProperty.call(v,'structuredContent'))throw Error('Нулевая цена не отклонена безопасно');return 'Неверная цена отклонена'}]
  ];
  let ok=0;const errs=[];
  try{for(const [id,fn] of checks){try{const label=await fn();status(id,'✓ '+label,'green');ok++}catch(e){status(id,'✕ Ошибка','red');errs.push(id+': '+e.message)}}}
