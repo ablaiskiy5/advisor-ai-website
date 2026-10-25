@@ -334,13 +334,14 @@ async function importData(file){
  catch{if(importIsCurrent())toast('Файл не является JSON');return}
  if(!importIsCurrent())return;
  const data=Array.isArray(parsed)?parsed:parsed?.entries;
- if(!Array.isArray(data)||data.some(x=>!x||!section[x.kind]||!x.title)){toast('Неподходящий формат резервной копии');return}
+ if(!Array.isArray(data)||data.length>1000||data.some(x=>!x||typeof x!=='object'||Array.isArray(x)||!Object.hasOwn(section,x.kind)||typeof x.title!=='string'||!x.title.trim()||x.title.length>180||['status','notes','prompt','chat_url'].some(k=>x[k]!==undefined&&(typeof x[k]!=='string'||x[k].length>50000)))){
+  toast('Неподходящий формат копии или более 1000 записей');return;
+ }
  if(!confirm('Добавить '+data.length+' записей в текущий кабинет?')||!importIsCurrent())return;
  let count=0;
  for(const x of data){
   if(!importIsCurrent())return;
-  const e={...draft(x.kind),...x,id:uid(),created_at:now(),updated_at:now()};
-  delete e.user_id;
+  const e={...draft(x.kind),kind:x.kind,title:x.title.trim(),status:x.status??'Новая',notes:x.notes??'',prompt:x.prompt??section[x.kind].prompt,chat_url:x.chat_url??''};
   if(await persist(e))count++;
   if(!importIsCurrent())return;
  }
