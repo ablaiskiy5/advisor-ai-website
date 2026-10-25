@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { requireMcpResult } from './mcp-response.mjs';
+import { requireMcpResult, requireMcpInitialize } from './mcp-response.mjs';
 // Deterministic public MCP smoke test. No login, secrets or client data required.
 const endpoint=process.env.ADVISOR_AI_MCP_URL||'https://xhewhzgzzonpgsjznmyl.supabase.co/functions/v1/advisor-ai-shared-tools';
 if(!/^https:\/\//.test(endpoint))throw Error('HTTPS endpoint required');
@@ -15,7 +15,7 @@ function assert(cond,message){if(!cond)throw Error('FAIL: '+message)}
 function equalNumber(actual,expected,label,epsilon=1e-8){assert(Math.abs(actual-expected)<=epsilon,label+': expected '+expected+', got '+actual)}
 async function run(){
  const info=await call('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-smoke',version:'1.0'}});
- assert(info.serverInfo?.name==='advisor-ai-shared-tools','Server identity');
+ requireMcpInitialize(info);
  const discovery=await call('server/discover');
  assert(discovery.resultType==='complete'&&discovery.cacheScope==='public','Public MCP discovery contract');
  const listed=await call('tools/list');
