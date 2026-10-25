@@ -154,6 +154,7 @@ async function organize(){
  if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
  const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
  const text=$('brain').value.trim();if(text.length<3){feedback('Напиши дела в свободной форме');return}
+  if(text.length>10000){feedback('AI принимает не более 10 000 символов за запрос. Скопируй лишнюю часть и разбей текст на несколько запросов.');return}
  busy=true;$('organize').disabled=true;feedback('Разбираю задачи…');
  try{const {data,error}=await db.functions.invoke('advisor-ai-organize-tasks',{body:{text}});
   // An AI reply may arrive after sign-out or a switch to another (or the same) account.
@@ -264,8 +265,8 @@ function consumeTaskTransfer(ownerId){
   if(!raw||!ownerId)return false;
   const payload=JSON.parse(raw);
   if(payload?.owner_id!==ownerId||typeof payload.text!=='string'||!payload.text.trim())return false;
-  $('brain').value=payload.text.slice(0,10000);
-  feedback('Текст из чата перенесён. Нажми «Разобрать с AI».');
+  $('brain').value=payload.text;
+  feedback(payload.text.trim().length>10000?'Текст из чата перенесён полностью, но AI принимает не более 10 000 символов. Скопируй лишнюю часть и разбей задачи на несколько запросов.':'Текст из чата перенесён. Нажми «Разобрать с AI».');
   return true;
  }catch{return false}
 }
