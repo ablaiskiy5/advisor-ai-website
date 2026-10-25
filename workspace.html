@@ -176,12 +176,12 @@ function normalizeHoldingsFile(text){
  const decoded=lines.map(line=>splitCsvLine(line,delimiter));
  const norm=x=>String(x||'').toLowerCase().replace(/[\s_-]+/g,'');
  const key=decoded[0].map(norm);
- const lookup=(aliases)=>key.findIndex(k=>aliases.includes(k));
- const ti=lookup(['тикер','ticker','symbol','asset','instrument','инструмент','код']);
- const qi=lookup(['quantity','qty','количество','shares','units','шт']);
- const pi=lookup(['price','unitprice','цена','ценаusd','ценаединицы']);
- const di=lookup(['duration','modifiedduration','modduration','дюрация']);
- const typei=lookup(['type','тип','assettype','класс','вид']);
+ const lookup=(aliases,label)=>{const matches=key.flatMap((k,i)=>aliases.includes(k)?[i]:[]);if(matches.length>1)throw Error('Повторяющиеся столбцы CSV: '+label+'. Удали дубликаты заголовков перед импортом.');return matches[0]??-1;};
+ const ti=lookup(['тикер','ticker','symbol','asset','instrument','инструмент','код'],'тикер');
+ const qi=lookup(['quantity','qty','количество','shares','units','шт'],'количество');
+ const pi=lookup(['price','unitprice','цена','ценаusd','ценаединицы'],'цена');
+ const di=lookup(['duration','modifiedduration','modduration','дюрация'],'дюрация');
+ const typei=lookup(['type','тип','assettype','класс','вид'],'тип');
  const hasHeader=ti>=0&&qi>=0&&pi>=0;
  const start=hasHeader?1:0;
  if(hasHeader&&decoded[0].length>20)throw Error('Слишком много столбцов в CSV.');
