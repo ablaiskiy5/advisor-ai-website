@@ -21,9 +21,9 @@ function chatHarness(){
  return {transfer,ctx,staged,location,reply:data=>{assert.ok(settle);settle({data,error:null})}};
 }
 function receiver(raw){
- const staged=storage(raw),brain={value:''};
- const consume=runInNewContext(consumeSource+';consumeTaskTransfer',{sessionStorage:staged,$:()=>brain,feedback:()=>{}});
- return {consume,staged,brain};
+ const staged=storage(raw),brain={value:''},notices=[];
+ const consume=runInNewContext(consumeSource+';consumeTaskTransfer',{sessionStorage:staged,$:()=>brain,feedback:message=>notices.push(message)});
+ return {consume,staged,brain,notices};
 }
 test('owner can transfer synthetic tasks after authenticated handoff',async()=>{
  const a=chatHarness(),pending=a.transfer();a.reply([{role:'user',content:'Synthetic task'}]);await pending;
@@ -51,4 +51,31 @@ test('stale response after sign-out, account switch or same-owner re-login is ig
 test('consumer runs only after auth.getUser and sign-out clears transfer',()=>{
  assert.match(board,/const \{data,error\}=await db\.auth\.getUser\(\);[\s\S]*?user=data\.user;consumeTaskTransfer\(user\.id\);/);
  assert.match(board,/function clearTaskSession\([^)]*\)\{\s*try\{sessionStorage\.removeItem\('advisor_ai_task_brain_dump'\)/);
+});
+
+test('oversized chat handoff is never silently truncated',()=>{
+ const fullText='Synthetic task; '.repeat(750);
+ assert.ok(fullText.length>10000);
+ const b=receiver(JSON.stringify({owner_id:'owner-a',text:fullText}));
+ assert.equal(b.consume('owner-a'),true);
+ assert.equal(b.brain.value,fullText,'The full draft must remain available to split or copy');
+ assert.match(b.notices.at(-1),/10 000 символов/);
+ assert.equal(b.staged.getItem('advisor_ai_task_brain_dump'),null,'One-time handoff remains owner-scoped');
+});
+
+test('oversized handoff cannot consume a paid AI parse request',async()=>{
+ const start=board.indexOf('async function organize(){'),end=board.indexOf('async function saveDrafts(){',start);
+ assert.ok(start>=0&&end>start,'Production organizer must exist');
+ const notices=[],elements={brain:{value:'Synthetic task; '.repeat(750)},organize:{disabled:false}};
+ let invoked=0;
+ const db={functions:{invoke(){invoked++;throw Error('Must not invoke paid AI for invalid input')}}};
+ const organize=runInNewContext(board.slice(start,end)+';organize',{
+  busy:false,user:{id:'owner-a'},authRevision:0,db,
+  $:id=>{assert.ok(elements[id]);return elements[id]},
+  feedback:message=>notices.push(message)
+ });
+ await organize();
+ assert.equal(invoked,0);
+ assert.equal(elements.organize.disabled,false);
+ assert.match(notices.at(-1),/не более 10 000 символов/);
 });
