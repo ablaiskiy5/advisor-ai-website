@@ -70,3 +70,32 @@ test('select changes invalidate reports and the example button restores a fresh 
   assert.equal(page.scenarios.children.length, 7);
   assert.match(page.explain.textContent, /Текущая доходность/);
 });
+
+test('blank required coupon is rejected instead of silently becoming a zero-coupon bond', () => {
+  const page = createPage();
+  page.coupon.value = '';
+  page['bond-form'].listeners.input();
+  page['bond-form'].listeners.submit({ preventDefault() {} });
+  assert.match(page.error.textContent, /Проверь номинал, цену, купон и срок/);
+  assert.equal(page.copy.disabled, true);
+  assert.equal(page.ytm.textContent, '—');
+  assert.equal(page.scenarios.children.length, 1);
+  assert.equal(page.scenarios.children[0].children[0].textContent, 'Нет расчёта');
+  assert.match(page.explain.textContent, /Расчёт недоступен/);
+
+  // Explicit zero is a valid zero-coupon instrument, unlike an empty field.
+  page.coupon.value = '0';
+  page['bond-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(page.error.textContent, '');
+  assert.equal(page.current.textContent, '0,00%');
+  assert.equal(page.copy.disabled, false);
+  assert.equal(page.scenarios.children.length, 7);
+
+  // Other required fields also fail closed, without retaining previous metrics.
+  page.price.value = '';
+  page['bond-form'].listeners.input();
+  page['bond-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(page.copy.disabled, true);
+  assert.equal(page.ytm.textContent, '—');
+  assert.equal(page.scenarios.children.length, 1);
+});
