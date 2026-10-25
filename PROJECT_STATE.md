@@ -1,3 +1,9 @@
+## AI task review warns about the 30-card limit — 2026-10-25
+
+- The deployed task organizer v3 requests a maximum of 30 task proposals (`maxItems: 30`), while the browser also displays at most 30. Previously neither the input guidance nor review screen made that limit clear; a long brain dump could appear fully processed even if some tasks were omitted.
+- The task-board guidance now explicitly discloses the 30-card limit and asks users to reconcile proposals with the source. The review warning distinguishes a normal short batch, exactly 30 (possible omissions), and an unexpected response above 30 (only first 30 displayed). Synthetic regressions cover 2, 30 and 31 proposals.
+- Static frontend, tests and documentation only. No task records, server quotas, client data, plugin files, Supabase functions, RLS, credentials, tariffs or messages changed. Authenticated two-account browser E2E remains outstanding; PR checks, merge and Pages deployment are separate release gates.
+
 ## Task-board mobile controls and accessible feedback — 2026-10-25
 
 - At narrow phone widths (≤480px), task action, filter and toolbar buttons have a minimum 44px touch height; section headers can wrap instead of crowding actions off-screen. Keyboard users get a visible focus ring.
