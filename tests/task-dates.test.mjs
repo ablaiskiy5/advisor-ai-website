@@ -90,6 +90,11 @@ test('CSV export escapes formulas, commas, quotes and NULs', () => {
   for (const value of ['=1+1', '+2+3', '-1+2', '@SUM(A1)', ' \t=1+1', '\r=1+1']) {
     assert.equal(csvSafe(value), '"\'' + value + '"', 'Dangerous CSV prefix: ' + JSON.stringify(value));
   }
+  // Invisible format characters must not bypass formula-text escaping.
+  for (const value of ['\u200B=1+1', '\u200C+2', '\u200D@SUM(A1)', '\u2060-1+2', '\u200B\u2060 =1+1']) {
+    assert.equal(csvSafe(value), '"' + "'" + value + '"', 'Invisible formula prefix: ' + JSON.stringify(value));
+  }
+  assert.equal(csvSafe('\u200BОбычная задача'), '"\u200BОбычная задача"');
   assert.equal(csvSafe('Нормально, "да"'), '"Нормально, ""да"""');
   assert.equal(csvSafe('a\u0000b'), '"ab"');
   const csv = tasksCsv([{ title: '=2+2', area: 'work', priority: 'high', status: 'todo',
