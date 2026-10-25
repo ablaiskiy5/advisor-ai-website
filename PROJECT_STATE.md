@@ -1,3 +1,10 @@
+## Extended RLS and shared MCP review — 2026-10-25
+
+- Inspected live policies for `advisor_tasks`, `portfolio_snapshots`, `advisor_ai_attachments`, and `storage.objects` in the `advisor-chat-attachments` bucket. Owner predicates exist for reads/writes; attachment INSERT also checks owner case and matching user message.
+- Rolled-back authenticated-role SQL probe using an unrelated synthetic JWT subject returned zero foreign rows for all three tables. Counts at time of probe: tasks **0**, portfolio snapshots **0**, attachments **6**. Consequently task/snapshot zero-row probes are **vacuous**, not evidence of working cross-user isolation with actual rows. Attachment check covered existing rows. No records were changed.
+- Reviewed deployed `advisor-ai-shared-tools` Edge Function **v4 ACTIVE**. It exposes four public deterministic calculators and contains no OpenAI call or personal-data query; it is not an alternate paid-AI path. Public MCP endpoint remains intentionally unauthenticated and must never be extended with client-data access without new authorization.
+- Still required before confidential client pilot: two independently authenticated browser accounts, storage signed-URL tests, real task/snapshot ownership checks, AI response, file export, mobile QA and auth leaked-password protection setting.
+
 ## Database RLS isolation smoke checks — 2026-10-25
 
 - Ran six synthetic, transaction-rolled-back SQL checks against deployed Supabase RLS with the `authenticated` role and explicit owner vs. unrelated `request.jwt.claim.sub`. Used an existing account UUID as the owner, but no real case/message content; inserted only synthetic test case and chat message inside transactions.
