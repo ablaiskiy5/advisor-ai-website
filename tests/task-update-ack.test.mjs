@@ -42,7 +42,7 @@ function harness(response){
    }};
   }};
  }};
- const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,taskListComplete:true,
+ const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,taskListComplete:true,pendingTaskChanges:new Set(),
   $,areas:{work:'Работа'},priorities:{normal:'Обычный'},
   validDate:date=>date===''||/^\d{4}-\d{2}-\d{2}$/.test(date),
   feedback:message=>messages.push(message),render:()=>{renders++},load:async()=>{loads++;if(!ctx.taskListComplete)messages.push('Ошибка загрузки: синтетический сбой')}};
@@ -58,7 +58,7 @@ test('quick action changes UI only after an owner-scoped row is returned',async(
  const h=harness({data:{id:'task-1'},error:null}),task={id:'task-1',status:'todo'};
  await h.api.change(task,{status:'done'});
  assert.equal(task.status,'done');
- assert.equal(h.renders,1);
+ assert.equal(h.renders,2);
  assert.deepEqual(h.calls.slice(1).map(c=>Array.from(c)),[
   ['eq','id','task-1'],['eq','user_id','owner-a'],['select','id'],['single']
  ]);
@@ -69,7 +69,7 @@ test('RLS denial or deleted task cannot appear as a successful quick action',asy
   const h=harness(response),task={id:'task-1',status:'todo'};
   await h.api.change(task,{status:'done'});
   assert.equal(task.status,'todo');
-  assert.equal(h.renders,0);
+  assert.equal(h.renders,2);
   assert.match(h.messages.at(-1),/Ошибка:/);
  }
 });
@@ -135,4 +135,50 @@ test('new task stays in editor if insert acknowledgement is missing or belongs t
   assert.match(h.$('edit-note').textContent,/Не удалось сохранить:/);
   assert.equal(h.ctx.busy,false);
  }
+});
+
+test('concurrent quick actions on the same task cannot race',async()=>{
+ let resolve;
+ const pending=new Promise(r=>{resolve=r});
+ const h=harness(pending),task={id:'task-1',status:'todo'};
+ const first=h.api.change(task,{status:'doing'});
+ await h.api.change(task,{status:'done'});
+ assert.equal(h.calls.filter(c=>c[0]==='update').length,1);
+ assert.equal(h.ctx.pendingTaskChanges.has(task.id),true);
+ assert.equal(task.status,'todo','No optimistic mutation before server acknowledgement');
+ resolve({data:{id:'task-1'},error:null});
+ await first;
+ assert.equal(task.status,'doing');
+ assert.equal(h.ctx.pendingTaskChanges.has(task.id),false);
+ assert.equal(h.renders,2);
+});
+
+test('network rejection keeps task unchanged, reports error and allows retry',async()=>{
+ const h=harness(Promise.reject(new Error('Network unavailable'))),task={id:'task-1',status:'todo'};
+ await h.api.change(task,{status:'done'});
+ assert.equal(task.status,'todo');
+ assert.match(h.messages.at(-1),/Ошибка обновления: Network unavailable/);
+ assert.equal(h.ctx.pendingTaskChanges.has(task.id),false);
+ assert.equal(h.renders,2);
+});
+
+test('late rejected update never reports to a different signed-in user',async()=>{
+ let reject;
+ const pending=new Promise((_,fail)=>{reject=fail});
+ const h=harness(pending),task={id:'task-1',status:'todo'};
+ const first=h.api.change(task,{status:'done'});
+ h.ctx.user={id:'owner-b'};
+ h.ctx.authRevision++;
+ h.ctx.pendingTaskChanges.clear();
+ reject(new Error('Private session ended'));
+ await first;
+ assert.equal(task.status,'todo');
+ assert.equal(h.messages.length,0);
+ assert.equal(h.renders,1);
+});
+
+test('pending quick actions disable board and focus controls, and sign-out clears them',()=>{
+ assert.match(html,/b\.disabled=pendingTaskChanges\.has\(row\.id\)/);
+ assert.match(html,/btn\.disabled=pendingTaskChanges\.has\(task\.id\)/);
+ assert.match(html,/authRevision\+\+;user=null;[^\n]*pendingTaskChanges\.clear\(\)/);
 });
