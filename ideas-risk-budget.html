@@ -49,6 +49,8 @@ function updatePositionMetrics(details){
  }
 }
 function calculate(){
+ // Any input edit invalidates feedback for the previously copied calculation.
+ $('copy').textContent='Копировать расчёт для Advisor AI';
  try{
   result=compute(requiredNumber('portfolio'),requiredNumber('pool'),requiredNumber('risk'),rows);
   updatePositionMetrics(result.details);
@@ -71,6 +73,6 @@ $('portfolio').oninput=render;$('pool').oninput=calculate;$('risk').oninput=calc
 $('add').onclick=()=>{if(rows.length>=30)return;rows.push({ticker:'Новая идея',amount:0,stop:null});render()};
 $('example').onclick=()=>{rows=[{ticker:'NVDA',amount:25000,stop:5},{ticker:'AMZN',amount:25000,stop:5},{ticker:'QQQ',amount:30000,stop:4},{ticker:'XBI',amount:20000,stop:7}];$('portfolio').value=1000000;$('pool').value=10;$('risk').value=0.5;render()};
 $('print').onclick=()=>window.print();
-$('copy').onclick=async()=>{if(!result)return;const r=result;const text=['Advisor AI — проверка торгового бюджета','Общий портфель: '+usd(r.portfolio),'Один общий спекулятивный лимит: '+r.pool+'% = '+usd(r.budget),'Предложено: '+usd(r.allocated),'Остаток: '+usd(r.remaining),'Укладывается в пул: '+(r.withinBudget?'да':'НЕТ'),'Лимит риска: '+usd(r.lossLimit),'Стоп-риск: '+(r.missing?'неполный':usd(r.riskUsd)),'','Позиции:',...r.details.map(x=>x.ticker+' — '+usd(x.amount)+' ('+x.portfolioPct.toFixed(2)+'% портфеля), стоп '+(x.stop===null?'НЕ ЗАДАН':x.stop+'%')+(x.loss===null?'':', риск '+usd(x.loss))), 'Риск с учётом гэпов/проскальзывания может быть выше.','Сверь цены, ликвидность, корреляции и события перед сделками.'].join('\n');try{await navigator.clipboard.writeText(text);$('copy').textContent='Скопировано ✓'}catch{$('copy').textContent='Копирование недоступно'}};
+$('copy').onclick=async()=>{if(!result)return;const r=result;const text=['Advisor AI — проверка торгового бюджета','Общий портфель: '+usd(r.portfolio),'Один общий спекулятивный лимит: '+r.pool+'% = '+usd(r.budget),'Предложено: '+usd(r.allocated),'Остаток: '+usd(r.remaining),'Укладывается в пул: '+(r.withinBudget?'да':'НЕТ'),'Лимит риска: '+usd(r.lossLimit),'Стоп-риск: '+(r.missing?'неполный':usd(r.riskUsd)),'','Позиции:',...r.details.map(x=>x.ticker+' — '+usd(x.amount)+' ('+x.portfolioPct.toFixed(2)+'% портфеля), стоп '+(x.stop===null?'НЕ ЗАДАН':x.stop+'%')+(x.loss===null?'':', риск '+usd(x.loss))), 'Риск с учётом гэпов/проскальзывания может быть выше.','Сверь цены, ликвидность, корреляции и события перед сделками.'].join('\n');try{await navigator.clipboard.writeText(text);if(result===r)$('copy').textContent='Скопировано ✓'}catch{if(result===r)$('copy').textContent='Копирование недоступно'}};
 render();
 </script></body></html>

@@ -158,3 +158,33 @@ test('risk budget row percentages and stop-loss cells refresh after edits, and c
   assert.equal(nodes.print.disabled,true);
   assert.match(script,/input\.addEventListener\('input',\(\)=>\{[^\n]*calculate\(\)/);
 });
+
+test('copy feedback is reset after edits and late clipboard success cannot mark a stale calculation as copied', async () => {
+  const ids=['portfolio','pool','risk','positions','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print','add','example'];
+  const nodes=Object.fromEntries(ids.map(id=>[id,{value:({portfolio:'1000000',pool:'10',risk:'0.5'})[id]??'',textContent:'',className:'',disabled:false}]));
+  nodes.positions.children=Array.from({length:4},()=>({children:Array.from({length:5},()=>({textContent:''}))}));
+  let mode='immediate', resolvePending;
+  const browserSource=script.slice(0,script.lastIndexOf('\nrender();'));
+  assert.ok(browserSource.includes("if(result===r)$('copy').textContent='Скопировано ✓'"));
+  const {calculate}=runInNewContext(browserSource+'\n({calculate})',{
+    document:{getElementById(id){assert.ok(nodes[id], 'Known element: '+id);return nodes[id]}},
+    navigator:{clipboard:{writeText(){return mode==='deferred'?new Promise(resolve=>{resolvePending=resolve}):Promise.resolve()}}},
+    window:{print(){}}
+  });
+  calculate();
+  const defaultLabel='Копировать расчёт для Advisor AI';
+  assert.equal(nodes.copy.textContent,defaultLabel);
+  await nodes.copy.onclick();
+  assert.equal(nodes.copy.textContent,'Скопировано ✓');
+  nodes.pool.value='9';
+  calculate();
+  assert.equal(nodes.copy.textContent,defaultLabel,'New calculation must clear the previous copied badge');
+  mode='deferred';
+  const pending=nodes.copy.onclick();
+  assert.equal(typeof resolvePending,'function');
+  nodes.pool.value='10';
+  calculate();
+  resolvePending();
+  await pending;
+  assert.equal(nodes.copy.textContent,defaultLabel,'Old clipboard completion must not mark new numbers as copied');
+});
