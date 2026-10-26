@@ -21,15 +21,21 @@ const $=id=>document.getElementById(id);
 let n=0;
 function status(id,label,type){const el=$('step-'+id);el.textContent=label;el.className='status '+type}
 const nearly=(a,b)=>typeof a==='number'&&Number.isFinite(a)&&Math.abs(a-b)<1e-8;
+function connectionFailure(message){const e=new Error(message);e.connectionFailure=true;return e}
 async function rpc(method,params={}){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
  try{
   const requestId=++n;
-  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:controller.signal,cache:'no-store'});
-  const text=await r.text();let data;
-  try{data=JSON.parse(text)}catch{throw Error('Сервер не вернул JSON: HTTP '+r.status)}
-  if(!r.ok)throw Error('HTTP '+r.status+' / '+String(data?.error?.message||'ошибка'));
-  if(!data||typeof data!=='object'||Array.isArray(data)||data.jsonrpc!=='2.0'||data.id!==requestId||!Object.prototype.hasOwnProperty.call(data,'result')||Object.prototype.hasOwnProperty.call(data,'error'))throw Error('Некорректный JSON-RPC ответ или ID запроса');
+  let r;
+  try{
+   r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:controller.signal,cache:'no-store'});
+  }catch(e){throw connectionFailure(e?.name==='AbortError'?'Тайм-аут соединения (12 секунд)':'Сетевая ошибка: сервер недоступен')}
+  let responseText;
+  try{responseText=await r.text()}catch{throw connectionFailure('Не удалось прочитать ответ сервера')}
+  let data;
+  try{data=JSON.parse(responseText)}catch{throw connectionFailure('Сервер не вернул JSON: HTTP '+r.status)}
+  if(!r.ok)throw connectionFailure('HTTP '+r.status+' / '+String(data?.error?.message||'ошибка'));
+  if(!data||typeof data!=='object'||Array.isArray(data)||data.jsonrpc!=='2.0'||data.id!==requestId||!Object.prototype.hasOwnProperty.call(data,'result')||Object.prototype.hasOwnProperty.call(data,'error'))throw connectionFailure('Некорректный JSON-RPC ответ или ID запроса');
   return data.result;
  }finally{clearTimeout(timeout)}
 }
@@ -47,7 +53,7 @@ async function run(){
   ['invalid',async()=>{const v=await rpc('tools/call',{name:'bond_current_yield',arguments:{face:1000,coupon_percent:6,price:0}});if(v?.isError!==true||Object.prototype.hasOwnProperty.call(v,'structuredContent'))throw Error('Нулевая цена не отклонена безопасно');return 'Неверная цена отклонена'}]
  ];
  let ok=0;const errs=[];
- try{for(const [id,fn] of checks){try{const label=await fn();status(id,'✓ '+label,'green');ok++}catch(e){status(id,'✕ Ошибка','red');errs.push(id+': '+e.message)}}}
+ try{for(let i=0;i<checks.length;i++){const [id,fn]=checks[i];try{const label=await fn();status(id,'✓ '+label,'green');ok++}catch(e){status(id,'✕ Ошибка','red');errs.push(id+': '+e.message);if(e.connectionFailure){for(const [skippedId] of checks.slice(i+1))status(skippedId,'— Нет соединения','dim');break}}}}
  finally{
   button.disabled=false;
   $('overall').textContent=ok===checks.length?'Все 8 проверок пройдены':'Пройдено '+ok+' из '+checks.length+' проверок';
