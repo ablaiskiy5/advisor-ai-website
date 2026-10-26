@@ -10,7 +10,7 @@ assert.ok(start>0&&end>start,'production chat session helpers exist');
 const helpers=html.slice(start,end);
 
 test('sign-out clears chat content, drafts, export source and owner state',()=>{
- const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title'];
+ const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
   exhaustedRetryMessages:new Set(),latestUserMessageId:null,
@@ -26,6 +26,7 @@ test('sign-out clears chat content, drafts, export source and owner state',()=>{
  assert.equal(ctx.working,false);
  assert.equal(ctx.isCurrentChat(0,'owner-A'),false);
  for(const id of ['messages','file-list','file-status','result-status','context','print-report','quick-actions'])assert.equal(nodes[id].textContent,'',id);
+ assert.equal(nodes['core-status'].textContent,'Нужен вход для проверки серверной методики.');
  for(const id of ['question','attach-input'])assert.equal(nodes[id].value,'',id);
  assert.equal(nodes.external.href,'https://chatgpt.com/');
 });
@@ -59,4 +60,38 @@ test('delayed history cannot restore old-owner messages after sign-out',async()=
  assert.equal(ctx.lastAnswer,'');
  assert.equal(nodes.messages.textContent,'');
  assert.equal(ctx.caseData,null);
+});
+
+test('core status waits for verified owner case and identifies a server-side skill copy',async()=>{
+ const core=html.slice(html.indexOf('async function checkCoreIntegrity()'),html.indexOf('async function init()'));
+ const init=html.slice(html.indexOf('async function init()'),html.indexOf("$('add-file').addEventListener",html.indexOf('async function init()')));
+ assert.ok(init.indexOf('void checkCoreIntegrity();')>init.indexOf('caseData=data;'),'Core check must run after case ownership is verified');
+ let calls=0;
+ const node={textContent:'Ожидание'};
+ const ctx={db:{functions:{invoke:async()=>{calls++;return {data:{service:'Advisor AI Workspace',core_version:'2.2.0',skill_sha256:'a'.repeat(64),shared_methods:['bond_current_yield']},error:null}}}},
+  user:null,caseData:null,sessionEpoch:0,$:()=>node};
+ ctx.isCurrentChat=(epoch,owner)=>epoch===ctx.sessionEpoch&&!!ctx.caseData&&ctx.user?.id===owner;
+ runInNewContext(core,ctx);
+ await ctx.checkCoreIntegrity();
+ assert.equal(calls,0,'Do not query a JWT-protected function before authentication');
+ ctx.user={id:'synthetic-owner'};ctx.caseData={id:'synthetic-case'};
+ await ctx.checkCoreIntegrity();
+ assert.equal(calls,1);
+ assert.match(node.textContent,/Серверная копия методики Advisor AI 2\.2\.0/);
+ assert.match(node.textContent,/не проверка текущей версии приватного ChatGPT-плагина/);
+});
+
+test('late core status response cannot overwrite a signed-out session',async()=>{
+ const core=html.slice(html.indexOf('async function checkCoreIntegrity()'),html.indexOf('async function init()'));
+ let resolveResponse;
+ const delayed=new Promise(resolve=>{resolveResponse=resolve});
+ const node={textContent:'Ожидание'};
+ const ctx={db:{functions:{invoke:()=>delayed}},user:{id:'synthetic-owner'},caseData:{id:'synthetic-case'},sessionEpoch:0,$:()=>node};
+ ctx.isCurrentChat=(epoch,owner)=>epoch===ctx.sessionEpoch&&!!ctx.caseData&&ctx.user?.id===owner;
+ runInNewContext(core,ctx);
+ const pending=ctx.checkCoreIntegrity();
+ ctx.sessionEpoch++;ctx.user=null;ctx.caseData=null;
+ resolveResponse({data:{service:'Advisor AI Workspace',core_version:'2.2.0',skill_sha256:'a'.repeat(64),shared_methods:[]},error:null});
+ await pending;
+ assert.equal(node.textContent,'Ожидание');
 });
