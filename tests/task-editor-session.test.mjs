@@ -25,7 +25,10 @@ function harness(){
   assert.equal(table,'advisor_tasks');
   return {insert(values){
    writes.push(values);
-   return new Promise(resolve=>{settle=resolve});
+   return {select(columns){
+    assert.equal(columns,'id,user_id');
+    return {single(){return new Promise(resolve=>{settle=resolve})}};
+   }};
   }};
  }};
  const app=runInNewContext(offline+`
@@ -51,7 +54,7 @@ test('normal editor save stays owner-scoped and refreshes the task list',async()
  const h=harness(),pending=h.submit();
  assert.equal(h.writes.length,1);
  assert.equal(h.writes[0].user_id,'owner-a');
- h.resolve({error:null});await pending;
+ h.resolve({data:{id:'created-1',user_id:'owner-a'},error:null});await pending;
  assert.deepEqual(h.loads,['owner-a']);
  assert.match(h.messages.at(-1),/Задача сохранена/);
  assert.equal(h.app.getBusy(),false);

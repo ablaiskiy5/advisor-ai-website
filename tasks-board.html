@@ -128,10 +128,11 @@ async function submitTaskEditor(event){
  if(!areas[values.area]||!priorities[values.priority]||!['todo','doing','done'].includes(values.status))return;
  busy=true;$('edit-note').textContent='Сохраняю…';
  try{
-  const result=editorId?await db.from('advisor_tasks').update(values).eq('id',editorId).eq('user_id',ownerId).select('id').single():await db.from('advisor_tasks').insert({...values,user_id:ownerId});
+  const result=editorId?await db.from('advisor_tasks').update(values).eq('id',editorId).eq('user_id',ownerId).select('id').single():await db.from('advisor_tasks').insert({...values,user_id:ownerId}).select('id,user_id').single();
   if(!current())return;
   if(result.error)throw result.error;
   if(editorId&&result.data?.id!==editorId)throw Error('Задача не обновлена. Обнови список и повтори.');
+  if(!editorId&&(typeof result.data?.id!=='string'||!result.data.id||result.data.user_id!==ownerId))throw Error('Создание задачи не подтверждено сервером. Обнови список перед повтором.');
   $('task-editor').classList.add('hidden');editingId=null;await load();
   if(current())feedback('Задача сохранена');
  }catch(err){if(current())$('edit-note').textContent='Не удалось сохранить: '+err.message}
