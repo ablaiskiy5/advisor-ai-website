@@ -180,9 +180,13 @@ function deferredQuickActionDb() {
         update(fields) { requests.push({ fields, filters: [] }); return this; },
         eq(field, value) {
           requests.at(-1).filters.push([field, value]);
-          if (field === 'user_id') return new Promise(resolve => { release = resolve; });
           return this;
-        }
+        },
+        select(columns) {
+          assert.equal(columns, 'id', 'Return only the updated row ID');
+          return this;
+        },
+        single() { return new Promise(resolve => { release = resolve; }); }
       };
     },
     finish(result) {
@@ -198,7 +202,7 @@ test('quick action applies a successful write in the current owner session', asy
   app.setup(db, { id: 'synthetic-user' });
   const pending = app.change(task, { status: 'done' });
   assert.deepEqual(db.requests[0].filters, [['id', 'synthetic-task'], ['user_id', 'synthetic-user']]);
-  db.finish({ error: null });
+  db.finish({ error: null, data: { id: 'synthetic-task' } });
   await pending;
   assert.equal(task.status, 'done');
 });
@@ -210,7 +214,7 @@ test('late quick-action success cannot mutate old task after account switch', as
   const pending = app.change(task, { status: 'done' });
   app.handleTaskAuthChange('SIGNED_IN', { user: { id: 'second-user' } });
   const message = app.info.textContent;
-  db.finish({ error: null });
+  db.finish({ error: null, data: { id: 'old-task' } });
   await pending;
   assert.equal(task.status, 'todo', 'Old task object must remain unchanged');
   assert.equal(app.snapshot().userId, 'second-user');
