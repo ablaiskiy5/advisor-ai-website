@@ -12,7 +12,7 @@ async function call(method,params={}){
  return requireMcpResult(data,requestId,method);
 }
 function assert(cond,message){if(!cond)throw Error('FAIL: '+message)}
-function equalNumber(actual,expected,label,epsilon=1e-8){assert(Math.abs(actual-expected)<=epsilon,label+': expected '+expected+', got '+actual)}
+function equalNumber(actual,expected,label,epsilon=1e-8){assert(Number.isFinite(actual)&&Number.isFinite(expected)&&Math.abs(actual-expected)<=epsilon,label+': expected '+expected+', got '+actual)}
 async function run(){
  const info=await call('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-smoke',version:'1.0'}});
  requireMcpInitialize(info);
