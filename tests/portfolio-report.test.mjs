@@ -103,6 +103,34 @@ test('target allocation preserves total value and proportions within asset class
   near(a.targetRateShock, -0.016); // fraction of entire portfolio for +100bp
 });
 
+test('extreme class imbalance does not overflow projected portfolio allocations', () => {
+  // The former target/current-class-weight ratio overflowed even though the
+  // target allocation and every projected position are finite.
+  const p = parseSaved(saved(['BOND:TINY; 1; 0.01; 4', 'AAPL; 1; 1e308'], 50));
+  for (const target of [0, 50, 100]) {
+    const allocation = projectAllocation(p, target);
+    assert.equal(allocation.possible, true);
+    assert.ok(allocation.rows.every(r => Number.isFinite(r.projectedValue)));
+    assert.ok(Math.abs(allocation.rows.reduce((sum, r) => sum + r.projectedValue, 0) / p.total - 1) < 1e-12);
+    assert.ok(Number.isFinite(allocation.hhi));
+    assert.ok(Number.isFinite(allocation.targetRateShock));
+  }
+  const half = projectAllocation(p, 50);
+  assert.ok(Math.abs(half.rows.find(r => r.bond).projectedValue / p.total - 0.5) < 1e-12);
+  near(half.hhi, 0.5);
+  const stress = customPortfolioStress(p, -10, 100);
+  assert.ok(Number.isFinite(stress.after.bondChangeUsd));
+  assert.ok(Number.isFinite(stress.after.equityChangeUsd));
+});
+
+test('zero-priced existing class stays zero when its target is zero', () => {
+  const p = parseSaved(saved(['BOND:ZERO; 1; 0; 4', 'AAPL; 1; 100'], 0));
+  const allocation = projectAllocation(p, 0);
+  assert.equal(allocation.possible, true);
+  assert.equal(allocation.rows.find(r => r.bond).projectedValue, 0);
+  near(allocation.hhi, 1);
+});
+
 test('reallocation cannot fabricate an absent asset class', () => {
   const p = parseSaved(saved(['AAPL; 10; 100']));
   assert.equal(projectAllocation(p, 40).possible, false);
