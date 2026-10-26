@@ -43,7 +43,7 @@ test('in-flight history, AI and upload paths verify current session',()=>{
 });
 
 test('delayed history cannot restore old-owner messages after sign-out',async()=>{
- const nodes=Object.fromEntries(['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title']
+ const nodes=Object.fromEntries(['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status']
   .map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  let resolveQuery;
  const delayed=new Promise(resolve=>{resolveQuery=resolve});
