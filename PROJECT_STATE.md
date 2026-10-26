@@ -1,3 +1,9 @@
+## Risk-budget percentage limits remain finite — 2026-10-26
+
+- Corrected the browser risk-budget calculator to multiply portfolio value by the fractional percentage, rather than multiplying by 10–100 before division. The old intermediate step could overflow to `Infinity` even when the mathematically correct allocation and stop-loss limits were finite.
+- Added regression checks for very large finite portfolio values, the maximum finite JavaScript number, and a subnormal value; ordinary budget/risk tests remain in the same suite. No real portfolio or market-data input was used.
+- Scope: public static risk-budget frontend, synthetic tests and this note. No plugin release, Supabase tables/RLS/functions, user data, secrets, quotas, tariffs, trades or messages changed. Authenticated two-account browser E2E is still outstanding.
+
 ## Risk budget live position metrics — 2026-10-26
 
 - The speculative risk-budget table now refreshes each position's portfolio percentage and stop-loss USD immediately when amount or stop changes. Previously the aggregate risk summary updated while the row-level derived columns retained their old values until a full table redraw.
