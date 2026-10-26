@@ -2,7 +2,7 @@
 :root{font:14px system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0c1528;color:#ecf3ff}*{box-sizing:border-box}body{margin:0}main{max-width:880px;margin:auto;padding:22px 16px 70px}h1{font-size:29px;margin:30px 0 6px}h2{font-size:17px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.panel{background:#182843;border:1px solid #354d73;border-radius:16px;padding:19px;margin:20px 0}.muted{color:#adc3df;line-height:1.6}.btn{background:#5977da;border:1px solid #8198ec;color:white;font:inherit;padding:11px 16px;border-radius:10px;font-weight:700;cursor:pointer}.btn:disabled{opacity:.6;cursor:wait}.list{display:grid;gap:12px}.item{background:#13223b;padding:13px;border-radius:10px;border:1px solid #364b6b;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}.status{font-weight:750}.green{color:#96edbe}.red{color:#ffc1ac}.dim{color:#aebfd9}.caution{color:#ffda93}a{color:#a9c3ff}code{white-space:pre-wrap;overflow-wrap:anywhere}.summary{font-size:16px;font-weight:700;margin:15px 0}@media(max-width:650px){h1{font-size:24px}.panel{padding:13px}}
 </style></head><body><main><div class="top"><strong>◈ Advisor AI / Состояние ядра</strong><a href="./workspace.html">← Workspace</a></div>
 <h1>Проверка инструментов</h1><p class="muted">Здесь можно проверить не описание возможностей, а настоящий ответ общего расчётного сервера. Проверка не использует личные данные или клиентские портфели.</p>
-<section class="panel"><h2>Общий сервер вычислений</h2><p class="muted">Расчёты доступны и через Workspace, и через конфигурацию плагина. Тест проверяет сам сервер, но не доказывает, что модель уже вызвала его внутри диалога.</p><button id="test" class="btn">Проверить соединение и расчёты</button><p class="summary" id="overall" role="status">Проверка ещё не проводилась</p>
+<section class="panel"><h2>Общий сервер вычислений</h2><p class="muted">Расчёты доступны и через Workspace, и через конфигурацию плагина. Тест проверяет сам сервер, но не доказывает, что модель уже вызвала его внутри диалога.</p><button id="test" class="btn">Проверить соединение и расчёты</button><p class="summary" id="overall" role="status">Проверка ещё не проводилась</p><p id="checked-at" class="muted" aria-live="polite">Последняя проверка: ещё не проводилась</p>
 <div class="list" id="steps">
 <div class="item"><span>MCP: подключение и инициализация</span><span class="status dim" id="step-init">Не проверено</span></div>
 <div class="item"><span>MCP: публичное обнаружение сервера</span><span class="status dim" id="step-discover">Не проверено</span></div>
@@ -40,7 +40,7 @@ async function rpc(method,params={}){
  }finally{clearTimeout(timeout)}
 }
 async function run(){
- const button=$('test');button.disabled=true;$('overall').textContent='Выполняется настоящая сетевая проверка…';$('details').textContent='';
+ const button=$('test');button.disabled=true;$('overall').textContent='Выполняется настоящая сетевая проверка…';$('checked-at').textContent='Проверка выполняется…';$('details').textContent='';
  for(const id of ['init','discover','list','bond','budget','hhi','duration','invalid'])status(id,'Проверяется','dim');
  const checks=[
   ['init',async()=>{const v=await rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-browser-check',version:'1.0'}});if(v?.serverInfo?.name!=='advisor-ai-shared-tools'||v.protocolVersion!=='2025-06-18'||!v.capabilities||!v.capabilities.tools||typeof v.capabilities.tools!=='object'||Array.isArray(v.capabilities.tools))throw Error('Несовместимый MCP протокол или возможности сервера');return 'MCP подключён'}],
@@ -56,6 +56,7 @@ async function run(){
  try{for(let i=0;i<checks.length;i++){const [id,fn]=checks[i];try{const label=await fn();status(id,'✓ '+label,'green');ok++}catch(e){status(id,'✕ Ошибка','red');errs.push(id+': '+e.message);if(e.connectionFailure){for(const [skippedId] of checks.slice(i+1))status(skippedId,'— Нет соединения','dim');break}}}}
  finally{
   button.disabled=false;
+  $('checked-at').textContent='Последняя проверка: '+new Date().toLocaleString('ru-RU')+' (время устройства)';
   $('overall').textContent=ok===checks.length?'Все 8 проверок пройдены':'Пройдено '+ok+' из '+checks.length+' проверок';
   $('overall').className='summary '+(ok===checks.length?'green':'caution');
   $('details').textContent=errs.length?'Причины: '+errs.join(' · '):'Сервер ответил корректно. Это проверка общих вычислений, не полный end-to-end тест ChatGPT-плагина.';
