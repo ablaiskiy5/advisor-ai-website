@@ -12,7 +12,7 @@ test('spreadsheet formulas cannot execute from user-supplied names',()=>{
  }
 });
 test('invisible Unicode padding cannot hide spreadsheet formulas in exported names',()=>{
- for(const value of ['\u200B=1+1','\u200C+2','\u200D@SUM(A1)','\u2060-1+2','\u200B\u2060 =1+1','\uFEFF\u200B=2+2']){
+ for(const value of ['\u00AD=1+1','\u200E=1+1','\u202E+2','\u2066@SUM(A1)','\u2069-1+2','\u200B=1+1','\u200C+2','\u200D@SUM(A1)','\u2060-1+2','\u200B\u2060 =1+1','\uFEFF\u200B=2+2']){
   assert.equal(csvSafeCell(value),'"\''+value+'"','Unsafe invisible formula prefix: '+JSON.stringify(value));
  }
  assert.equal(csvSafeCell('\u200BОбычная акция'),'"\u200BОбычная акция"');
