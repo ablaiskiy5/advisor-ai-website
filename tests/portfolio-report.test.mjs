@@ -123,6 +123,16 @@ test('extreme class imbalance does not overflow projected portfolio allocations'
   assert.ok(Number.isFinite(stress.after.equityChangeUsd));
 });
 
+test('positive tiny asset class is not mistaken for absent when its weight underflows', () => {
+  const p = parseSaved(saved(['BOND:TINY; 1; 1e-30; 4', 'AAPL; 1; 1e308'], 50));
+  assert.equal(p.bondValue > 0, true);
+  assert.equal(p.bondValue / p.total, 0); // IEEE-754 underflow is not an absent class.
+  const allocation = projectAllocation(p, 50);
+  assert.equal(allocation.possible, true);
+  assert.ok(Math.abs(allocation.rows.find(r => r.bond).projectedValue / p.total - 0.5) < 1e-12);
+  near(allocation.hhi, 0.5);
+});
+
 test('zero-priced existing class stays zero when its target is zero', () => {
   const p = parseSaved(saved(['BOND:ZERO; 1; 0; 4', 'AAPL; 1; 100'], 0));
   const allocation = projectAllocation(p, 0);
