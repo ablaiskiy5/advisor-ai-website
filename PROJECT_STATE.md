@@ -1,3 +1,9 @@
+## Risk budget live position metrics — 2026-10-26
+
+- The speculative risk-budget table now refreshes each position's portfolio percentage and stop-loss USD immediately when amount or stop changes. Previously the aggregate risk summary updated while the row-level derived columns retained their old values until a full table redraw.
+- Derived cells now use the same validated `compute()` output as the summary; invalid inputs clear stale per-position metrics and disable copy/print. Synthetic DOM regressions cover amount, stop, missing stop and invalid portfolio values.
+- Scope: static risk-budget frontend, synthetic tests and documentation only. No private portfolios, plugin release, Supabase database/RLS/functions, market data, secrets, quotas, tariffs, trades or messages changed. Authenticated browser E2E remains unverified.
+
 ## Task CSV export: invisible formula prefixes — 2026-10-26
 
 - Task CSV export now treats zero-width spaces/joiners and word joiners before spreadsheet formula operators as unsafe prefixes and forces text interpretation with the existing leading apostrophe. Previously values such as U+200B followed by `=1+1` bypassed the guard.
