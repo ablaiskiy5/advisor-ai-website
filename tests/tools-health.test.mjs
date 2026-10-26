@@ -67,6 +67,7 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
   await elements.get('test').onclick();
   return {
     overall: elements.get('overall').textContent,
+    checkedAt: elements.get('checked-at').textContent,
     list: elements.get('step-list').textContent,
     discovery: elements.get('step-discover').textContent,
     details: elements.get('details').textContent,
@@ -79,6 +80,7 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
 test('browser MCP diagnostic passes for exactly four described public tools', async () => {
   const result = await runBrowserCheck(allowlist);
   assert.match(result.overall, /Все 8 проверок пройдены/);
+  assert.match(result.checkedAt, /Последняя проверка: .*\(время устройства\)/);
   assert.match(result.list, /Ровно 4 публичных инструмента/);
   assert.match(result.discovery, /Discovery: complete \/ public/);
 });
@@ -167,6 +169,7 @@ test('browser MCP diagnostic stops after one failed network request', async () =
   assert.match(result.overall, /Пройдено 0 из 8/);
   assert.match(result.remaining, /Нет соединения/);
   assert.match(result.details, /Сетевая ошибка/);
+  assert.match(result.checkedAt, /Последняя проверка: .*\(время устройства\)/);
   assert.equal(result.buttonDisabled, false);
 });
 
