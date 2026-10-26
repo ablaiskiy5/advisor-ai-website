@@ -95,9 +95,10 @@ test('more than 30 positions are rejected', () => {
 });
 
 test('blank required numbers fail closed and clear stale summaries and exports', () => {
-  const ids=['portfolio','pool','risk','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print'];
+  const ids=['positions','portfolio','pool','risk','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print'];
   const defaults={portfolio:'1000000',pool:'10',risk:'0.5'};
   const nodes=Object.fromEntries(ids.map(id=>[id,{value:defaults[id]??'',textContent:'',className:'',disabled:false}]));
+  nodes.positions.children=[];
   const browserSource=script.slice(0,script.indexOf("$('portfolio').oninput=render;"));
   assert.ok(browserSource.includes('function calculate()'), 'Test actual browser calculation handler');
   const {calculate}=runInNewContext(browserSource+'\n({calculate})',{
@@ -126,4 +127,34 @@ test('blank required numbers fail closed and clear stale summaries and exports',
   nodes.risk.value='0';
   calculate();
   assert.equal(nodes.print.disabled,false,'Explicit zero remains valid');
+});
+
+test('risk budget row percentages and stop-loss cells refresh after edits, and clear on invalid input', () => {
+  // Run the actual browser calculate() and derived-cell renderer with synthetic DOM rows.
+  const ids=['portfolio','pool','risk','positions','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print'];
+  const nodes=Object.fromEntries(ids.map(id=>[id,{value:({portfolio:'1000000',pool:'10',risk:'0.5'})[id]??'',textContent:'',className:'',disabled:false}]));
+  const tableRows=Array.from({length:4},()=>({children:Array.from({length:5},()=>({textContent:''}))}));
+  nodes.positions.children=tableRows;
+  const source=script.slice(0,script.indexOf("$('portfolio').oninput=render;"));
+  const {calculate,rows}=runInNewContext(source+'\n({calculate,rows})',{
+    document:{getElementById(id){assert.ok(nodes[id], 'Known element: '+id);return nodes[id]}}
+  });
+  calculate();
+  assert.equal(tableRows[0].children[3].textContent,'2.50%');
+  assert.equal(tableRows[0].children[4].textContent,'$1,250.00');
+  rows[0].amount=40000;
+  rows[0].stop=10;
+  calculate();
+  assert.equal(tableRows[0].children[3].textContent,'4.00%');
+  assert.equal(tableRows[0].children[4].textContent,'$4,000.00');
+  rows[0].stop=null;
+  calculate();
+  assert.equal(tableRows[0].children[4].textContent,'Не указан');
+  nodes.portfolio.value='';
+  calculate();
+  assert.equal(tableRows[0].children[3].textContent,'—');
+  assert.equal(tableRows[0].children[4].textContent,'—');
+  assert.equal(nodes.copy.disabled,true);
+  assert.equal(nodes.print.disabled,true);
+  assert.match(script,/input\.addEventListener\('input',\(\)=>\{[^\n]*calculate\(\)/);
 });
