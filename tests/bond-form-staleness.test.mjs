@@ -9,7 +9,7 @@ const html = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../b
 const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script, 'Use the real browser calculator script');
 
-function createPage() {
+function createPage(writeText = async () => {}) {
   const ids = ['face','price','coupon','years','frequency','currency','bond-form',
     'error','current','ytm','duration','dv01','explain','scenarios','copy','example'];
   function element(value = '') {
@@ -35,7 +35,7 @@ function createPage() {
     },
     createElement() { return element(); }
   };
-  runInNewContext(script, {document, navigator:{clipboard:{writeText:async () => {}}}});
+  runInNewContext(script, {document, navigator:{clipboard:{writeText}}});
   return elements;
 }
 
@@ -98,4 +98,37 @@ test('blank required coupon is rejected instead of silently becoming a zero-coup
   assert.equal(page.copy.disabled, true);
   assert.equal(page.ytm.textContent, '—');
   assert.equal(page.scenarios.children.length, 1);
+});
+
+test('late clipboard success or failure never labels an outdated bond calculation', async () => {
+  let resolvePending, rejectPending;
+  const page = createPage(() => new Promise((resolve, reject) => {
+    resolvePending = resolve;
+    rejectPending = reject;
+  }));
+  const pending = page.copy.listeners.click();
+  assert.equal(typeof resolvePending, 'function');
+  page.price.value = '1000';
+  page['bond-form'].listeners.input();
+  resolvePending();
+  await pending;
+  assert.equal(page.copy.disabled, true);
+  assert.equal(page.copy.textContent, 'Копировать итоги');
+  assert.equal(page.ytm.textContent, '—');
+
+  page['bond-form'].listeners.submit({ preventDefault() {} });
+  assert.equal(page.copy.disabled, false);
+  const pendingError = page.copy.listeners.click();
+  page.price.value = '975';
+  page['bond-form'].listeners.input();
+  rejectPending(new Error('clipboard denied'));
+  await pendingError;
+  assert.equal(page.error.textContent, '', 'Old clipboard error must not appear for edited inputs');
+  assert.equal(page.copy.textContent, 'Копировать итоги');
+
+  page['bond-form'].listeners.submit({ preventDefault() {} });
+  const success = page.copy.listeners.click();
+  resolvePending();
+  await success;
+  assert.equal(page.copy.textContent, 'Скопировано ✓', 'Current result can still be copied');
 });
