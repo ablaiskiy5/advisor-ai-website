@@ -206,3 +206,23 @@ test('copy feedback is reset after edits and late clipboard success cannot mark 
   await pending;
   assert.equal(nodes.copy.textContent,defaultLabel,'Old clipboard completion must not mark new numbers as copied');
 });
+
+
+test('zero allocation and stop-loss caps reject even tiny positive exposure', () => {
+  const tiny = compute(1_000_000, 0, 0, [p('TINY', 0.0000005, 100)]);
+  assert.equal(tiny.withinBudget, false);
+  assert.equal(tiny.withinRisk, false);
+  assert.ok(tiny.remaining < 0);
+  const empty = compute(1_000_000, 0, 0, []);
+  assert.equal(empty.withinBudget, true);
+  assert.equal(empty.withinRisk, true);
+});
+
+test('positive caps tolerate only floating-point roundoff, not actual over-allocation', () => {
+  const rounding = compute(1, 30, 30, [p('A', 0.1, 100), p('B', 0.2, 100)]);
+  assert.equal(rounding.withinBudget, true);
+  assert.equal(rounding.withinRisk, true);
+  const exceeded = compute(1, 30, 30, [p('A', 0.1, 100), p('B', 0.200001, 100)]);
+  assert.equal(exceeded.withinBudget, false);
+  assert.equal(exceeded.withinRisk, false);
+});
