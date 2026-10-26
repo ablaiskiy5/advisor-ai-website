@@ -150,7 +150,11 @@ function projectAllocation(data,targetBondPercent){
  const targetBond=targetBondPercent/100,targetEquity=1-targetBond;
  const currentBond=data.bondValue/data.total,currentEquity=data.equityValue/data.total;
  if((targetBond>0&&currentBond===0)||(targetEquity>0&&currentEquity===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
- const rows=data.rows.map(r=>({...r,projectedValue:r.value*(r.bond?(currentBond?targetBond/currentBond:0):(currentEquity?targetEquity/currentEquity:0))}));
+ const rows=data.rows.map(r=>{
+  const classValue=r.bond?data.bondValue:data.equityValue;
+  const classTarget=r.bond?targetBond:targetEquity;
+  return {...r,projectedValue:classValue>0?(r.value/classValue)*(data.total*classTarget):0};
+ });
  const weights=rows.map(r=>r.projectedValue/data.total),hhi=weights.reduce((a,x)=>a+x*x,0);
  const targetRateShock=-rows.filter(r=>r.bond).reduce((a,r)=>a+(r.projectedValue/data.total)*r.duration,0)*0.01;
  return {possible:true,rows,hhi,top1:Math.max(...weights),top3:[...weights].sort((a,b)=>b-a).slice(0,3).reduce((a,x)=>a+x,0),targetRateShock};
