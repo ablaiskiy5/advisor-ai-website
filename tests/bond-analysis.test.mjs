@@ -62,6 +62,32 @@ test('modified duration and DV01 agree with finite-difference prices', () => {
   approx(bond.dv01, numericalDv01, 1e-6);
 });
 
+test('convexity matches numerical price curvature for ordinary bonds', () => {
+  const bond = calculateBond({ face: 1000, price: 950, coupon: 0.06, years: 3, frequency: 2 });
+  const h = 0.0001;
+  const at = y => bondPrice(1000, 0.06, 6, 2, y);
+  const numerical = (at(bond.ytm + h) - 2 * 950 + at(bond.ytm - h)) / (950 * h * h);
+  approx(bond.convexity, numerical, 1e-5);
+});
+
+test('large finite bond values keep DV01 and convexity finite', () => {
+  const par = calculateBond({ face: 1e307, price: 1e307, coupon: 0.06, years: 100, frequency: 12 });
+  assert.ok(Number.isFinite(par.dv01), 'DV01 must not overflow during multiplication');
+  assert.ok(Number.isFinite(par.convexity), 'Convexity must not overflow during summation');
+  approx(par.dv01 / par.price, par.modified * 0.0001, 1e-12);
+
+  for (const coupon of [0, 0.06]) {
+    const premium = calculateBond({ face: 1e300, price: 1e303, coupon, years: 100, frequency: 12 });
+    assert.ok(Number.isFinite(premium.convexity), 'Finite price and YTM must give finite convexity');
+    assert.ok(premium.convexity > 0);
+    if (coupon === 0) {
+      const expected = premium.periods * (premium.periods + 1) /
+        (premium.frequency ** 2 * (1 + premium.ytm / premium.frequency) ** 2);
+      approx(premium.convexity, expected, 1e-6);
+    }
+  }
+});
+
 test('bond price decreases as YTM rises', () => {
   const bond = calculateBond({ face: 1000, price: 950, coupon: 0.06, years: 3, frequency: 2 });
   assert.ok(bondPrice(1000, 0.06, 6, 2, bond.ytm - 0.01) > 950);
