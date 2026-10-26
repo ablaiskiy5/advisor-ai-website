@@ -5,6 +5,7 @@
 <section class="panel"><h2>Общий сервер вычислений</h2><p class="muted">Расчёты доступны и через Workspace, и через конфигурацию плагина. Тест проверяет сам сервер, но не доказывает, что модель уже вызвала его внутри диалога.</p><button id="test" class="btn">Проверить соединение и расчёты</button><p class="summary" id="overall" role="status">Проверка ещё не проводилась</p>
 <div class="list" id="steps">
 <div class="item"><span>MCP: подключение и инициализация</span><span class="status dim" id="step-init">Не проверено</span></div>
+<div class="item"><span>MCP: публичное обнаружение сервера</span><span class="status dim" id="step-discover">Не проверено</span></div>
 <div class="item"><span>Ровно четыре публичных инструмента (без приватных)</span><span class="status dim" id="step-list">Не проверено</span></div>
 <div class="item"><span>Доходность облигации (купон 6%, цена $950)</span><span class="status dim" id="step-bond">Не проверено</span></div>
 <div class="item"><span>Контроль общего торгового бюджета</span><span class="status dim" id="step-budget">Не проверено</span></div>
@@ -34,9 +35,10 @@ async function rpc(method,params={}){
 }
 async function run(){
  const button=$('test');button.disabled=true;$('overall').textContent='Выполняется настоящая сетевая проверка…';$('details').textContent='';
- for(const id of ['init','list','bond','budget','hhi','duration','invalid'])status(id,'Проверяется','dim');
+ for(const id of ['init','discover','list','bond','budget','hhi','duration','invalid'])status(id,'Проверяется','dim');
  const checks=[
   ['init',async()=>{const v=await rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-browser-check',version:'1.0'}});if(v?.serverInfo?.name!=='advisor-ai-shared-tools'||v.protocolVersion!=='2025-06-18'||!v.capabilities||!v.capabilities.tools||typeof v.capabilities.tools!=='object'||Array.isArray(v.capabilities.tools))throw Error('Несовместимый MCP протокол или возможности сервера');return 'MCP подключён'}],
+  ['discover',async()=>{const v=await rpc('server/discover');if(v?.resultType!=='complete'||v.cacheScope!=='public')throw Error('Некорректный публичный MCP discovery: ожидались complete и public');return 'Discovery: complete / public'}],
   ['list',async()=>{const v=await rpc('tools/list');if(!Array.isArray(v?.tools))throw Error('Некорректный список инструментов');const names=new Set(v.tools.map(x=>x?.name));const allowed=['bond_current_yield','portfolio_concentration','trade_risk_budget','bond_duration_shock'];if(v.tools.length!==allowed.length||names.size!==allowed.length||allowed.some(x=>!names.has(x)))throw Error('Список публичных инструментов изменился: требуется ровно 4 разрешённых инструмента');if(v.tools.some(x=>!x?.description||x.inputSchema?.type!=='object'))throw Error('Неполное описание или схема инструмента');return 'Ровно 4 публичных инструмента'}],
   ['bond',async()=>{const v=await rpc('tools/call',{name:'bond_current_yield',arguments:{face:1000,coupon_percent:6,price:950}});if(v?.isError||!nearly(v.structuredContent?.current_yield_percent,6.315789473684211))throw Error('Неверная доходность');return '6,32%'}],
   ['budget',async()=>{const v=await rpc('tools/call',{name:'trade_risk_budget',arguments:{portfolio_usd:1000000,pool_percent:10,positions:[{name:'A',amount_usd:100000},{name:'B',amount_usd:100000}]}});if(v?.isError||v.structuredContent?.within_pool!==false||!nearly(v.structuredContent?.remaining_usd,-100000))throw Error('Бюджет не ограничен');return 'Превышение найдено'}],
@@ -48,7 +50,7 @@ async function run(){
  try{for(const [id,fn] of checks){try{const label=await fn();status(id,'✓ '+label,'green');ok++}catch(e){status(id,'✕ Ошибка','red');errs.push(id+': '+e.message)}}}
  finally{
   button.disabled=false;
-  $('overall').textContent=ok===checks.length?'Все 7 проверок пройдены':'Пройдено '+ok+' из '+checks.length+' проверок';
+  $('overall').textContent=ok===checks.length?'Все 8 проверок пройдены':'Пройдено '+ok+' из '+checks.length+' проверок';
   $('overall').className='summary '+(ok===checks.length?'green':'caution');
   $('details').textContent=errs.length?'Причины: '+errs.join(' · '):'Сервер ответил корректно. Это проверка общих вычислений, не полный end-to-end тест ChatGPT-плагина.';
  }
