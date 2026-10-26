@@ -16,7 +16,12 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
       return elements.get(id);
     },
   };
+  let requestCount = 0;
   const fetch = async (_url, options) => {
+    requestCount++;
+    if (responseOverride.networkFailure) throw new TypeError('Failed to fetch');
+    if (responseOverride.httpFailure) return { ok: false, status: 503, text: async () => JSON.stringify({ error: { message: 'Service unavailable' } }) };
+    if (responseOverride.invalidJson) return { ok: true, status: 200, text: async () => '<html>bad gateway</html>' };
     const request = JSON.parse(options.body);
     let result;
     if (request.method === 'initialize') {
@@ -65,6 +70,9 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
     list: elements.get('step-list').textContent,
     discovery: elements.get('step-discover').textContent,
     details: elements.get('details').textContent,
+    requests: requestCount,
+    remaining: elements.get('step-duration').textContent,
+    buttonDisabled: elements.get('test').disabled,
   };
 }
 
@@ -151,4 +159,27 @@ test('browser MCP diagnostic fails closed when discovery cache scope is absent',
   assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.discovery, /Ошибка/);
   assert.match(result.details, /MCP discovery/);
+});
+
+test('browser MCP diagnostic stops after one failed network request', async () => {
+  const result = await runBrowserCheck(allowlist, false, { networkFailure: true });
+  assert.equal(result.requests, 1, 'Do not repeat a 12-second timeout for every check');
+  assert.match(result.overall, /Пройдено 0 из 8/);
+  assert.match(result.remaining, /Нет соединения/);
+  assert.match(result.details, /Сетевая ошибка/);
+  assert.equal(result.buttonDisabled, false);
+});
+
+test('browser MCP diagnostic stops on HTTP 503 instead of retrying all tools', async () => {
+  const result = await runBrowserCheck(allowlist, false, { httpFailure: true });
+  assert.equal(result.requests, 1);
+  assert.match(result.remaining, /Нет соединения/);
+  assert.match(result.details, /HTTP 503/);
+});
+
+test('browser MCP diagnostic stops on non-JSON gateway response', async () => {
+  const result = await runBrowserCheck(allowlist, false, { invalidJson: true });
+  assert.equal(result.requests, 1);
+  assert.match(result.remaining, /Нет соединения/);
+  assert.match(result.details, /не вернул JSON/);
 });
