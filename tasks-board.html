@@ -134,7 +134,9 @@ async function submitTaskEditor(event){
   if(editorId&&result.data?.id!==editorId)throw Error('Задача не обновлена. Обнови список и повтори.');
   if(!editorId&&(typeof result.data?.id!=='string'||!result.data.id||result.data.user_id!==ownerId))throw Error('Создание задачи не подтверждено сервером. Обнови список перед повтором.');
   $('task-editor').classList.add('hidden');editingId=null;await load();
-  if(current())feedback('Задача сохранена');
+  // A confirmed write is not proof that the refreshed task list loaded successfully.
+  // Keep the load error visible instead of replacing it with a success message.
+  if(current()&&taskListComplete)feedback('Задача сохранена');
  }catch(err){if(current())$('edit-note').textContent='Не удалось сохранить: '+err.message}
  finally{if(current())busy=false}
 }
