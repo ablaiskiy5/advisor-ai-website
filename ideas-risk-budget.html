@@ -34,16 +34,24 @@ function render(){
    input.type=type;input.value=row[key]??'';input.setAttribute('aria-label',key+' — позиция '+(i+1));if(min!==null)input.min=String(min);if(max!==null)input.max=String(max);if(type==='number')input.step='any';
    input.addEventListener('input',()=>{row[key]=key==='ticker'?input.value:input.value===''?(key==='stop'?null:NaN):Number(input.value);calculate()});td.append(input);tr.append(td);
   }
-  for(const val of [row.amount/Number($('portfolio').value)*100,row.stop===null?null:row.amount*row.stop/100]){
-   const td=document.createElement('td');td.textContent=val===null?'Не указан':Number.isFinite(val)?(tr.children.length===3?val.toFixed(2)+'%':usd(val)):'—';tr.append(td);
-  }
+  // Derived columns are filled from the validated calculation, never from stale row input.
+  tr.append(document.createElement('td'),document.createElement('td'));
   const td=document.createElement('td');td.className='no-print';const btn=document.createElement('button');btn.className='btn';btn.textContent='×';btn.title='Убрать позицию';btn.onclick=()=>{rows.splice(i,1);render()};td.append(btn);tr.append(td);body.append(tr);
  }
  calculate();
 }
+function updatePositionMetrics(details){
+ const tableRows=$('positions').children;
+ for(let i=0;i<tableRows.length;i++){
+  const cells=tableRows[i].children,detail=details?.[i];
+  cells[3].textContent=detail?detail.portfolioPct.toFixed(2)+'%':'—';
+  cells[4].textContent=detail?(detail.loss===null?'Не указан':usd(detail.loss)):'—';
+ }
+}
 function calculate(){
  try{
   result=compute(requiredNumber('portfolio'),requiredNumber('pool'),requiredNumber('risk'),rows);
+  updatePositionMetrics(result.details);
   $('budget').textContent=usd(result.budget);$('allocated').textContent=usd(result.allocated);$('remaining').textContent=usd(result.remaining);
   $('budget-status').className='status '+(result.withinBudget?'success':'warn');$('budget-status').textContent=result.withinBudget?'✓ Сумма позиций не превышает общий лимит.':'✕ Превышение бюджета на '+usd(-result.remaining)+'. Сократи позиции.';
   $('risk-status').className='status '+(result.withinRisk?'success':'warn');$('risk-status').textContent=result.missing?'Не указаны стопы для '+result.missing+' позиций: общий стоп-риск не определён.':result.withinRisk?'✓ Суммарный расчётный риск в пределах '+usd(result.lossLimit)+'.':'✕ Стоп-риск '+usd(result.riskUsd)+' превышает лимит '+usd(result.lossLimit)+'.';
@@ -51,7 +59,7 @@ function calculate(){
   $('largest').textContent='Максимальная отдельная позиция: '+result.largestPct.toFixed(2)+'% всего портфеля.';
   $('copy').disabled=false;$('print').disabled=false;
  }catch(e){
-  result=null;
+  result=null;updatePositionMetrics(null);
   for(const id of ['budget','allocated','remaining'])$(id).textContent='—';
   $('budget-status').className='status warn';$('budget-status').textContent=e.message;
   $('risk-status').className='status warn';$('risk-status').textContent='Исправь исходные данные.';
