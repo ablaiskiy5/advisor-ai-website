@@ -401,7 +401,7 @@ $('download-conclusion').addEventListener('click',()=>{
 });
 function csvSafeCell(value){
  const raw=String(value??'');
- const safe=/^[\s\uFEFF\u200B-\u200D\u2060]*[=+\-@\t\r]/u.test(raw)?"'"+raw:raw;
+ const safe=/^[\s\u00AD\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]*[=+\-@\t\r]/u.test(raw)?"'"+raw:raw;
  return '"'+safe.replace(/"/g,'""')+'"';
 }
 $('download').addEventListener('click',()=>{
