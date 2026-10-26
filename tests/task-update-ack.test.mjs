@@ -34,6 +34,12 @@ function harness(response){
     single(){calls.push(['single']);return Promise.resolve(response)}
    };
    return chain;
+  },insert(values){
+   calls.push(['insert',values]);
+   return {select(cols){
+    calls.push(['select',cols]);
+    return {single(){calls.push(['single']);return Promise.resolve(response)}};
+   }};
   }};
  }};
  const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,
@@ -86,4 +92,36 @@ test('editor stays open when an update affects no row',async()=>{
  assert.equal(h.$('task-editor').classList.contains('hidden'),false);
  assert.match(h.$('edit-note').textContent,/Задача не обновлена/);
  assert.equal(h.ctx.busy,false);
+});
+
+test('new task closes editor only after server confirms inserted owner row',async()=>{
+ const h=harness({data:{id:'created-1',user_id:'owner-a'},error:null});
+ h.ctx.editingId=null;
+ await h.api.submitTaskEditor({preventDefault(){}});
+ assert.equal(h.loads,1);
+ assert.equal(h.$('task-editor').classList.contains('hidden'),true);
+ assert.match(h.messages.at(-1),/Задача сохранена/);
+ assert.equal(h.ctx.busy,false);
+ assert.deepEqual(h.calls.slice(1).map(c=>Array.from(c)),[
+  ['select','id,user_id'],['single']
+ ]);
+ assert.equal(h.calls[0][0],'insert');
+ assert.equal(h.calls[0][1].user_id,'owner-a');
+});
+
+test('new task stays in editor if insert acknowledgement is missing or belongs to another user',async()=>{
+ for(const response of [
+  {data:null,error:null},
+  {data:{id:'created-1',user_id:'other-user'},error:null},
+  {data:{id:'',user_id:'owner-a'},error:null},
+  {data:null,error:{message:'RLS rejected insert'}}
+ ]){
+  const h=harness(response);
+  h.ctx.editingId=null;
+  await h.api.submitTaskEditor({preventDefault(){}});
+  assert.equal(h.loads,0);
+  assert.equal(h.$('task-editor').classList.contains('hidden'),false);
+  assert.match(h.$('edit-note').textContent,/Не удалось сохранить:/);
+  assert.equal(h.ctx.busy,false);
+ }
 });
