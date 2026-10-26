@@ -193,7 +193,7 @@ async function manual(){openTaskEditor(null)}
 function csvSafe(value){
  let str=String(value??'').replace(/\u0000/g,'');
  // Treat zero-width format characters as potential formula-prefix padding in spreadsheet imports.
- if(/^[\s\u200B-\u200D\u2060]*[=+\-@\t\r]/.test(str))str="'"+str;
+ if(/^[\s\u00AD\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069]*[=+\-@\t\r]/u.test(str))str="'"+str;
  return '"'+str.replace(/"/g,'""')+'"';
 }
 function tasksCsv(records){
