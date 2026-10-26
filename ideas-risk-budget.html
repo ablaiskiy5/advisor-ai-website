@@ -24,7 +24,9 @@ function compute(portfolio,pool,limit,positions){
  });
  // Scale percentages first so finite portfolios cannot overflow at the intermediate multiplication.
  const budget=portfolio*(pool/100),lossLimit=portfolio*(limit/100);
- return {portfolio,pool,limit,details,allocated,budget,remaining:budget-allocated,withinBudget:allocated<=budget+0.000001,riskUsd,lossLimit,missing,withinRisk:missing===0&&riskUsd<=lossLimit+0.000001,largestPct:max/portfolio*100};
+ // Allow only machine-rounding differences at a positive limit; zero limits must reject every positive exposure.
+ const withinLimit=(used,cap)=>used<=cap||(cap>0&&used-cap<=8*Number.EPSILON*Math.max(used,cap));
+ return {portfolio,pool,limit,details,allocated,budget,remaining:budget-allocated,withinBudget:withinLimit(allocated,budget),riskUsd,lossLimit,missing,withinRisk:missing===0&&withinLimit(riskUsd,lossLimit),largestPct:max/portfolio*100};
 }
 function render(){
  const body=$('positions');body.textContent='';
