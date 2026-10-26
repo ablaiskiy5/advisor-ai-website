@@ -148,8 +148,7 @@ function renderCombinedStress(data){
 function projectAllocation(data,targetBondPercent){
  if(!Number.isFinite(targetBondPercent)||targetBondPercent<0||targetBondPercent>100)return {possible:false,reason:'Целевая доля должна быть от 0 до 100%.'};
  const targetBond=targetBondPercent/100,targetEquity=1-targetBond;
- const currentBond=data.bondValue/data.total,currentEquity=data.equityValue/data.total;
- if((targetBond>0&&currentBond===0)||(targetEquity>0&&currentEquity===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
+ if((targetBond>0&&data.bondValue===0)||(targetEquity>0&&data.equityValue===0))return {possible:false,reason:'Невозможно оценить инструментную структуру: целевой класс отсутствует в текущем портфеле. Добавь пример инструмента этого класса.'};
  const rows=data.rows.map(r=>{
   const classValue=r.bond?data.bondValue:data.equityValue;
   const classTarget=r.bond?targetBond:targetEquity;
