@@ -19,6 +19,20 @@ test('date-only validation is timezone-independent', () => {
   assert.equal(validDate('2026-13-01'), false);
 });
 
+test('overdue tasks are visible in cards and counters without marking completed tasks late', () => {
+  const dateLabelSource = html.split('\n').find(line => line.startsWith('function dateLabel('));
+  assert.ok(dateLabelSource, 'Production due-date label must exist');
+  const label = runInNewContext(dateLabelSource + '\ndateLabel', { Date, Intl, almatyToday: () => '2026-10-26' });
+  assert.match(label('2026-10-24', '2026-10-26', 'todo'), /^Просрочено · /);
+  assert.match(label('2026-10-26', '2026-10-26', 'doing'), /^Сегодня · /);
+  assert.doesNotMatch(label('2026-10-27', '2026-10-26', 'todo'), /Просрочено|Сегодня/);
+  assert.doesNotMatch(label('2026-10-24', '2026-10-26', 'done'), /Просрочено/);
+  assert.equal(label(null, '2026-10-26'), 'Без срока');
+  assert.match(html, /\['Просрочено',list\.filter\(x=>x\.due_date&&x\.due_date<today&&x\.status!=='done'\)\.length\]/);
+  assert.match(html, /meta\.className='overdue'/);
+  assert.match(html, /\.task p\.overdue\{color:#ffb4b4;font-weight:700\}/);
+});
+
 test('postpone and weekly filter cross month/year boundaries correctly', () => {
   assert.equal(addCalendarDays('2028-02-28', 1), '2028-02-29');
   assert.equal(addCalendarDays('2028-02-29', 1), '2028-03-01');
