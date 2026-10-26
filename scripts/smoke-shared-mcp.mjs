@@ -65,9 +65,17 @@ async function run(){
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:1000001,modified_duration:5,yield_change_bp:100},'Bond notional greater than portfolio');
  await reject('private_case_list',{},'Undeclared private tool');
  await reject('bond_current_yield',{face:1000,coupon_percent:'6',price:950},'String instead of numeric coupon');
+ // Each calculator must reject coercible numeric strings, including nested position values.
+ await reject('bond_current_yield',{face:'1000',coupon_percent:6,price:950},'String instead of numeric face');
+ await reject('bond_current_yield',{face:1000,coupon_percent:6,price:'950'},'String instead of numeric price');
+ await reject('portfolio_concentration',{holdings:[{ticker:'A',value:'100'}]},'String instead of numeric holding value');
+ await reject('trade_risk_budget',{portfolio_usd:'1000000',pool_percent:10,positions:[]},'String instead of numeric portfolio value');
+ await reject('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'A',amount_usd:'100'}]},'String instead of numeric allocation');
+ await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:'5',yield_change_bp:100},'String instead of numeric duration');
+ await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:'100'},'String instead of numeric yield shock');
  await reject('portfolio_concentration',{holdings:[]},'Empty holdings');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:-1,modified_duration:5,yield_change_bp:100},'Negative bond notional');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:10001},'Yield shock beyond limit');
- console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 10 rejection checks');
+ console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 17 rejection checks');
 }
 run().catch(error=>{console.error(error.message);process.exitCode=1});
