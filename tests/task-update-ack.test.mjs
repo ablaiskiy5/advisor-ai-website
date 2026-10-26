@@ -42,10 +42,10 @@ function harness(response){
    }};
   }};
  }};
- const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,
+ const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,taskListComplete:true,
   $,areas:{work:'Работа'},priorities:{normal:'Обычный'},
   validDate:date=>date===''||/^\d{4}-\d{2}-\d{2}$/.test(date),
-  feedback:message=>messages.push(message),render:()=>{renders++},load:async()=>{loads++}};
+  feedback:message=>messages.push(message),render:()=>{renders++},load:async()=>{loads++;if(!ctx.taskListComplete)messages.push('Ошибка загрузки: синтетический сбой')}};
  const api=runInNewContext(production+'\n({change,submitTaskEditor})',ctx);
  for(const [id,value] of Object.entries({
   'edit-title':'Synthetic task','edit-area':'work','edit-priority':'normal',
@@ -91,6 +91,17 @@ test('editor stays open when an update affects no row',async()=>{
  assert.equal(h.loads,0);
  assert.equal(h.$('task-editor').classList.contains('hidden'),false);
  assert.match(h.$('edit-note').textContent,/Задача не обновлена/);
+ assert.equal(h.ctx.busy,false);
+});
+
+test('confirmed write preserves refresh failure instead of showing false success',async()=>{
+ const h=harness({data:{id:'task-1'},error:null});
+ h.ctx.taskListComplete=false;
+ await h.api.submitTaskEditor({preventDefault(){}});
+ assert.equal(h.loads,1);
+ assert.equal(h.$('task-editor').classList.contains('hidden'),true);
+ assert.match(h.messages.at(-1),/Ошибка загрузки/);
+ assert.doesNotMatch(h.messages.join(' '),/Задача сохранена/);
  assert.equal(h.ctx.busy,false);
 });
 
