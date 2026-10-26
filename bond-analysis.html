@@ -54,9 +54,10 @@ function calculateBond(o){
  let weighted=0,convex=0;const r=ytm/frequency,c=face*coupon/frequency;
  for(let i=1;i<=periods;i++){
   const cf=c+(i===periods?face:0),pv=cf/Math.pow(1+r,i);
-  weighted+=pv*i/frequency;convex+=cf*i*(i+1)/Math.pow(1+r,i+2);
+  weighted+=pv*i/frequency;convex+=(pv/price)*(i*(i+1))/(frequency*frequency*(1+r)*(1+r));
  }
- const mac=weighted/price,modified=mac/(1+r),dv01=price*modified*0.0001,convexity=convex/(price*frequency*frequency);
+ const mac=weighted/price,modified=mac/(1+r),dv01=price*(modified*0.0001),convexity=convex;
+ if(![current,ytm,mac,modified,dv01,convexity].every(Number.isFinite))throw Error('Числовой диапазон расчёта превышен. Проверь номинал и цену.');
  return {current,ytm,mac,modified,dv01,convexity,periods,face,price,coupon,frequency};
 }
 function invalidateBondResult(){
