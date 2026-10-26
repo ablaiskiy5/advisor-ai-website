@@ -94,6 +94,24 @@ test('more than 30 positions are rejected', () => {
   assert.throws(() => compute(1_000_000, 10, 0.5, Array.from({ length: 31 }, (_, i) => p(`A${i}`, 1, 5))), /Максимум 30/);
 });
 
+test('large finite portfolios never create infinite allocation or stop-loss limits', () => {
+  const r = compute(1e308, 10, 10, [p('A', 1_000, 5)]);
+  assert.ok(Number.isFinite(r.budget), 'Allocation budget must remain finite');
+  assert.ok(Number.isFinite(r.lossLimit), 'Stop-loss budget must remain finite');
+  assert.ok(Math.abs(r.budget / 1e307 - 1) < 1e-12);
+  assert.ok(Math.abs(r.lossLimit / 1e307 - 1) < 1e-12);
+  assert.equal(r.withinBudget, true);
+  assert.equal(r.withinRisk, true);
+
+  const max = compute(Number.MAX_VALUE, 100, 100, []);
+  assert.equal(max.budget, Number.MAX_VALUE);
+  assert.equal(max.lossLimit, Number.MAX_VALUE);
+
+  const tiny = compute(Number.MIN_VALUE, 100, 100, []);
+  assert.equal(tiny.budget, Number.MIN_VALUE);
+  assert.equal(tiny.lossLimit, Number.MIN_VALUE);
+});
+
 test('blank required numbers fail closed and clear stale summaries and exports', () => {
   const ids=['positions','portfolio','pool','risk','budget','allocated','remaining','budget-status','risk-status','portfolio-risk','largest','copy','print'];
   const defaults={portfolio:'1000000',pool:'10',risk:'0.5'};
