@@ -33,7 +33,7 @@ function harness(){
  }};
  const app=runInNewContext(offline+`
   render=()=>{};
-  load=async()=>{__loads.push(user?.id)};
+  load=async()=>{__loads.push(user?.id);taskListComplete=true};
   feedback=message=>__messages.push(message);
   ({submitTaskEditor,handleTaskAuthChange,
     setUser:id=>{db=__db;user=id?{id}:null},
