@@ -21,6 +21,9 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
     let result;
     if (request.method === 'initialize') {
       result = { protocolVersion: responseOverride.protocolVersion ?? '2025-06-18', capabilities: responseOverride.missingToolsCapability ? {} : { tools: {} }, serverInfo: { name: 'advisor-ai-shared-tools' } };
+    } else if (request.method === 'server/discover') {
+      result = { resultType: responseOverride.invalidDiscovery ? 'partial' : 'complete',
+        ...(responseOverride.missingDiscoveryScope ? {} : { cacheScope: 'public' }) };
     } else if (request.method === 'tools/list') {
       result = { tools: toolNames.map((name, i) => ({
         name, description: 'Public deterministic calculator',
@@ -60,76 +63,92 @@ async function runBrowserCheck(toolNames, invalidSchema = false, responseOverrid
   return {
     overall: elements.get('overall').textContent,
     list: elements.get('step-list').textContent,
+    discovery: elements.get('step-discover').textContent,
     details: elements.get('details').textContent,
   };
 }
 
 test('browser MCP diagnostic passes for exactly four described public tools', async () => {
   const result = await runBrowserCheck(allowlist);
-  assert.match(result.overall, /Все 7 проверок пройдены/);
+  assert.match(result.overall, /Все 8 проверок пройдены/);
   assert.match(result.list, /Ровно 4 публичных инструмента/);
+  assert.match(result.discovery, /Discovery: complete \/ public/);
 });
 
 test('browser MCP diagnostic fails if a private or unexpected tool appears', async () => {
   const result = await runBrowserCheck([...allowlist, 'private_case_list']);
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.list, /Ошибка/);
   assert.match(result.details, /требуется ровно 4/);
 });
 
 test('browser MCP diagnostic fails for duplicate or substituted tool names', async () => {
   const result = await runBrowserCheck([...allowlist.slice(0, 3), allowlist[0]]);
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.list, /Ошибка/);
 });
 
 test('browser MCP diagnostic fails for missing input schema', async () => {
   const result = await runBrowserCheck(allowlist, true);
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.details, /схема инструмента/);
 });
 
 
 test('browser MCP diagnostic rejects a response with a different request ID', async () => {
   const result = await runBrowserCheck(allowlist, false, { id: 999 });
-  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.overall, /Пройдено 0 из 8/);
   assert.match(result.details, /ID запроса/);
 });
 
 test('browser MCP diagnostic rejects an invalid JSON-RPC version', async () => {
   const result = await runBrowserCheck(allowlist, false, { jsonrpc: '1.0' });
-  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.overall, /Пройдено 0 из 8/);
   assert.match(result.details, /JSON-RPC/);
 });
 
 test('browser MCP diagnostic rejects responses missing the result field', async () => {
   const result = await runBrowserCheck(allowlist, false, { missingResult: true });
-  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.overall, /Пройдено 0 из 8/);
   assert.match(result.details, /JSON-RPC/);
 });
 
 
 test('browser MCP diagnostic rejects success envelopes with an error member, even null', async () => {
   const result = await runBrowserCheck(allowlist, false, { errorField: true });
-  assert.match(result.overall, /Пройдено 0 из 7/);
+  assert.match(result.overall, /Пройдено 0 из 8/);
   assert.match(result.details, /JSON-RPC/);
 });
 
 test('browser MCP diagnostic rejects invalid-input errors carrying structured data', async () => {
   const result = await runBrowserCheck(allowlist, false, { invalidStructuredContent: true });
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.details, /Нулевая цена не отклонена/);
 });
 
 
 test('browser MCP diagnostic rejects incompatible protocol versions', async () => {
   const result = await runBrowserCheck(allowlist, false, { protocolVersion: '2024-11-05' });
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.details, /Несовместимый MCP протокол/);
 });
 
 test('browser MCP diagnostic rejects missing tools capability at initialization', async () => {
   const result = await runBrowserCheck(allowlist, false, { missingToolsCapability: true });
-  assert.match(result.overall, /Пройдено 6 из 7/);
+  assert.match(result.overall, /Пройдено 7 из 8/);
   assert.match(result.details, /возможности сервера/);
+});
+
+test('browser MCP diagnostic fails closed when discovery is incomplete', async () => {
+  const result = await runBrowserCheck(allowlist, false, { invalidDiscovery: true });
+  assert.match(result.overall, /Пройдено 7 из 8/);
+  assert.match(result.discovery, /Ошибка/);
+  assert.match(result.details, /MCP discovery/);
+});
+
+test('browser MCP diagnostic fails closed when discovery cache scope is absent', async () => {
+  const result = await runBrowserCheck(allowlist, false, { missingDiscoveryScope: true });
+  assert.match(result.overall, /Пройдено 7 из 8/);
+  assert.match(result.discovery, /Ошибка/);
+  assert.match(result.details, /MCP discovery/);
 });
