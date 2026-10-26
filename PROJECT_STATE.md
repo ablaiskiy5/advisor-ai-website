@@ -1,3 +1,9 @@
+## Bond analytics: finite DV01 and convexity — 2026-10-26
+
+- Fixed intermediate overflow in the browser bond calculator: DV01 now scales modified duration before multiplying by price, and convexity accumulates price-normalized discounted cash flows. Previously large but finite synthetic bond inputs could yield `Infinity` even when the mathematically correct results were finite.
+- Added regression cases for normal price curvature, very large finite par values, and premium bonds with analytic zero-coupon convexity. Non-finite derived results now fail closed instead of being shown or copied.
+- Scope: public bond-analysis frontend, synthetic tests and documentation. No market feeds, client data, private plugin, Supabase schema/RLS/functions, credentials, tariffs, trading or messaging changed. Authenticated two-account browser E2E remains outstanding.
+
 ## Risk-budget percentage limits remain finite — 2026-10-26
 
 - Corrected the browser risk-budget calculator to multiply portfolio value by the fractional percentage, rather than multiplying by 10–100 before division. The old intermediate step could overflow to `Infinity` even when the mathematically correct allocation and stop-loss limits were finite.
