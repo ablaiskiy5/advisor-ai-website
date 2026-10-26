@@ -183,9 +183,15 @@ async function saveDrafts(){
  if(!selected.length){feedback('Нет выбранных задач');return}
  busy=true;$('save-drafts').disabled=true;
  try{
-  const {error}=await db.from('advisor_tasks').insert(selected);
+  const {data,error}=await db.from('advisor_tasks').insert(selected).select('id,user_id');
   if(!current())return;
   if(error)throw Error(error.message);
+  // PostgREST can return an empty or partial acknowledgement even without an error.
+  // Never dismiss the review or claim that every proposal was saved in that case.
+  const confirmed=Array.isArray(data)&&data.length===selected.length
+   &&data.every(row=>typeof row?.id==='string'&&row.id.length>0&&row.user_id===ownerId)
+   &&new Set(data.map(row=>row.id)).size===selected.length;
+  if(!confirmed)throw Error('Сервер не подтвердил все созданные задачи. Обнови список перед повтором, чтобы избежать дублей.');
   $('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load();
  }catch(e){if(current())feedback('Не удалось сохранить: '+e.message)}
  finally{if(current()){busy=false;$('save-drafts').disabled=false}}

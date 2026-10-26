@@ -28,7 +28,13 @@ function harness() {
   const inserts = [];
   const mockDB = { from(table) {
     assert.equal(table, 'advisor_tasks');
-    return { async insert(rows) { inserts.push(rows); return { error: null }; } };
+    return { insert(rows) {
+      inserts.push(rows);
+      return { select(columns) {
+        assert.equal(columns, 'id,user_id');
+        return Promise.resolve({ data: rows.map((row,i) => ({ id: 'synthetic-' + i, user_id: row.user_id })), error: null });
+      } };
+    } };
   } };
   const api = runInNewContext(
     offlineScript + '\ndb=mockDB;user={id:"synthetic-owner"};load=async()=>{};({review,saveDrafts})',

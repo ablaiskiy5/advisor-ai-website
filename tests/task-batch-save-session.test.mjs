@@ -36,7 +36,10 @@ function harness(){
   assert.equal(table,'advisor_tasks');
   return {insert(rows){
    writes.push(rows);
-   return new Promise(resolve=>{settle=resolve});
+   return {select(columns){
+    assert.equal(columns,'id,user_id');
+    return new Promise(resolve=>{settle=resolve});
+   }};
   }};
  }};
  const app=runInNewContext(offline+`
@@ -60,11 +63,48 @@ test('normal AI proposal save writes only the authenticated owner and refreshes'
  assert.equal(h.writes.length,1);
  assert.equal(h.writes[0].length,1);
  assert.equal(h.writes[0][0].user_id,'owner-a');
- h.resolve({error:null});await pending;
+ h.resolve({data:[{id:'synthetic-task-1',user_id:'owner-a'}],error:null});await pending;
  assert.deepEqual(h.loads,['owner-a']);
  assert.equal(h.document.getElementById('brain').value,'');
  assert.equal(h.document.getElementById('review').classList.contains('hidden'),true);
  assert.match(h.messages.at(-1),/Сохранено: 1/);
+});
+
+test('batch save keeps review open when the server cannot confirm every owner row',async()=>{
+ for(const response of [
+  {data:null,error:null},
+  {data:[],error:null},
+  {data:[{id:'synthetic-task-1',user_id:'owner-b'}],error:null},
+  {data:[{id:'',user_id:'owner-a'}],error:null},
+  {data:null,error:{message:'RLS rejected insert'}}
+ ]){
+  const h=harness(),pending=h.app.saveDrafts();
+  h.resolve(response);await pending;
+  assert.deepEqual(h.loads,[]);
+  assert.equal(h.document.getElementById('review').classList.contains('hidden'),false);
+  assert.equal(h.document.getElementById('brain').value,'Old account note');
+  assert.equal(h.document.getElementById('save-drafts').disabled,false);
+  assert.ok(!h.messages.some(m=>m.includes('Сохранено: 1')));
+  assert.match(h.messages.at(-1),/Не удалось сохранить:/);
+ }
+});
+
+test('batch save rejects duplicate or partial acknowledgements',async()=>{
+ for(const data of [
+  [{id:'one',user_id:'owner-a'}],
+  [{id:'one',user_id:'owner-a'},{id:'one',user_id:'owner-a'}],
+  [{id:'one',user_id:'owner-a'},{id:'two',user_id:'owner-b'}]
+ ]){
+  const h=harness();
+  const row=h.document.getElementById('drafts').children[0];
+  h.document.getElementById('drafts').children=[row,{...row}];
+  const pending=h.app.saveDrafts();
+  assert.equal(h.writes[0].length,2);
+  h.resolve({data,error:null});await pending;
+  assert.deepEqual(h.loads,[]);
+  assert.equal(h.document.getElementById('review').classList.contains('hidden'),false);
+  assert.match(h.messages.at(-1),/Сервер не подтвердил все созданные задачи/);
+ }
 });
 
 test('late batch-save success cannot clear another session draft or review',async()=>{
@@ -74,7 +114,7 @@ test('late batch-save success cannot clear another session draft or review',asyn
   h.app.setUser(nextId);
   h.document.getElementById('brain').value='New session note';
   h.document.getElementById('review').classList.remove('hidden');
-  h.resolve({error:null});await pending;
+  h.resolve({data:[{id:'synthetic-task-1',user_id:'owner-a'}],error:null});await pending;
   assert.equal(h.document.getElementById('brain').value,'New session note');
   assert.equal(h.document.getElementById('review').classList.contains('hidden'),false);
   assert.deepEqual(h.loads,[]);
