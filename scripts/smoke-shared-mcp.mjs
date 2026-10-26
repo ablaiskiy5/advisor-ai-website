@@ -13,6 +13,7 @@ async function call(method,params={}){
 }
 function assert(cond,message){if(!cond)throw Error('FAIL: '+message)}
 function equalNumber(actual,expected,label,epsilon=1e-8){assert(Number.isFinite(actual)&&Number.isFinite(expected)&&Math.abs(actual-expected)<=epsilon,label+': expected '+expected+', got '+actual)}
+function equalBoolean(actual,expected,label){assert(typeof actual==='boolean'&&actual===expected,label+': expected '+expected+', got '+String(actual))}
 async function run(){
  const info=await call('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'advisor-ai-smoke',version:'1.0'}});
  requireMcpInitialize(info);
@@ -48,9 +49,11 @@ async function run(){
  equalNumber(scaled.top1_percent,concentration.top1_percent,'Largest holding weight is invariant to portfolio size');
  equalNumber(concentration.effective_positions,1/concentration.hhi,'Effective positions is inverse HHI');
  const within=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'NVDA',amount_usd:25000},{name:'AMZN',amount_usd:25000},{name:'QQQ',amount_usd:30000},{name:'XBI',amount_usd:20000}]});
- assert(within.within_pool&&within.remaining_usd===0,'Correct pool allocation');
+ equalBoolean(within.within_pool,true,'Within-pool flag');
+ equalNumber(within.remaining_usd,0,'Correct pool allocation');
  const over=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'NVDA',amount_usd:100000},{name:'AMZN',amount_usd:100000},{name:'QQQ',amount_usd:100000},{name:'XBI',amount_usd:100000}]});
- assert(!over.within_pool&&over.remaining_usd===-300000,'Excessive pool allocation must fail');
+ equalBoolean(over.within_pool,false,'Exceeded-pool flag');
+ equalNumber(over.remaining_usd,-300000,'Excessive pool allocation must fail');
  const shock=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:100});
  equalNumber(shock.portfolio_change_percent,-1.5,'Duration stress');
  const fallingYields=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:-100});
