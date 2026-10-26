@@ -28,7 +28,7 @@
 const $=id=>document.getElementById(id);
 const fmt=(n,d=2)=>n.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct=n=>fmt(n*100)+'%';
-let resultText='';
+let resultText='',resultVersion=0;
 function bondPrice(face,coupon,periods,frequency,yieldAnnual){
  const r=yieldAnnual/frequency,c=face*coupon/frequency;
  if(r<=-1)return Infinity;
@@ -60,6 +60,7 @@ function calculateBond(o){
  return {current,ytm,mac,modified,dv01,convexity,periods,face,price,coupon,frequency};
 }
 function invalidateBondResult(){
+ resultVersion++;
  if(!resultText)return;
  resultText='';
  $('copy').disabled=true;
@@ -76,6 +77,7 @@ function requiredBondNumber(id){
  return value===''?NaN:Number(value);
 }
 function run(){
+ resultVersion++;
  $('copy').textContent='Копировать итоги';
  $('error').textContent='';
  try{
@@ -104,6 +106,15 @@ $('bond-form').addEventListener('input',invalidateBondResult);
 $('bond-form').addEventListener('change',invalidateBondResult);
 $('bond-form').addEventListener('submit',e=>{e.preventDefault();run()});
 $('example').addEventListener('click',()=>{$('face').value=1000;$('price').value=950;$('coupon').value=6;$('years').value=3;$('frequency').value=2;run()});
-$('copy').addEventListener('click',async()=>{if(!resultText)return;try{await navigator.clipboard.writeText(resultText);$('copy').textContent='Скопировано ✓'}catch{$('error').textContent='Браузер заблокировал копирование.'}});
+$('copy').addEventListener('click',async()=>{
+ if(!resultText)return;
+ const snapshot=resultText,version=resultVersion;
+ try{
+  await navigator.clipboard.writeText(snapshot);
+  if(version===resultVersion&&snapshot===resultText)$('copy').textContent='Скопировано ✓';
+ }catch{
+  if(version===resultVersion&&snapshot===resultText)$('error').textContent='Браузер заблокировал копирование.';
+ }
+});
 run();
 </script></body></html>
