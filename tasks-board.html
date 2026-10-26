@@ -17,7 +17,7 @@
 'use strict';
 const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
 const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
-let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0;
+let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0,pendingTaskChanges=new Set();
 const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
 function feedback(text){$('info').textContent=text}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -42,7 +42,7 @@ function render(){
    const meta=document.createElement('p');if(row.due_date&&row.due_date<today&&row.status!=='done')meta.className='overdue';meta.textContent=areas[row.area]+' · '+priorities[row.priority]+' · '+dateLabel(row.due_date,today,row.status);card.append(meta);
    if(row.description){const desc=document.createElement('p');desc.textContent=row.description;card.append(desc)}
    const actions=document.createElement('div');actions.className='actions';
-   const button=(text,fn)=>{const b=document.createElement('button');b.className='btn';b.textContent=text;b.addEventListener('click',fn);actions.append(b)};
+   const button=(text,fn)=>{const b=document.createElement('button');b.className='btn';b.textContent=text;b.disabled=pendingTaskChanges.has(row.id);b.addEventListener('click',fn);actions.append(b)};
    if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
    if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
    if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
@@ -59,11 +59,11 @@ function renderFocus(list,today){
   const pr={high:0,normal:1,low:2};return dueA-dueB||pr[a.priority]-pr[b.priority]||(a.due_date||'9999').localeCompare(b.due_date||'9999');
  }).slice(0,3);
  if(!rows.length){root.textContent='Все дела закрыты. Добавь следующую задачу.';return}
- for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');if(task.due_date&&task.due_date<today)meta.className='overdue';meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date,today,task.status);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
+ for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');if(task.due_date&&task.due_date<today)meta.className='overdue';meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date,today,task.status);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.disabled=pendingTaskChanges.has(task.id);btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
  try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
- loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;busy=false;
+ loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;busy=false;pendingTaskChanges.clear();
   $('organize').disabled=false;$('save-drafts').disabled=false;
  $('brain').value='';$('drafts').textContent='';$('edit-title').value='';$('edit-description').value='';
  $('review').classList.add('hidden');$('task-editor').classList.add('hidden');
@@ -103,11 +103,21 @@ async function load(){
 async function change(item,fields){
  const ownerId=user?.id,sessionEpoch=authRevision;
  if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
- const {data,error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',ownerId).select('id').single();
- // A late quick-action response must not mutate or report on a different auth session.
- if(user?.id!==ownerId||authRevision!==sessionEpoch)return;
- if(error||data?.id!==item.id){feedback('Ошибка: '+(error?.message||'Задача не обновлена. Обнови список и повтори.'));return}
- Object.assign(item,fields);render();
+ // One in-flight update per task: overlapping status/date clicks can otherwise race.
+ if(pendingTaskChanges.has(item.id))return;
+ pendingTaskChanges.add(item.id);render();
+ const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
+ try{
+  const {data,error}=await db.from('advisor_tasks').update(fields).eq('id',item.id).eq('user_id',ownerId).select('id').single();
+  if(!current())return;
+  if(error||data?.id!==item.id){feedback('Ошибка: '+(error?.message||'Задача не обновлена. Обнови список и повтори.'));return}
+  Object.assign(item,fields);
+ }catch(err){
+  if(current())feedback('Ошибка обновления: '+(err?.message||'Проверь соединение и повтори.'));
+ }finally{
+  // Sign-out clears pending state; never update a new user's UI from an old response.
+  if(current()){pendingTaskChanges.delete(item.id);render()}
+ }
 }
 function openTaskEditor(item){
  editingId=item?.id||null;$('edit-heading').textContent=item?'Редактировать задачу':'Добавить задачу';
