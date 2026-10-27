@@ -112,6 +112,8 @@ const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 let sessionEpoch=0;
+// Fail closed on AI retry if attachment metadata cannot be verified.
+let attachmentHistoryVerified=false;
 let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
@@ -286,7 +288,7 @@ function resetChatSession(){
  if($('voice-status'))$('voice-status').textContent='';
  sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
  incompleteUploadFallback.clear();
- exhaustedRetryMessages.clear();latestUserMessageId=null;
+ exhaustedRetryMessages.clear();latestUserMessageId=null;attachmentHistoryVerified=false;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
  $('file-list').textContent='';$('file-status').textContent='';$('result-status').textContent='';
  $('context').textContent='';$('core-status').textContent='Нужен вход для проверки серверной методики.';$('print-report').textContent='';$('quick-actions').textContent='';
@@ -295,7 +297,7 @@ function resetChatSession(){
  setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
  error('');waiting(false);
 }
-async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+async function history(){if(!db||!caseData||!user)return;attachmentHistoryVerified=false;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
  latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
@@ -312,7 +314,8 @@ async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoc
   attachmentErr=files.error;
  }
  if(!isCurrentChat(epoch,ownerId))return;
- if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
+ attachmentHistoryVerified=!attachmentErr;
+ if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message+'. AI-повтор отключён до успешного обновления истории.');
  const incompleteId=incompleteUploadFor(ownerId,caseId);
  if(incompleteId&&latestUserMessageId&&incompleteId!==latestUserMessageId)clearIncompleteUpload(ownerId,caseId,incompleteId);
  const incompleteLatest=Boolean(incompleteId&&incompleteId===latestUserMessageId);
@@ -324,11 +327,16 @@ async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoc
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest);
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
  if(incompleteLatest&&!attachmentErr)error('У последнего сообщения не все вложения загружены. Прикрепи недостающие файлы новым сообщением перед AI-анализом. Повтор ответа не загружает файлы.');
 }
 async function requestAI(){
  if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;
+ if(!attachmentHistoryVerified){
+  $('retry').classList.add('hidden');
+  error('AI-анализ временно недоступен: не удалось проверить историю вложений. Обнови историю и повтори попытку после успешной загрузки файлов.');
+  return;
+ }
  if(latestUserMessageId&&incompleteUploadFor(ownerId,caseId)===latestUserMessageId){
   $('retry').classList.add('hidden');
   error('Нельзя повторить AI-анализ: у последнего сообщения отсутствуют вложения. Сначала отправь недостающие файлы новым сообщением.');
