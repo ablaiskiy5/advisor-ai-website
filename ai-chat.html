@@ -115,17 +115,26 @@ let sessionEpoch=0;
 let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
-// Keep only a message UUID in per-tab storage; never persist file names, text or content.
-// The marker is scoped to both the authenticated owner and case and survives reload.
+// Store only the incomplete message UUID, never file names, text or content.
+// sessionStorage survives reload; the in-memory fallback protects the current page
+// when browser privacy settings disable sessionStorage (but cannot survive reload).
+const incompleteUploadFallback=new Map();
 function incompleteUploadKey(ownerId,sourceCaseId){return 'advisor_ai_incomplete_upload:'+ownerId+':'+sourceCaseId}
 function markIncompleteUpload(ownerId,sourceCaseId,messageId){
- try{sessionStorage.setItem(incompleteUploadKey(ownerId,sourceCaseId),messageId)}catch{}
+ const key=incompleteUploadKey(ownerId,sourceCaseId);
+ incompleteUploadFallback.set(key,messageId);
+ try{sessionStorage.setItem(key,messageId)}catch{}
 }
 function incompleteUploadFor(ownerId,sourceCaseId){
- try{return sessionStorage.getItem(incompleteUploadKey(ownerId,sourceCaseId))||null}catch{return null}
+ const key=incompleteUploadKey(ownerId,sourceCaseId);
+ try{return incompleteUploadFallback.get(key)||sessionStorage.getItem(key)||null}
+ catch{return incompleteUploadFallback.get(key)||null}
 }
 function clearIncompleteUpload(ownerId,sourceCaseId,messageId){
- try{if(incompleteUploadFor(ownerId,sourceCaseId)===messageId)sessionStorage.removeItem(incompleteUploadKey(ownerId,sourceCaseId))}catch{}
+ const key=incompleteUploadKey(ownerId,sourceCaseId);
+ if(incompleteUploadFor(ownerId,sourceCaseId)!==messageId)return;
+ incompleteUploadFallback.delete(key);
+ try{sessionStorage.removeItem(key)}catch{}
 }
 const error=s=>$('error').textContent=s||'';
 function safeExternalChatLink(value){
@@ -276,6 +285,7 @@ function resetChatSession(){
  if(typeof voiceRecognition!=='undefined'&&voiceRecognition)stopDictation(true);
  if($('voice-status'))$('voice-status').textContent='';
  sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
+ incompleteUploadFallback.clear();
  exhaustedRetryMessages.clear();latestUserMessageId=null;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
  $('file-list').textContent='';$('file-status').textContent='';$('result-status').textContent='';

@@ -13,7 +13,7 @@ test('sign-out clears chat content, drafts, export source and owner state',()=>{
  const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
-  exhaustedRetryMessages:new Set(),latestUserMessageId:null,
+  incompleteUploadFallback:new Map([['synthetic-marker','synthetic-message']]),exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  runInNewContext(helpers,ctx);
  assert.equal(ctx.isCurrentChat(0,'owner-A'),true);
@@ -24,6 +24,7 @@ test('sign-out clears chat content, drafts, export source and owner state',()=>{
  assert.equal(ctx.lastAnswer,'');
  assert.equal(ctx.pendingFiles.length,0);
  assert.equal(ctx.working,false);
+ assert.equal(ctx.incompleteUploadFallback.size,0,'Sign-out clears the in-memory incomplete-upload marker');
  assert.equal(ctx.isCurrentChat(0,'owner-A'),false);
  for(const id of ['messages','file-list','file-status','result-status','context','print-report','quick-actions'])assert.equal(nodes[id].textContent,'',id);
  assert.equal(nodes['core-status'].textContent,'Нужен вход для проверки серверной методики.');
@@ -49,7 +50,7 @@ test('delayed history cannot restore old-owner messages after sign-out',async()=
  const delayed=new Promise(resolve=>{resolveQuery=resolve});
  const db={from(){return {select(){return this},eq(){return this},order(){return this},limit(){return delayed}}}};
  const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'previous answer',pendingFiles:[],working:false,db,caseId:'case-A',
-  exhaustedRetryMessages:new Set(),latestUserMessageId:null,
+  incompleteUploadFallback:new Map([['synthetic-marker','synthetic-message']]),exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  const historyEnd=html.indexOf('async function requestAI()',end);
  runInNewContext(helpers+'\n'+html.slice(end,historyEnd),ctx);
