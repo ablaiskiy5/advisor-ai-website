@@ -115,6 +115,18 @@ let sessionEpoch=0;
 let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
+// Keep only a message UUID in per-tab storage; never persist file names, text or content.
+// The marker is scoped to both the authenticated owner and case and survives reload.
+function incompleteUploadKey(ownerId,sourceCaseId){return 'advisor_ai_incomplete_upload:'+ownerId+':'+sourceCaseId}
+function markIncompleteUpload(ownerId,sourceCaseId,messageId){
+ try{sessionStorage.setItem(incompleteUploadKey(ownerId,sourceCaseId),messageId)}catch{}
+}
+function incompleteUploadFor(ownerId,sourceCaseId){
+ try{return sessionStorage.getItem(incompleteUploadKey(ownerId,sourceCaseId))||null}catch{return null}
+}
+function clearIncompleteUpload(ownerId,sourceCaseId,messageId){
+ try{if(incompleteUploadFor(ownerId,sourceCaseId)===messageId)sessionStorage.removeItem(incompleteUploadKey(ownerId,sourceCaseId))}catch{}
+}
 const error=s=>$('error').textContent=s||'';
 function safeExternalChatLink(value){
  if(typeof value!=='string'||!value.trim())return 'https://chatgpt.com/';
@@ -291,6 +303,9 @@ async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoc
  }
  if(!isCurrentChat(epoch,ownerId))return;
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message);
+ const incompleteId=incompleteUploadFor(ownerId,caseId);
+ if(incompleteId&&latestUserMessageId&&incompleteId!==latestUserMessageId)clearIncompleteUpload(ownerId,caseId,incompleteId);
+ const incompleteLatest=Boolean(incompleteId&&incompleteId===latestUserMessageId);
  const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
  for(const m of (data||[]).reverse()){
   const node=bubble(m.role,m.content);
@@ -299,9 +314,16 @@ async function history(){if(!db||!caseData||!user)return;const epoch=sessionEpoc
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId))}
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest);
+ if(incompleteLatest&&!attachmentErr)error('У последнего сообщения не все вложения загружены. Прикрепи недостающие файлы новым сообщением перед AI-анализом. Повтор ответа не загружает файлы.');
+}
 async function requestAI(){
  if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;
+ if(latestUserMessageId&&incompleteUploadFor(ownerId,caseId)===latestUserMessageId){
+  $('retry').classList.add('hidden');
+  error('Нельзя повторить AI-анализ: у последнего сообщения отсутствуют вложения. Сначала отправь недостающие файлы новым сообщением.');
+  return;
+ }
  waiting(true);error('');$('file-status').textContent='Advisor AI анализирует вопрос и доступные вложения кейса…';
  try{
   const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});
@@ -368,6 +390,7 @@ async function send(){
   if(!isCurrentChat(epoch,ownerId))return;
   // The user message is saved: do not requeue attachments already linked to it.
   if(messageId&&linkedCount<files.length){
+   markIncompleteUpload(ownerId,caseId,messageId);
    pendingFiles=files.slice(linkedCount);
    $('question').value='';
    $('retry').classList.add('hidden');
