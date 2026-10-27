@@ -1,15 +1,22 @@
 # Advisor AI — unified architecture and status
 
-Last verified: 2026-10-24 (plugin metadata and Supabase Edge Function listing rechecked; no authenticated browser E2E). For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
+Last verified: 2026-10-27 (read-only plugin skill, deployed Edge Function source, database RLS metadata and security advisors; no authenticated browser E2E). For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
 
 ## Production components
 
 - **ChatGPT Plugin**: existing private `Advisor AI | Investment Intelligence`, release **2.2.0**. The plugin package contains its comprehensive 2.1 skill, retained academy/source files, and a remote `.mcp.json` connection to the shared mathematical tools.
 - **Workspace frontend**: GitHub Pages `workspace.html`, `ai-chat.html`, `tasks-board.html`, `bond-analysis.html`, and `portfolio-report.html`.
-- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v24**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
-- **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v4**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
-- **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` with capped AI proposals.
+- **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v27**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
+- **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v7**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
+- **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` **v3** with capped AI proposals.
 - **Files**: private `advisor-chat-attachments` bucket with owner restrictions; screenshot/PDF analysis via `advisor-ai-chat`.
+
+## Verified analytical-core snapshot — 2026-10-27
+
+- Read-only inspection confirmed the existing private plugin release **2.2.0** and the deployed `advisor-ai-chat` **v27**. The plugin's `skills/instructions/SKILL.md` and the backend's embedded `pluginSkillInstructions` were **exactly equal as strings (9,364 characters)** at inspection time. This establishes an identical instruction baseline, **not** direct execution of the private plugin by Workspace, nor automatic future synchronization.
+- The plugin's `.mcp.json` and `mcp.json` both point to the same public calculation endpoint as Workspace. Supabase lists `advisor-ai-shared-tools` **v7 ACTIVE** and `advisor-ai-organize-tasks` **v3 ACTIVE**. The shared endpoint remains limited to four public stateless calculators; no user-scoped private case access is implied by its URL.
+- Supabase reports **9 public tables with RLS enabled**. Five user-facing tables have owner-scoped policies; four backend-only tables (`advisor_ai_access`, `advisor_ai_allowed_emails`, `advisor_ai_request_reservations`, `advisor_task_ai_usage`) have RLS enabled but no browser policies. This is an observed configuration, **not** a substitute for two independently authenticated accounts testing cross-user isolation.
+- Security advisor still warns that **leaked-password protection is disabled**. No auth setting, grants, RLS policies, client data, quotas, paid settings or server functions were changed during this audit.
 
 ## Shared means what exactly?
 
@@ -55,6 +62,6 @@ Last verified: 2026-10-24 (plugin metadata and Supabase Edge Function listing re
 - Run syntax and math checks before release; use PRs and cite actual merge commits.
 - Verify live integrations with authenticated requests before describing them as working.
 
-## Live security advisory (2026-10-24)
+## Live security advisory (rechecked 2026-10-27)
 
-Supabase security advisor reports leaked-password protection disabled (WARN), plus two RLS-enabled backend tables with no policies (INFO). Keep backend-only tables inaccessible from public users; inspect actual grants and privileged paths before changing policies. See [PROJECT_STATE.md](../PROJECT_STATE.md) for next steps and remediation links.
+Supabase security advisor reports leaked-password protection disabled (WARN), plus four RLS-enabled backend-only tables with no browser policies (INFO). Keep backend-only tables inaccessible from public users; inspect actual grants and privileged paths before changing policies. See [PROJECT_STATE.md](../PROJECT_STATE.md) for next steps and remediation links.

@@ -1,3 +1,9 @@
+## Verified core synchronization — 2026-10-27
+
+- Compared the owned private plugin release **2.2.0** `skills/instructions/SKILL.md` to the deployed `advisor-ai-chat` **v27** embedded `pluginSkillInstructions`: exact string match (9,364 characters). This is shared instructional content, **not** direct access to the private plugin or to client cases.
+- Read-only Supabase inspection: `advisor-ai-shared-tools` **v7 ACTIVE**, `advisor-ai-organize-tasks` **v3 ACTIVE**, project `ACTIVE_HEALTHY`, RLS enabled on all nine public tables. Four backend-only tables intentionally have no browser policies. Auth leaked-password protection remains disabled (WARN).
+- Refreshed [architecture snapshot](docs/ADVISOR_AI_CORE.md) and added a documentation regression check. No plugin or backend deployment, client data, secrets, grants, RLS, quotas, paid settings, trades or messages were changed. Authenticated two-account E2E and direct ChatGPT plugin MCP invocation remain unverified.
+
 ## Bond analytics: finite DV01 and convexity — 2026-10-26
 
 - Fixed intermediate overflow in the browser bond calculator: DV01 now scales modified duration before multiplying by price, and convexity accumulates price-normalized discounted cash flows. Previously large but finite synthetic bond inputs could yield `Infinity` even when the mathematically correct results were finite.
