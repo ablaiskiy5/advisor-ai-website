@@ -49,3 +49,25 @@ SELECT 'synthetic_b' AS synthetic_identity,
        cases, messages, attachments, tasks, snapshots, private_files
 FROM visible;
 ROLLBACK;
+
+
+-- Anonymous boundary: the five private tables must not grant SELECT to anon.
+-- Storage grants SELECT for RLS evaluation, but this private bucket must show zero rows.
+-- The anon check is not an authenticated owner-positive or signed-URL test.
+BEGIN READ ONLY;
+SET LOCAL ROLE anon;
+SET LOCAL request.jwt.claim.role = 'anon';
+SET LOCAL request.jwt.claim.sub = '';
+SELECT 'anonymous' AS synthetic_identity,
+       current_user = 'anon' AS role_ok,
+       auth.uid() IS NULL AS no_authenticated_user,
+       CASE WHEN NOT (
+         has_table_privilege('anon', 'public.workspace_items', 'SELECT')
+         OR has_table_privilege('anon', 'public.advisor_ai_messages', 'SELECT')
+         OR has_table_privilege('anon', 'public.advisor_ai_attachments', 'SELECT')
+         OR has_table_privilege('anon', 'public.advisor_tasks', 'SELECT')
+         OR has_table_privilege('anon', 'public.portfolio_snapshots', 'SELECT')
+       ) THEN 'PASS' ELSE 'FAIL' END AS anonymous_private_table_grants,
+       CASE WHEN (SELECT count(*) FROM storage.objects WHERE bucket_id = 'advisor-chat-attachments') = 0
+         THEN 'PASS' ELSE 'FAIL' END AS anonymous_private_storage_visibility;
+ROLLBACK;
