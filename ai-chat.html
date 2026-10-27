@@ -70,14 +70,15 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 .chat-sidebar-details>.action,.chat-sidebar-details>p,.chat-sidebar-details>#context,.chat-sidebar-details>#core-status{margin:10px 12px;width:calc(100% - 24px);display:block}
 .chat-sidebar-details p,.chat-sidebar-details #context{font-size:13px;line-height:1.6;color:#5d7390;overflow-wrap:anywhere;white-space:pre-wrap;max-height:300px;overflow:auto}
 .chat-sidebar-details #core-status{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
-.messenger-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:15px 0 7px}.messenger-actions button{width:100%;min-height:44px;font-weight:700}.messenger-help{font-size:12px;line-height:1.5;color:#657791;margin:0 0 15px}</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+.messenger-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:15px 0 7px}.messenger-actions button{width:100%;min-height:44px;font-weight:700}.messenger-help{font-size:12px;line-height:1.5;color:#657791;margin:0 0 15px}.voice-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:9px 0 13px}.voice-controls #dictate{min-height:44px;font-weight:750;border-color:#b4c9e8}.voice-controls select{min-height:43px;padding:8px 10px;border:1px solid #cbd9e9;border-radius:9px;background:white;color:#27436b}.voice-controls #voice-status{color:#62738d;font-size:12px;line-height:1.5;flex:1 1 230px}
+</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
- <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+ <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Действия с результатом</h2>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button>
@@ -107,6 +108,7 @@ const SUPABASE_PROJECT_URL='https://xhewhzgzzonpgsjznmyl.supabase.co',PUBLIC='sb
 const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.search).get('case');
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 let sessionEpoch=0;
+let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
 const error=s=>$('error').textContent=s||'';
@@ -188,11 +190,60 @@ async function copyMessenger(kind){
   if(isCurrentChat(epoch,ownerId))$('result-status').textContent='Не удалось скопировать. Разреши браузеру доступ к буферу обмена или скачай текст.';
  }
 }
+function stopDictation(abort=false){
+ const engine=voiceRecognition;
+ voiceRecognition=null;
+ if(engine){try{if(abort)engine.abort();else engine.stop()}catch{}}
+ $('dictate').textContent='🎙 Надиктовать';
+ $('question').readOnly=false;
+}
+function toggleDictation(){
+ if(voiceRecognition){stopDictation();$('voice-status').textContent='Диктовка остановлена. Проверь текст и отправь сообщение.';return}
+ if(!user||!caseData||working)return;
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition){$('voice-status').textContent='В этом браузере диктовка недоступна. Попробуй актуальный Chrome или Edge либо введи текст вручную.';return}
+ const epoch=sessionEpoch,ownerId=user.id;
+ const engine=new SpeechRecognition();
+ engine.lang=$('dictation-lang').value;
+ engine.continuous=true;engine.interimResults=true;engine.maxAlternatives=1;
+ voiceAnchor=$('question').value.trimEnd();
+ voiceRecognition=engine;
+ $('dictate').textContent='■ Остановить запись';
+ $('question').readOnly=true;
+ $('voice-status').textContent='Слушаю… Разреши доступ к микрофону. Речь может распознаваться сервисом браузера.';
+ engine.onresult=e=>{
+  if(voiceRecognition!==engine||!isCurrentChat(epoch,ownerId))return;
+  const words=[];for(let i=0;i<e.results.length;i++){
+   const item=e.results[i]?.[0]?.transcript?.trim();
+   if(item)words.push(item);
+  }
+  const text=words.join(' ').trim();
+  $('question').value=voiceAnchor+(voiceAnchor&&text?' ':'')+text;
+ };
+ engine.onerror=e=>{
+  if(voiceRecognition!==engine||!isCurrentChat(epoch,ownerId))return;
+  const code=e.error;
+  $('voice-status').textContent=code==='not-allowed'||code==='service-not-allowed'?'Нет доступа к микрофону. Проверь разрешения сайта.':code==='no-speech'?'Речь не распознана. Попробуй ещё раз.':'Не удалось распознать речь. Проверь подключение или введи текст вручную.';
+  stopDictation(true);
+ };
+ engine.onend=()=>{
+  if(voiceRecognition!==engine||!isCurrentChat(epoch,ownerId))return;
+  stopDictation();
+  $('voice-status').textContent='Диктовка завершена. Проверь текст перед отправкой.';
+ };
+ try{engine.start()}catch{
+  if(voiceRecognition===engine&&isCurrentChat(epoch,ownerId)){
+   stopDictation(true);$('voice-status').textContent='Не удалось включить микрофон. Проверь разрешения браузера.';
+  }
+ }
+}
 function setStatus(s){$('case-sub').textContent=s}
-function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active}
+function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active;$('dictate').disabled=!active}
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=v||!lastAnswer;$('copy-telegram').disabled=v||!lastAnswer;$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
+ if(typeof voiceRecognition!=='undefined'&&voiceRecognition)stopDictation(true);
+ $('voice-status')?.textContent='';
  sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
  exhaustedRetryMessages.clear();latestUserMessageId=null;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
@@ -275,7 +326,8 @@ function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?
 function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
 function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!mimeForFile(f)){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
 async function send(){
- if(working||!user||!caseData)return;const epoch=sessionEpoch,ownerId=user.id;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
+ if(working||!user||!caseData)return;
+ if(voiceRecognition)stopDictation();const epoch=sessionEpoch,ownerId=user.id;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
  const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
  waiting(true);error('');$('file-status').textContent='';
  let messageId=null,uploaded=[];
@@ -531,7 +583,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=safeExternalChatLink(data.chat_url);
  ready(true);waiting(false);void checkCoreIntegrity();await history();
 }
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script><script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.umd.cjs"></script></body></html>
