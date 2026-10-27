@@ -349,7 +349,7 @@ async function send(){
  if(voiceRecognition)stopDictation();const epoch=sessionEpoch,ownerId=user.id;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
  const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
  waiting(true);error('');$('file-status').textContent='';
- let messageId=null,uploaded=[];
+ let messageId=null,linkedCount=0;
  try{
   const {data:msg,error:err}=await db.from('advisor_ai_messages').insert({user_id:user.id,case_id:caseId,role:'user',content}).select('id').single();if(!isCurrentChat(epoch,ownerId))return;if(err)throw Error(err.message);messageId=msg.id;
   for(let i=0;i<files.length;i++){
@@ -358,16 +358,19 @@ async function send(){
    const {error:uploadError}=await db.storage.from('advisor-chat-attachments').upload(path,f,{contentType:mime,upsert:false,cacheControl:'3600'});
    if(!isCurrentChat(epoch,ownerId))return;
    if(uploadError)throw Error('Не удалось загрузить '+f.name+': '+uploadError.message);
-   uploaded.push(path);
    const {error:recordError}=await db.from('advisor_ai_attachments').insert({user_id:user.id,case_id:caseId,message_id:messageId,object_path:path,filename:f.name.slice(0,180),mime_type:mime,bytes:f.size});
    if(!isCurrentChat(epoch,ownerId))return;
    if(recordError)throw Error('Не удалось привязать файл к сообщению: '+recordError.message);
+   linkedCount++;
   }
   $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
  }catch(e){
   if(!isCurrentChat(epoch,ownerId))return;
   // Сохранённое текстовое сообщение остаётся в истории; удаляем неприкреплённые файлы, если возможно.
-  error('Отправка не завершена: '+e.message+'. '+(messageId?'Сообщение осталось в истории; после устранения ошибки можно нажать «Повторить ответ AI».':''));
+  const recovery=messageId?(linkedCount<files.length
+   ?'Текст вопроса сохранён, но привязано только '+linkedCount+' из '+files.length+' вложений. «Повторить ответ AI» не загружает отсутствующие файлы: прикрепи их новым сообщением перед анализом.'
+   :'Сообщение'+(files.length?' и все вложения':'')+' сохранено; можно нажать «Повторить ответ AI».'):'';
+  error('Отправка не завершена: '+e.message+'. '+recovery);
   $('file-status').textContent='';
   waiting(false);return;
  }
