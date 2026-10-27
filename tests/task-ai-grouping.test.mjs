@@ -7,7 +7,7 @@ const end=source.indexOf('function review(data)');
 const rank=new Function('areas','priorities','validDate',source.slice(start,end)+';return rankTaskProposals')(
  {work:'Work',personal:'Personal',study:'Study',health:'Health',sport:'Sport',projects:'Projects',other:'Other'},
  {high:'High',normal:'Normal',low:'Low'},
- date=>!date||/^\\d{4}-\\d{2}-\\d{2}$/.test(date)
+ date=>!date||/^\d{4}-\d{2}-\d{2}$/.test(date)
 );
 test('AI proposals are grouped by sphere, ranked by priority then deadline',()=>{
  const input=[
@@ -27,7 +27,7 @@ test('unknown AI categories fall back to other and proposals remain capped',()=>
  assert.ok(ordered.every(x=>x.area==='other'&&x.priority==='normal'));
 });
 test('review headings are not mistaken for selectable tasks',()=>{
- assert.match(source,/querySelectorAll\\('\.draft'\\)/);
+ assert.ok(source.includes("querySelectorAll('.draft')"));
  assert.match(source,/className='draft-group'/);
  assert.match(source,/review-summary/);
 });
