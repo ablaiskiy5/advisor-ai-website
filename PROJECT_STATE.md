@@ -1,3 +1,14 @@
+## Pilot AI activation 42501 fix — 2026-10-27
+
+- User screenshot: `Ответ не получен: Не удалось активировать AI-доступ` during initial AI answer; question and image attachment remained stored.
+- Supabase function logs show `AI enrollment error {"code":"42501"}` and Postgres reports `permission denied for table advisor_ai_access` for the server-side upsert.
+- Root cause: `service_role` had SELECT on `advisor_ai_access` but not INSERT. The Edge Function `advisor-ai-chat` **v27** expects to insert a row upon first request by a confirmed allowlisted account; it refused before reserving a paid AI attempt.
+- Applied one narrow database migration: `GRANT INSERT ON TABLE public.advisor_ai_access TO service_role;`. Verified `service_role` SELECT+INSERT but no UPDATE/DELETE, and `anon`/`authenticated` still have **no** table privileges. RLS stays enabled; no pilot email allowlist rules, AI quotas or secrets changed.
+- Transaction-rolled-back SQL smoke test acting as `service_role` successfully inserted an access record for a uniquely selected confirmed allowlisted account, then rolled back.
+- Activated the single confirmed allowlisted account registered on 27 October that lacked a row; post-write query confirmed **2** enabled access rows and **0** pending allowlisted confirmed accounts. No personal identifiers recorded in this log.
+- Github migration snapshot: `supabase/migrations/20261027_grant_service_role_ai_access_enrollment_insert.sql`.
+- **Still unverified:** a real user click on `Повторить ответ AI` succeeding end-to-end through OpenAI. A user should retry the already-saved question, not reupload attachments or repeatedly register.
+
 ## Pilot onboarding and AI task workflow — 2026-10-27
 
 - User-reported screenshots exposed confusing registration, hard-to-find Workspace return links, and AI task/portfolio 403 denials on a newly registered confirmed account.
