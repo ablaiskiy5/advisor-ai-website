@@ -88,7 +88,7 @@ test('uploaded storage object without attachment metadata is not counted as link
 test('history refresh failure after complete upload allows AI retry without reupload', async () => {
   const s = scenario({ files: 2, failUploadAt: -1, failLinkAt: -1, failHistory: true });
   await s.ctx.send();
-  assert.match(s.nodes.error, /все вложения сохранено; можно нажать «Повторить ответ AI»/);
+  assert.match(s.nodes.error, /все вложения сохранены; можно нажать «Повторить ответ AI»/);
   assert.doesNotMatch(s.nodes.error, /не загружает отсутствующие файлы/);
   assert.equal(s.counters.linked, 2);
   assert.equal(s.counters.ai, 0);
