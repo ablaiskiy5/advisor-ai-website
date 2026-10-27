@@ -127,7 +127,7 @@ function markIncompleteUpload(ownerId,sourceCaseId,messageId){
 }
 function incompleteUploadFor(ownerId,sourceCaseId){
  const key=incompleteUploadKey(ownerId,sourceCaseId);
- try{return sessionStorage.getItem(key)||incompleteUploadFallback.get(key)||null}
+ try{return incompleteUploadFallback.get(key)||sessionStorage.getItem(key)||null}
  catch{return incompleteUploadFallback.get(key)||null}
 }
 function clearIncompleteUpload(ownerId,sourceCaseId,messageId){
