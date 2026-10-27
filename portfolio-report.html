@@ -102,6 +102,20 @@ function parseSaved(notes){
  if((cashUsd!==null&&(!Number.isFinite(cashUsd)||cashUsd<0))||(debtUsd!==null&&(!Number.isFinite(debtUsd)||debtUsd<0)))throw Error('Некорректные денежные средства или обязательства.');
  return {rows,total,cashUsd,debtUsd,cashKzt,fxKzt,bondValue,equityValue,hhi,duration:dur,top1:weights[0],top3:weights.slice(0,3).reduce((a,x)=>a+x,0),top5:weights.slice(0,5).reduce((a,x)=>a+x,0),target};
 }
+function portfolioNavExposure(data){
+ if(!data||!Number.isFinite(data.total)||data.total<=0)throw Error('Некорректная стоимость ценных бумаг');
+ if(data.cashUsd===null||data.debtUsd===null)return {available:false,reason:'Для анализа риска относительно NAV укажи USD cash и обязательства (включая подтверждённые нулевые значения).'};
+ const kztUsd=data.cashKzt===null?0:data.cashKzt/data.fxKzt;
+ const nav=data.total+data.cashUsd+kztUsd-data.debtUsd;
+ if(!Number.isFinite(nav))throw Error('Некорректный расчёт NAV');
+ if(nav<=0)return {available:false,reason:'Расчётный NAV ≤ 0 USD. Доли относительно капитала и мультипликаторы плеча не вычисляются.',nav};
+ const grossSecuritiesToNav=data.total/nav;
+ const debtToNav=data.debtUsd/nav;
+ const equityToNav=data.equityValue/nav;
+ const bondsToNav=data.bondValue/nav;
+ const topToNav=data.rows[0].value/nav;
+ return {available:true,nav,kztUsd,grossSecuritiesToNav,debtToNav,equityToNav,bondsToNav,topToNav,topAsset:data.rows[0].name};
+}
 function rateShockScenario(data,basisPoints){
  if(!Number.isFinite(data.total)||data.total<=0||!Number.isFinite(data.bondValue)||data.bondValue<0||data.bondValue>data.total||!Number.isFinite(data.duration)||data.duration<0||!Number.isFinite(basisPoints))throw Error('Некорректные параметры дюрационного сценария');
  const changeUsd=-data.bondValue*(data.duration*(basisPoints/10000));
@@ -274,6 +288,10 @@ function buildInvestmentConclusion(data){
   'Стоимость: '+money(data.total)+'. Позиций: '+data.rows.length+'.',
   'Акции: '+pct(equityWeight)+'. Облигации: '+pct(bondWeight)+'.',
   'Крупнейшая позиция: '+largest.name+' ('+pct(largestWeight)+'). Топ-3: '+pct(data.top3)+'.',
+  ...(portfolioNavExposure(data).available?[
+   'Расчётный NAV: '+money(portfolioNavExposure(data).nav)+'. Экспозиция ценных бумаг / NAV: '+(100*portfolioNavExposure(data).grossSecuritiesToNav).toFixed(1)+'%.',
+   'Крупнейшая позиция / NAV: '+(100*portfolioNavExposure(data).topToNav).toFixed(1)+'%. Обязательства / NAV: '+(100*portfolioNavExposure(data).debtToNav).toFixed(1)+'%.'
+  ]:['Экспозиция относительно NAV не рассчитана: '+portfolioNavExposure(data).reason]),
   'Индекс концентрации HHI: '+data.hhi.toFixed(4)+'; эффективное число позиций: '+(1/data.hhi).toFixed(2)+'.',
   '',
   '2. Ключевые риски'
@@ -312,6 +330,12 @@ function buildInvestmentConclusion(data){
 function renderReport(data,title){
  $('report').style.display='block';$('r-title').textContent=title;$('r-date').textContent='Отчёт сформирован: '+new Date().toLocaleString('ru-RU')+' · Дата оценки активов: не подтверждена';
  $('r-nav').textContent='';addLine('r-nav',data.cashUsd===null||data.debtUsd===null?'NAV не рассчитан: укажи и денежные средства, и обязательства (0 допустим, если подтверждён).':'Стоимость бумаг '+cash(data.total)+' USD + денежные средства '+cash(data.cashUsd)+' USD'+(data.cashKzt===null?'':' + '+cash(data.cashKzt/data.fxKzt)+' USD (конвертация KZT)')+' − обязательства '+cash(data.debtUsd)+' USD = расчётный NAV '+cash(data.total+data.cashUsd+(data.cashKzt===null?0:data.cashKzt/data.fxKzt)-data.debtUsd)+' USD.'+(data.cashKzt===null?'':' Включая '+cash(data.cashKzt)+' KZT / '+data.fxKzt+' KZT за USD.')+' Курс введён пользователем, без сверки с брокером.');
+ const exposure=portfolioNavExposure(data);
+ if(exposure.available){
+  addLine('r-nav','Номинальная экспозиция ценных бумаг / NAV: '+(100*exposure.grossSecuritiesToNav).toFixed(1)+'%. Обязательства / NAV: '+(100*exposure.debtToNav).toFixed(1)+'%.');
+  addLine('r-nav','Доля крупнейшей позиции относительно NAV: '+exposure.topAsset+' — '+(100*exposure.topToNav).toFixed(1)+'%. Доля рассчитана по чистому капиталу, а не только по стоимости бумаг.');
+  if(exposure.grossSecuritiesToNav>1.00001)addLine('r-nav','ВНИМАНИЕ: экспозиция бумаг превышает 100% NAV. Рассматривай риск снижения относительно чистого капитала и обязательства, а не только относительно стоимости ценных бумаг.');
+ }else addLine('r-nav','Оценка экспозиции относительно NAV: '+exposure.reason);
  $('r-fx-risk').textContent='';
  if(data.cashKzt===null)addLine('r-fx-risk','Денежные средства KZT не указаны. Валютная чувствительность не рассчитывается; это не означает отсутствие валютного риска по ценным бумагам.');
  else{
@@ -348,6 +372,8 @@ function renderReport(data,title){
  for(const r of data.rows){const tr=document.createElement('tr');const columns=[r.name,r.bond?'Облигация':'Акция',String(r.qty),cash(r.price),cash(r.value),pct(r.value/data.total),r.bond?r.duration.toFixed(2):'—'];
   columns.forEach((c,i)=>{const td=document.createElement('td');td.textContent=c;if(i>1)td.className='num';tr.append(td)});tbody.append(tr);}
  const issues=[];
+ const riskExposure=portfolioNavExposure(data);
+ if(riskExposure.available&&riskExposure.grossSecuritiesToNav>1.00001)issues.push('Экспозиция бумаг к NAV = '+(100*riskExposure.grossSecuritiesToNav).toFixed(1)+'%: требуется отдельный анализ плеча, маржин-колла и ликвидности.');
  const zeroPriceRows=data.rows.filter(r=>r.price===0);
  if(zeroPriceRows.length)issues.push('ВНИМАНИЕ: '+zeroPriceRows.length+' позиций с ценой 0 USD ('+zeroPriceRows.map(r=>r.name).join(', ')+'). Стоимость, веса и стресс-сценарии могут быть занижены. Сверь цену или статус списания.');
  if(data.top1>.35)issues.push('Крупнейшая позиция превышает 35% портфеля. Проверь допустимость концентрации.');
