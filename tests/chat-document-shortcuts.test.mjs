@@ -4,10 +4,10 @@ import {readFileSync} from 'node:fs';
 const html=readFileSync(new URL('../ai-chat.html',import.meta.url),'utf8');
 test('document creation and main download formats are one click away',()=>{
  const sidebar=html.slice(html.indexOf('<aside class="card info">'),html.indexOf('</aside>'));
- assert.match(side,/Создать документ по кейсу/);
- assert.match(side,/id="quick-docx"/);
- assert.match(side,/id="quick-pdf"/);
- assert.ok(side.indexOf('id="quick-pdf"')<side.indexOf('<details class="chat-sidebar-details chat-exports">'));
+ assert.match(sidebar,/Создать документ по кейсу/);
+ assert.match(sidebar,/id="quick-docx"/);
+ assert.match(sidebar,/id="quick-pdf"/);
+ assert.ok(sidebar.indexOf('id="quick-pdf"')<sidebar.indexOf('<details class="chat-sidebar-details chat-exports">'));
 });
 test('shortcuts call existing tested PDF and DOCX exporters',()=>{
  assert.match(html,/\$\('quick-docx'\)\.addEventListener\('click',downloadDocx\)/);
