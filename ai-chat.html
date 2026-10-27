@@ -243,7 +243,7 @@ function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsap
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
  if(typeof voiceRecognition!=='undefined'&&voiceRecognition)stopDictation(true);
- $('voice-status')?.textContent='';
+ if($('voice-status'))$('voice-status').textContent='';
  sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
  exhaustedRetryMessages.clear();latestUserMessageId=null;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
