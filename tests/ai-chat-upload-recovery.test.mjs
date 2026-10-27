@@ -80,7 +80,7 @@ test('partial upload reports exactly the confirmed linked count', async () => {
   assert.match(s.nodes.error, /1 из 2 вложений/);
   assert.equal(s.counters.linked, 1);
   assert.equal(s.counters.ai, 0);
-  assert.deepEqual(s.ctx.pendingFiles.map(f => f.name), ['synthetic-2.pdf'], 'Keep only unlinked files');
+  assert.deepEqual(Array.from(s.ctx.pendingFiles, f => f.name), ['synthetic-2.pdf'], 'Keep only unlinked files');
   assert.equal(s.nodes.question.value, '', 'Original question is already saved');
   assert.equal(s.nodes.retry.hidden, true);
   assert.ok(s.counters.renders > 0, 'Refresh removable attachment chips after unlocking controls');
@@ -97,7 +97,7 @@ test('metadata failure after a linked file preserves only remaining files', asyn
   const s = scenario({ files: 2, failUploadAt: -1, failLinkAt: 2 });
   await s.ctx.send();
   assert.match(s.nodes.error, /1 из 2 вложений/);
-  assert.deepEqual(s.ctx.pendingFiles.map(f => f.name), ['synthetic-2.pdf']);
+  assert.deepEqual(Array.from(s.ctx.pendingFiles, f => f.name), ['synthetic-2.pdf']);
   assert.equal(s.counters.ai, 0);
 });
 
