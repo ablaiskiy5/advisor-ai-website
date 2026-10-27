@@ -28,6 +28,11 @@ function scenario({ files = 2, failUploadAt = 0, failLinkAt = 0, failHistory = f
     waiting(v) { ctx.working = v; },
     error(value) { nodes.error = value; },
     renderFiles() { counters.renders++; },
+    markIncompleteUpload(ownerId, sourceCaseId, messageId) {
+      assert.equal(ownerId, 'synthetic-owner');
+      assert.equal(sourceCaseId, 'synthetic-case');
+      counters.incompleteMarker = messageId;
+    },
     isCurrentChat(epoch, owner) { return epoch === ctx.sessionEpoch && owner === ctx.user?.id; },
     async history() { counters.history++; if (failHistory) throw Error('History temporarily unavailable'); },
     async requestAI() { counters.ai++; },
@@ -72,6 +77,7 @@ test('failed first upload never suggests that retrying AI will restore attachmen
   assert.equal(s.ctx.pendingFiles.length, 2, 'Do not silently discard unuploaded files');
   assert.equal(s.nodes.question.value, '', 'Do not resubmit a message already saved');
   assert.equal(s.nodes.retry.hidden, true, 'Do not offer AI retry with missing attachments');
+  assert.equal(s.counters.incompleteMarker, 'synthetic-message', 'Persist incomplete message marker for reload');
 });
 
 test('partial upload reports exactly the confirmed linked count', async () => {
