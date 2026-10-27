@@ -6,6 +6,7 @@ import vm from 'node:vm';
 // Test the checked-in source of the public, stateless MCP calculator, without
 // invoking Deno.serve or accessing Supabase, credentials, or client records.
 const source = readFileSync(new URL('../supabase/functions/advisor-ai-shared-tools/index.ts', import.meta.url), 'utf8');
+new vm.Script(source, { filename: 'advisor-ai-shared-tools/index.ts' }); // Parse the complete deployed source.
 const start = source.indexOf('const tools=');
 const end = source.indexOf('const headers=');
 assert.ok(start >= 0 && end > start, 'Public calculator source is extractable');
