@@ -27,7 +27,7 @@ test('unknown AI categories fall back to other and proposals remain capped',()=>
  assert.ok(ordered.every(x=>x.area==='other'&&x.priority==='normal'));
 });
 test('review headings are not mistaken for selectable tasks',()=>{
- assert.ok(source.includes("querySelectorAll('.draft')"));
- assert.match(source,/className='draft-group'/);
- assert.match(source,/review-summary/);
+ assert.ok(source.includes("for(const div of $('drafts').children)"));
+ assert.match(source,/class="draft-group"/);
+ assert.match(source,/AI выделил/);
 });
