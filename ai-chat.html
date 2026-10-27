@@ -366,13 +366,18 @@ async function send(){
   $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
  }catch(e){
   if(!isCurrentChat(epoch,ownerId))return;
-  // Сохранённый текст остаётся в истории; повтор AI не восстанавливает недостающие вложения.
+  // The user message is saved: do not requeue attachments already linked to it.
+  if(messageId&&linkedCount<files.length){
+   pendingFiles=files.slice(linkedCount);
+   $('question').value='';
+   $('retry').classList.add('hidden');
+  }
   const recovery=messageId?(linkedCount<files.length
-   ?'Текст вопроса сохранён, но привязано только '+linkedCount+' из '+files.length+' вложений. «Повторить ответ AI» не загружает отсутствующие файлы: прикрепи их новым сообщением перед анализом.'
+   ?'Текст вопроса сохранён, но привязано только '+linkedCount+' из '+files.length+' вложений. Оставшиеся файлы сохранены в списке вложений; отправь их новым сообщением перед анализом. «Повторить ответ AI» не загружает отсутствующие файлы.'
    :'Сообщение'+(files.length?' и все вложения сохранены':' сохранено')+'; можно нажать «Повторить ответ AI».'):'';
   error('Отправка не завершена: '+e.message+'. '+recovery);
   $('file-status').textContent='';
-  waiting(false);return;
+  waiting(false);renderFiles();return;
  }
  if(!isCurrentChat(epoch,ownerId))return;
  waiting(false);await requestAI();
