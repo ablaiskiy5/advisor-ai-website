@@ -12,7 +12,7 @@ const helpers=html.slice(start,end);
 test('sign-out clears chat content, drafts, export source and owner state',()=>{
  const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
- const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
+ const ctx={sessionEpoch:0,historyRequestSeq:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
   incompleteUploadFallback:new Map([['synthetic-marker','synthetic-message']]),exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  runInNewContext(helpers,ctx);
@@ -49,7 +49,7 @@ test('delayed history cannot restore old-owner messages after sign-out',async()=
  let resolveQuery;
  const delayed=new Promise(resolve=>{resolveQuery=resolve});
  const db={from(){return {select(){return this},eq(){return this},order(){return this},limit(){return delayed}}}};
- const ctx={sessionEpoch:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'previous answer',pendingFiles:[],working:false,db,caseId:'case-A',
+ const ctx={sessionEpoch:0,historyRequestSeq:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'previous answer',pendingFiles:[],working:false,db,caseId:'case-A',
   incompleteUploadFallback:new Map([['synthetic-marker','synthetic-message']]),exhaustedRetryMessages:new Set(),latestUserMessageId:null,
   $:id=>nodes[id],setStatus(){},error(){},waiting(v){ctx.working=v}};
  const historyEnd=html.indexOf('async function requestAI()',end);
