@@ -71,7 +71,11 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 .chat-sidebar-details p,.chat-sidebar-details #context{font-size:13px;line-height:1.6;color:#5d7390;overflow-wrap:anywhere;white-space:pre-wrap;max-height:300px;overflow:auto}
 .chat-sidebar-details #core-status{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 .messenger-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:15px 0 7px}.messenger-actions button{width:100%;min-height:44px;font-weight:700}.messenger-help{font-size:12px;line-height:1.5;color:#657791;margin:0 0 15px}.voice-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:9px 0 13px}.voice-controls #dictate{min-height:44px;font-weight:750;border-color:#b4c9e8}.voice-controls select{min-height:43px;padding:8px 10px;border:1px solid #cbd9e9;border-radius:9px;background:white;color:#27436b}.voice-controls #voice-status{color:#62738d;font-size:12px;line-height:1.5;flex:1 1 230px}
-.document-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}.document-shortcuts button{min-height:46px;font-weight:800;border:1px solid #a8c1e8;background:#e7f0ff;color:#1d4783;border-radius:10px}.document-shortcuts button:disabled{opacity:.48;cursor:not-allowed}</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+.document-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}.document-shortcuts button{min-height:46px;font-weight:800;border:1px solid #a8c1e8;background:#e7f0ff;color:#1d4783;border-radius:10px}.document-shortcuts button:disabled{opacity:.48;cursor:not-allowed}
+/* Distinguish verified HTTPS source links within AI analysis without trusting model HTML. */
+.bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
+.bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
+</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
@@ -120,11 +124,26 @@ function safeExternalChatLink(value){
  }catch{}
  return 'https://chatgpt.com/';
 }
+function safeCitedUrl(raw){
+ // Model output is untrusted: only real HTTPS URLs become interactive source links.
+ try{
+  const url=new URL(raw);
+  if(url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return '';
+  return url.href;
+ }catch{return ''}
+}
 function renderInlineSafe(node,value){
- const parts=String(value).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);
+ const parts=String(value).split(/(\*\*[^*\n]+\*\*|\[[^\]\n]{1,120}\]\(https:\/\/[^\s)\n]{1,2048}\)|`[^`\n]+`)/g);
  for(const part of parts){let el=null;
   if(part.startsWith('**')&&part.endsWith('**')&&part.length>4){el=document.createElement('strong');el.textContent=part.slice(2,-2)}
   else if(part.startsWith('`')&&part.endsWith('`')&&part.length>2){el=document.createElement('code');el.textContent=part.slice(1,-1)}
+  else{
+   const match=/^\[([^\]\n]{1,120})\]\((https:\/\/[^\s)\n]{1,2048})\)$/.exec(part);
+   const url=match?safeCitedUrl(match[2]):'';
+   if(url){
+    el=document.createElement('a');el.href=url;el.target='_blank';el.rel='noopener noreferrer';el.textContent=match[1];
+   }
+  }
   if(el)node.append(el);else node.append(document.createTextNode(part));
  }
 }
