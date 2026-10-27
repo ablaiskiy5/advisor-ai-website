@@ -9,7 +9,7 @@ assert.ok(inline,'Production task-board script must exist');
 const offline=inline.replace(/^init\(\)\.catch\(e=>feedback\('Ошибка: '\+e\.message\)\);\s*$/m,'');
 assert.notEqual(offline,inline,'Unit tests must never initialize production Supabase');
 
-function harness(){
+function harness({loadOutcome='success'}={}){
  const elements=new Map(),messages=[],loads=[],writes=[];
  let settle;
  const document={getElementById(id){
@@ -44,12 +44,12 @@ function harness(){
  }};
  const app=runInNewContext(offline+`
   render=()=>{};
-  load=async()=>{__loads.push(user?.id)};
+  load=async()=>{__loads.push(user?.id);if(__loadOutcome==='throw')throw Error('Synthetic refresh offline');taskListComplete=__loadOutcome==='success'};
   feedback=message=>__messages.push(message);
   ({saveDrafts,handleTaskAuthChange,
     setUser:id=>{db=__db;user=id?{id}:null},
     setProposals:data=>{proposals=data}})
- `,{Date,Intl,document,setTimeout:()=>{},__db:db,__loads:loads,__messages:messages});
+ `,{Date,Intl,document,setTimeout:()=>{},__db:db,__loads:loads,__messages:messages,__loadOutcome:loadOutcome});
  app.setUser('owner-a');
  app.setProposals([{description:'Synthetic details'}]);
  document.getElementById('brain').value='Old account note';
@@ -135,4 +135,24 @@ test('batch save without an authenticated owner does not write',async()=>{
  await h.app.saveDrafts();
  assert.equal(h.writes.length,0);
  assert.match(h.messages.at(-1),/Сначала войди/);
+});
+
+test('confirmed batch save remains successful when the subsequent refresh throws',async()=>{
+ const h=harness({loadOutcome:'throw'}),pending=h.app.saveDrafts();
+ h.resolve({data:[{id:'synthetic-task-1',user_id:'owner-a'}],error:null});await pending;
+ assert.deepEqual(h.loads,['owner-a']);
+ assert.equal(h.document.getElementById('review').classList.contains('hidden'),true);
+ assert.equal(h.document.getElementById('brain').value,'');
+ assert.equal(h.document.getElementById('save-drafts').disabled,false);
+ assert.match(h.messages.at(-1),/Сохранено: 1.*Не удалось обновить список.*Не сохраняй повторно/);
+ assert.ok(!h.messages.some(m=>m.includes('Не удалось сохранить:')));
+});
+
+test('confirmed batch save warns when refresh returns without a complete list',async()=>{
+ const h=harness({loadOutcome:'incomplete'}),pending=h.app.saveDrafts();
+ h.resolve({data:[{id:'synthetic-task-1',user_id:'owner-a'}],error:null});await pending;
+ assert.deepEqual(h.loads,['owner-a']);
+ assert.equal(h.document.getElementById('review').classList.contains('hidden'),true);
+ assert.match(h.messages.at(-1),/Сохранено: 1.*Список не обновлён.*Не сохраняй повторно/);
+ assert.ok(!h.messages.some(m=>m.includes('Не удалось сохранить:')));
 });
