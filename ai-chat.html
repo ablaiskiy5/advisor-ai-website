@@ -400,7 +400,7 @@ async function transferToTasks(){
  const lines=(data||[]).reverse().map(x=>x.content.trim()).filter(Boolean);
  if(!lines.length){error('Сначала перечисли задачи в чате.');return}
  try{
-  sessionStorage.setItem('advisor_ai_task_brain_dump',JSON.stringify({owner_id:ownerId,text:lines.join('\n').slice(0,10000)}));
+  sessionStorage.setItem('advisor_ai_task_brain_dump',JSON.stringify({owner_id:ownerId,text:lines.join('\n')}));
   window.location.href='./tasks-board.html';
  }catch(e){error('Не удалось перенести текст: '+e.message)}
 }
