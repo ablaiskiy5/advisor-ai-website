@@ -6,6 +6,7 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [ ] Run independently authenticated, two-account browser smoke tests of registration, login, account isolation, private AI chat, portfolio and attachment analysis, task organizer approval, exports, and mobile navigation. Use synthetic data only.
 - [ ] Confirm deployed site and Supabase Edge Function behavior separately from GitHub CI; record errors, evidence, dates, and remediation.
 - [ ] Resolve any open security/auth/rate-limit issues and obtain required corporate security/compliance review **before** treating the product as approved for confidential client information.
+- [ ] Review elevated non-RLS SQL table privileges flagged by the read-only user-facing audit; assess reachability and application dependencies before any approved privilege changes.
 - [ ] Validate the recently changed light chat, case navigation, AI short-response quality and source links with real user flows.
 
 ## P1 — Advisor workflows and usability
