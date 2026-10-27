@@ -19,8 +19,11 @@ function compute(portfolio,pool,limit,positions){
   if(p.stop!==null&&(!Number.isFinite(p.stop)||p.stop<0||p.stop>100))throw Error('Стоп от 0 до 100% для позиции '+(i+1));
   allocated+=p.amount;max=Math.max(max,p.amount);
   const loss=p.stop===null?null:p.amount*p.stop/100;
+  // Reject unrepresentable ratios rather than displaying Infinity% or exporting it.
+  const portfolioPct=p.amount/portfolio*100;
+  if(!Number.isFinite(portfolioPct))throw Error('Невозможно рассчитать долю позиции: проверь стоимость портфеля и сумму позиции '+(i+1)+'.');
   if(loss===null&&p.amount>0)missing++;else riskUsd+=loss||0;
-  return {...p,portfolioPct:p.amount/portfolio*100,loss};
+  return {...p,portfolioPct,loss};
  });
  // Scale percentages first so finite portfolios cannot overflow at the intermediate multiplication.
  const budget=portfolio*(pool/100),lossLimit=portfolio*(limit/100);
