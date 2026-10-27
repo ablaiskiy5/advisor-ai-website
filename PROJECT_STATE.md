@@ -1,3 +1,11 @@
+## Incomplete attachment retry remains blocked after page reload — 2026-10-27
+
+- Confirmed defect: after an attachment upload partially failed, the retry control was hidden only in memory. Reloading the chat reconstructed it from the last saved user message and could offer a paid AI retry without the missing PDFs/images.
+- [PR #196](https://github.com/ablaiskiy5/advisor-ai-website/pull/196) adds a tab-scoped, owner-and-case-keyed marker containing **only the saved message UUID**. History reload hides the unsafe retry and explains that missing attachments must be sent in a new message; `requestAI()` also refuses to invoke the paid backend for that incomplete latest message. A newer user message clears the old marker. No message text, attachment names or file bytes are stored in the marker.
+- Synthetic production-function Node VM tests cover reload, owner/case separation, stale-marker cleanup, unavailable session storage, and the actual send-path marker; final PR-head checks passed: [Integrated Quality Gate](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40530178146), [DOCX](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40530178108), [presentation](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40530178114). PR merge and post-merge deployment require separate verification.
+- Scope: static chat frontend and synthetic tests only. No live user accounts, client data, secrets, plugin release, Supabase schema/RLS/functions, quotas, trades or messages changed.
+- Limitations: sessionStorage may be unavailable, and the marker is per tab rather than a durable server-side upload status; cross-tab, browser-restart and independently authenticated two-account E2E remain unverified. **Next:** two-account synthetic browser upload/reload/retry and storage-owner isolation, read-only orphaned-object inspection, then evaluate a durable user-scoped incomplete-upload state only if justified.
+
 ## Chat partial-upload retry queue avoids duplicate files — 2026-10-27
 
 - Confirmed defect: after the first file was successfully linked but a later PDF/image upload or metadata insert failed, `ai-chat.html` retained **all** originally selected files in the pending queue. Resending missing attachments could upload already-linked files again and duplicate the original saved question.
