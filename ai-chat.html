@@ -60,6 +60,16 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 #error{color:#a34125;line-height:1.55}
 @media(max-width:780px){.chat{max-height:none}.card{padding:13px}#messages{padding:10px 8px;gap:12px}.bubble.assistant{padding:17px 15px;font-size:15px;line-height:1.65}.bubble.user{max-width:96%}.bubble.assistant .rendered h2{font-size:18px}}
 @media print{:root,body{background:#fff;color:#111}}
+
+/* Simplified result actions: keep exports and internal diagnostics optional */
+.info h2{font-size:18px;margin:0 0 15px}
+.info>.action{display:block;width:100%;margin:9px 0;text-align:center}
+.chat-sidebar-details{margin:13px 0;border:1px solid #dce7f4;border-radius:12px;background:#f8fbff;overflow:hidden;color:#3a587e}
+.chat-sidebar-details>summary{padding:13px 14px;cursor:pointer;font-weight:700;line-height:1.5;list-style-position:inside}
+.chat-sidebar-details[open]>summary{background:#edf4fc;border-bottom:1px solid #dce7f4}
+.chat-sidebar-details>.action,.chat-sidebar-details>p,.chat-sidebar-details>#context,.chat-sidebar-details>#core-status{margin:10px 12px;width:calc(100% - 24px);display:block}
+.chat-sidebar-details p,.chat-sidebar-details #context{font-size:13px;line-height:1.6;color:#5d7390;overflow-wrap:anywhere;white-space:pre-wrap;max-height:300px;overflow:auto}
+.chat-sidebar-details #core-status{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 </style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
@@ -68,16 +78,26 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
  <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
- </section><aside class="card info"><h2>Контекст кейса</h2><p id="context">Загрузка…</p><div class="notice" style="margin:12px 0;font-size:12px"><strong>AI-ядро и плагин</strong><div id="core-status" aria-live="polite">Проверка серверной методики доступна после входа в кейс.</div></div>
+ </section><aside class="card info"><h2>Действия с результатом</h2>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
- <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button><button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
- <button id="save-result" class="action" disabled>Сохранить последний ответ в кейс</button>
- <button id="download-result" class="action" disabled>Скачать ответ .txt</button>
- <button id="download-pptx" class="action" disabled>⬇ Презентация .pptx</button><button id="download-pdf" class="action" disabled>⬇ Скачать PDF</button><button id="download-docx" class="action" disabled>⬇ Редактируемый Word (.docx)</button><button id="download-doc" class="action" disabled>⬇ Скачать документ Word (.doc)</button><button id="print-result" class="action" disabled>Печать / сохранить PDF</button>
- <button id="refresh" class="action">Обновить историю</button>
- <div id="result-status" class="muted" role="status" style="font-size:12px;line-height:1.5;margin-top:8px">Итог можно сохранить в карточке кейса или скачать.</div>
- <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть ChatGPT ↗</a>
- <div class="notice">Переписка в этом окне сохраняется отдельно от личных чатов ChatGPT. Секретный ключ OpenAI хранится на сервере. Не загружай конфиденциальные сведения клиентов без корпоративного согласования.</div>
+ <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button>
+ <button id="summary" class="action primary" disabled>Сформировать итог кейса</button>
+ <button id="save-result" class="action" disabled>Сохранить последний ответ</button>
+ <details class="chat-sidebar-details chat-exports"><summary>↓ Скачать или распечатать результат</summary>
+ <button id="download-result" class="action" disabled>Скачать текст .txt</button>
+ <button id="download-pdf" class="action" disabled>PDF</button>
+ <button id="download-docx" class="action" disabled>Word (.docx)</button>
+ <button id="download-pptx" class="action" disabled>Презентация (.pptx)</button>
+ <button id="download-doc" class="action" disabled>Старый формат Word (.doc)</button>
+ <button id="print-result" class="action" disabled>Печать / PDF через браузер</button></details>
+ <button id="refresh" class="action">↻ Обновить переписку</button>
+ <div id="result-status" class="muted" role="status" style="font-size:12px;line-height:1.5;margin-top:8px">Итог можно сохранить или скачать.</div>
+ <details class="chat-sidebar-details"><summary>Контекст кейса</summary><p id="context">Загрузка…</p></details>
+ <details class="chat-sidebar-details"><summary>Состояние AI-интеграции</summary><div id="core-status" aria-live="polite">Проверка серверной методики доступна после входа.</div></details>
+ <details class="chat-sidebar-details"><summary>Дополнительная информация</summary>
+ <a id="external" href="https://chatgpt.com/" target="_blank" rel="noopener" class="action" style="display:block;margin-top:10px">Открыть внешний ChatGPT ↗</a>
+ <p>История этого чата хранится в личном кабинете, отдельно от ChatGPT. Не загружай закрытые клиентские данные без корпоративного согласования.</p>
+ </details>
  </aside></div><section id="print-report" aria-label="Печатный отчет"></section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script>
 <script>
