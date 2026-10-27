@@ -94,14 +94,27 @@ test('editor stays open when an update affects no row',async()=>{
  assert.equal(h.ctx.busy,false);
 });
 
-test('confirmed write preserves refresh failure instead of showing false success',async()=>{
+test('confirmed editor update reports incomplete refresh as saved, not failed',async()=>{
  const h=harness({data:{id:'task-1'},error:null});
  h.ctx.taskListComplete=false;
  await h.api.submitTaskEditor({preventDefault(){}});
  assert.equal(h.loads,1);
  assert.equal(h.$('task-editor').classList.contains('hidden'),true);
- assert.match(h.messages.at(-1),/Ошибка загрузки/);
- assert.doesNotMatch(h.messages.join(' '),/Задача сохранена/);
+ assert.match(h.messages.at(-1),/Задача сохранена.*Список не обновлён.*Не сохраняй повторно/);
+ assert.doesNotMatch(h.messages.join(' '),/Не удалось сохранить:/);
+ assert.equal(h.ctx.busy,false);
+});
+
+test('confirmed new task is not reported as a failed save when refresh throws',async()=>{
+ const h=harness({data:{id:'created-1',user_id:'owner-a'},error:null});
+ h.ctx.editingId=null;
+ h.ctx.load=async()=>{throw Error('Synthetic refresh offline')};
+ await h.api.submitTaskEditor({preventDefault(){}});
+ assert.equal(h.$('task-editor').classList.contains('hidden'),true);
+ assert.equal(h.ctx.taskListComplete,false);
+ assert.match(h.messages.at(-1),/Задача сохранена.*Не удалось обновить список: Synthetic refresh offline.*Не сохраняй повторно/);
+ assert.doesNotMatch(h.messages.join(' '),/Не удалось сохранить:/);
+ assert.equal(h.$('edit-note').textContent,'');
  assert.equal(h.ctx.busy,false);
 });
 
