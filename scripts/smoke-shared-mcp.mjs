@@ -65,6 +65,12 @@ async function run(){
  const over=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:10,positions:[{name:'NVDA',amount_usd:100000},{name:'AMZN',amount_usd:100000},{name:'QQQ',amount_usd:100000},{name:'XBI',amount_usd:100000}]});
  equalBoolean(over.within_pool,false,'Exceeded-pool flag');
  equalNumber(over.remaining_usd,-300000,'Excessive pool allocation must fail');
+ const zeroCap=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:0,positions:[{name:'TINY',amount_usd:0.00000005}]});
+ equalBoolean(zeroCap.within_pool,false,'Zero speculative cap rejects even tiny positive exposure');
+ assert(zeroCap.remaining_usd<0,'Positive allocation must exceed a zero pool');
+ const zeroEmpty=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:0,positions:[]});
+ equalBoolean(zeroEmpty.within_pool,true,'Zero cap accepts an empty pool');
+
  const shock=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:100});
  equalNumber(shock.portfolio_change_percent,-1.5,'Duration stress');
  equalNumber(shock.change_usd,-15000,'Duration stress dollar impact');
