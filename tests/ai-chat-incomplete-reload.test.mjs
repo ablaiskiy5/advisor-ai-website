@@ -46,7 +46,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
       functions: { async invoke() { aiCalls++; return { data: {}, error: null }; } }
     },
     user: { id: 'owner-A' }, caseData: { id: 'case-A' }, caseId: 'case-A',
-    sessionEpoch: 1, working: false, lastAnswer: '', latestUserMessageId: null,
+    sessionEpoch: 1, historyRequestSeq: 0, working: false, lastAnswer: '', latestUserMessageId: null,
     attachmentHistoryVerified: false,
     exhaustedRetryMessages: new Set(),
     isCurrentChat(epoch, owner) { return epoch === 1 && owner === ctx.user.id; },
@@ -138,4 +138,61 @@ test('message history failure also hides stale retry and blocks paid AI', async 
   await s.history();
   assert.equal(s.ctx.attachmentHistoryVerified, true);
   assert.equal(s.nodes.retry.hidden, false);
+});
+
+
+test('older message fetch cannot overwrite a newer history refresh', async () => {
+  const s = fixture('initial');
+  let resolveOld;
+  const oldQuery = new Promise(resolve => { resolveOld = resolve; });
+  const originalFrom = s.ctx.db.from;
+  let messageQueries = 0;
+  s.ctx.db.from = table => {
+    if (table !== 'advisor_ai_messages') return originalFrom(table);
+    messageQueries++;
+    const result = messageQueries === 1 ? oldQuery : Promise.resolve({
+      data: [{ id: 'new-message', role: 'user', content: 'Synthetic new request' }], error: null
+    });
+    return { select() { return this; }, eq() { return this; }, order() { return this; }, limit() { return result; } };
+  };
+  const older = s.history();
+  const newer = s.history();
+  await newer;
+  assert.equal(s.ctx.latestUserMessageId, 'new-message');
+  resolveOld({ data: [{ id: 'old-message', role: 'user', content: 'Synthetic old request' }], error: null });
+  await older;
+  assert.equal(s.ctx.latestUserMessageId, 'new-message', 'Stale message history must not replace the latest message');
+  assert.equal(s.ctx.attachmentHistoryVerified, true);
+  assert.equal(s.nodes.retry.hidden, false);
+});
+
+test('older attachment-metadata failure cannot undo a newer verified refresh', async () => {
+  const s = fixture('initial');
+  let resolveOldFiles, signalOldFiles;
+  const oldFiles = new Promise(resolve => { resolveOldFiles = resolve; });
+  const oldFilesStarted = new Promise(resolve => { signalOldFiles = resolve; });
+  let messageQueries = 0, fileQueries = 0;
+  s.ctx.db.from = table => ({
+    select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; },
+    limit() {
+      if (table === 'advisor_ai_messages') return Promise.resolve({
+        data: [{ id: 'message-' + (++messageQueries), role: 'user', content: 'Synthetic request' }], error: null
+      });
+      assert.equal(table, 'advisor_ai_attachments');
+      if (++fileQueries === 1) { signalOldFiles(); return oldFiles; }
+      return Promise.resolve({ data: [], error: null });
+    }
+  });
+  const older = s.history();
+  await oldFilesStarted;
+  const newer = s.history();
+  await newer;
+  assert.equal(s.ctx.latestUserMessageId, 'message-2');
+  assert.equal(s.ctx.attachmentHistoryVerified, true);
+  resolveOldFiles({ data: null, error: { message: 'Stale synthetic metadata failure' } });
+  await older;
+  assert.equal(s.ctx.latestUserMessageId, 'message-2');
+  assert.equal(s.ctx.attachmentHistoryVerified, true, 'Stale failure must not disable a newer verified history');
+  assert.equal(s.nodes.retry.hidden, false);
+  assert.doesNotMatch(s.warning, /История файлов временно недоступна/);
 });
