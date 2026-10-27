@@ -226,3 +226,11 @@ test('positive caps tolerate only floating-point roundoff, not actual over-alloc
   assert.equal(exceeded.withinBudget, false);
   assert.equal(exceeded.withinRisk, false);
 });
+
+test('unrepresentable portfolio percentages fail closed instead of showing Infinity', () => {
+  assert.throws(() => compute(1e-300, 10, 10, [p('A', 1e12, 5)]), /Невозможно рассчитать долю позиции/);
+  const empty = compute(Number.MIN_VALUE, 100, 100, []);
+  assert.equal(empty.largestPct, 0, 'An empty portfolio remains mathematically valid');
+  const normal = compute(1_000_000, 10, 0.5, [p('A', 25_000, 5)]);
+  assert.equal(normal.details[0].portfolioPct, 2.5);
+});
