@@ -154,7 +154,7 @@ function renderFocus(list,today){
  for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');if(task.due_date&&task.due_date<today)meta.className='overdue';meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date,today,task.status);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.disabled=pendingTaskChanges.has(task.id);btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
- if(taskVoiceEngine)stopTaskDictation(true);
+ if(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine)stopTaskDictation(true);
  $('brain-mic').disabled=true;
  $('brain-voice-status').textContent='';
  try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
@@ -292,7 +292,7 @@ function review(data){
 }
 async function organize(){
  if(busy)return;
- if(taskVoiceEngine)stopTaskDictation();
+ if(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine)stopTaskDictation();
  const ownerId=user?.id,sessionEpoch=authRevision;
  if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
  const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
@@ -436,7 +436,7 @@ async function init(){
  if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
  db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
- user=data.user;$('brain-mic').disabled=false;consumeTaskTransfer(user.id);filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();
+ user=data.user;consumeTaskTransfer(user.id);$('brain-mic').disabled=false;filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();
  $('brain-mic').onclick=toggleTaskDictation;$('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('export-calendar').onclick=exportCalendar;$('export-csv').onclick=exportCsv;$('edit-form').addEventListener('submit',submitTaskEditor);$('close-editor').onclick=()=>$('task-editor').classList.add('hidden');$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
 }
 init().catch(e=>feedback('Ошибка: '+e.message));
