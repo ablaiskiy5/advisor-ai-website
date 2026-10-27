@@ -9,15 +9,15 @@ function productionSlice(start, end) {
   assert.ok(a > 0 && b > a, 'Production source boundaries must exist');
   return html.slice(a, b);
 }
-const helpers = productionSlice('function incompleteUploadKey(', 'const error=s=>');
+const helpers = productionSlice('const incompleteUploadFallback=', 'const error=s=>');
 const historySource = productionSlice('async function history()', 'async function requestAI()');
 const requestSource = productionSlice('async function requestAI()', 'const allowedFiles=');
 
-function fixture(messageId = 'synthetic-message', storage = new Map()) {
+function fixture(messageId = 'synthetic-message', storage = new Map(), storageDisabled = false) {
   const sessionStorage = {
-    setItem(k, v) { storage.set(k, v); },
-    getItem(k) { return storage.get(k) ?? null; },
-    removeItem(k) { storage.delete(k); }
+    setItem(k, v) { if (storageDisabled) throw Error('disabled'); storage.set(k, v); },
+    getItem(k) { if (storageDisabled) throw Error('disabled'); return storage.get(k) ?? null; },
+    removeItem(k) { if (storageDisabled) throw Error('disabled'); storage.delete(k); }
   };
   const helpersContext = { sessionStorage };
   const f = runInNewContext(helpers + '\n;({markIncompleteUpload,incompleteUploadFor,clearIncompleteUpload})', helpersContext);
@@ -89,13 +89,17 @@ test('newer saved user message clears old incomplete marker and restores retry',
   assert.equal(s.nodes.retry.hidden, false);
 });
 
-test('unavailable session storage does not break chat history', async () => {
-  const s = fixture('msg-1');
-  const fail = runInNewContext(helpers + '\n;({markIncompleteUpload,incompleteUploadFor})', {
-    sessionStorage: { setItem() { throw Error('disabled'); }, getItem() { throw Error('disabled'); } }
-  });
-  assert.doesNotThrow(() => fail.markIncompleteUpload('owner-A', 'case-A', 'msg-1'));
-  assert.equal(fail.incompleteUploadFor('owner-A', 'case-A'), null);
+test('disabled session storage still blocks paid AI retry in the current page', async () => {
+  const s = fixture('msg-1', new Map(), true);
+  assert.doesNotThrow(() => s.f.markIncompleteUpload('owner-A', 'case-A', 'msg-1'));
+  assert.equal(s.f.incompleteUploadFor('owner-A', 'case-A'), 'msg-1');
+  assert.equal(s.storage.size, 0, 'No data was written to disabled browser storage');
+  assert.equal(s.f.incompleteUploadFor('owner-B', 'case-A'), null);
+  assert.equal(s.f.incompleteUploadFor('owner-A', 'case-B'), null);
   await s.history();
-  assert.equal(s.nodes.retry.hidden, false);
+  assert.equal(s.nodes.retry.hidden, true);
+  await s.requestAI();
+  assert.equal(s.aiCalls, 0, 'Blocked storage must not allow a paid retry in the current page');
+  s.f.clearIncompleteUpload('owner-A', 'case-A', 'msg-1');
+  assert.equal(s.f.incompleteUploadFor('owner-A', 'case-A'), null);
 });
