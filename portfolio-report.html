@@ -15,7 +15,31 @@ h1{font-size:32px;margin:24px 0 6px}h2{font-size:18px;margin:0 0 14px}.sub{color
 @media(max-width:720px){main{padding:19px 12px 45px}h1{font-size:25px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:15px}.tile strong{font-size:17px}}
 @media print{@page{size:A4;margin:16mm} :root{font:10pt Arial,sans-serif;color:#101827;background:white;color-scheme:light}body{background:white;color:#101827}main{width:auto;max-width:none;padding:0}.no-print{display:none!important}#report{display:block!important}.panel{border:1px solid #ced5df;background:white;break-inside:avoid;margin:14px 0;padding:13px}.grid{gap:6px}.tile{background:white;border:1px solid #c8d0dd;padding:10px}.tile small{color:#526278}.tile strong{font-size:16px}th,td{border-color:#d7dee8;color:#111}th{color:#35445d}h1{font-size:23px;margin:10px 0}.sub,.foot{color:#526278}.notice{background:white;color:#333;border:1px solid #bbb}.tablewrap{overflow:visible}table{font-size:9pt}tr{break-inside:avoid}}
 @media print{body.report-session-ended #report{display:none!important}}
-a.workspace-dock{position:fixed;left:14px;bottom:14px;z-index:999;display:inline-flex;align-items:center;min-height:46px;padding:10px 16px;border-radius:11px;border:1px solid #98b6f4;background:#304f86;color:#fff!important;text-decoration:none;font-weight:750;box-shadow:0 7px 25px #0008}a.workspace-dock:hover{background:#4168a6}a.workspace-dock:focus-visible{outline:3px solid #dbe8ff;outline-offset:3px}@media(max-width:600px){a.workspace-dock{position:sticky;display:flex;top:0;left:0;bottom:auto;width:100%;justify-content:center;border-radius:0;border-left:0;border-right:0;box-shadow:0 4px 18px #0009}}@media print{a.workspace-dock{display:none!important}}</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a><main>
+a.workspace-dock{position:fixed;left:14px;bottom:14px;z-index:999;display:inline-flex;align-items:center;min-height:46px;padding:10px 16px;border-radius:11px;border:1px solid #98b6f4;background:#304f86;color:#fff!important;text-decoration:none;font-weight:750;box-shadow:0 7px 25px #0008}a.workspace-dock:hover{background:#4168a6}a.workspace-dock:focus-visible{outline:3px solid #dbe8ff;outline-offset:3px}@media(max-width:600px){a.workspace-dock{position:sticky;display:flex;top:0;left:0;bottom:auto;width:100%;justify-content:center;border-radius:0;border-left:0;border-right:0;box-shadow:0 4px 18px #0009}}@media print{a.workspace-dock{display:none!important}}
+/* Unified Advisor AI light, readable research tools */
+:root{background:#f3f6fb;color:#1d314f;color-scheme:light;font-size:15px}
+body{background:#f3f6fb;color:#1d314f}
+main{max-width:1160px;padding:28px clamp(15px,3vw,35px) 85px}
+h1{font-size:clamp(26px,3.6vw,37px);letter-spacing:-.5px;color:#193452;line-height:1.22}
+h2{color:#203c60;line-height:1.3}
+a{color:#2865ad}.brand,.top,.head{color:#284362}.brand span{color:#356ec7}
+.sub,.muted,.hint,.note,.foot,.scenario-note,.quiet{color:#617792;line-height:1.7}
+.panel{background:#fff;border:1px solid #dce6f2;border-radius:18px;box-shadow:0 6px 24px rgba(25,59,99,.05);padding:23px}
+.tile,.metric,.item{background:#f8fbff;border:1px solid #dce6f1;border-radius:12px;color:#25405f}
+.tile strong,.metric strong,.metric b{color:#1b4679}
+.tile small,.metric small{color:#6c829d}
+input,select,textarea,.scenario-controls input{background:#fff;color:#253b57;border:1px solid #c6d8eb;border-radius:10px;padding:11px}
+label,.scenario-controls label{color:#536e90}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #a6c9ff;outline-offset:2px}
+button,.button,.btn{background:#eef5fd;color:#2a527e;border:1px solid #c9dcf4;border-radius:10px}
+button.primary,.button.primary,.btn.primary{background:#346bc5;border-color:#346bc5;color:#fff}
+table{border-collapse:collapse}td,th{border-bottom:1px solid #dfe8f2;color:#29405e}th{background:#eaf2fd;color:#335c8d;font-weight:750}
+.notice,.warn{border:1px solid #e8d8b2;background:#fff8ea;color:#805e26;border-radius:10px}
+.error,.scenario-error{color:#a53932}.success{background:#eaf7ee;color:#267147;border-color:#a9d9b7}.green{color:#23754e}.red{color:#ad4032}.dim{color:#7488a0}.caution{color:#926420}
+.status{color:#456b99}
+@media(max-width:720px){main{padding:16px 12px 70px}.panel{padding:15px}h1{font-size:27px}}
+@media print{body,:root{background:white!important;color:#111!important}.panel,.tile,.metric,.item{background:white!important;color:#111!important;box-shadow:none!important;border-color:#bbb!important}th,td{color:#111!important}.note,.foot,.sub,.muted{color:#444!important}input,select,textarea{background:white!important;color:#111!important}}
+</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a><main>
 <div class="header no-print"><div class="brand">◈ Advisor <span>AI</span></div><a id="back" href="./workspace.html">← К карточке кейса</a></div>
 <div class="no-print"><h1>Отчёт по портфелю</h1><p class="sub">Отчёт строится только по сохранённым позициям. Никаких онлайн-котировок, скрытых допущений или дополнительных AI-запросов.</p><p id="status">Загружаю портфель…</p><div class="actions"><button id="print" class="button primary" disabled>Печать / сохранить PDF</button><button id="download" class="button" disabled>Скачать CSV позиций</button></div></div>
 <article id="report" aria-label="Аналитический отчёт">
