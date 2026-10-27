@@ -154,10 +154,10 @@ function renderFocus(list,today){
  for(const task of rows){const div=document.createElement('div');div.className='task';const name=document.createElement('h3');name.textContent=task.title;const meta=document.createElement('p');if(task.due_date&&task.due_date<today)meta.className='overdue';meta.textContent=areas[task.area]+' · '+priorities[task.priority]+' · '+dateLabel(task.due_date,today,task.status);div.append(name,meta);const btn=document.createElement('button');btn.className='btn';btn.textContent='✓ Выполнено';btn.disabled=pendingTaskChanges.has(task.id);btn.onclick=()=>change(task,{status:'done'});div.append(btn);root.append(div)}
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
+ try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
  if(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine)stopTaskDictation(true);
  $('brain-mic').disabled=true;
  $('brain-voice-status').textContent='';
- try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
  loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;busy=false;pendingTaskChanges.clear();
   $('organize').disabled=false;$('save-drafts').disabled=false;
  $('brain').value='';$('drafts').textContent='';$('edit-title').value='';$('edit-description').value='';
