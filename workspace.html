@@ -200,7 +200,7 @@ function parseHoldings(text){
  if(lines.length>151)throw Error('Максимум 150 строк за один раз.');
  const rows=[];let seen=new Set();
  for(let k=0;k<lines.length;k++){
-  const v=lines[k].split(/[;\t]/).map(x=>x.trim());if(k===0&&/тикер|ticker|symbol/i.test(v[0]))continue;
+  const v=lines[k].split(/[;\t]/).map(x=>x.trim());if(k===0&&/^(?:тикер|ticker|symbol)$/i.test(v[0])&&/^(?:количество|quantity|qty|shares|units|шт(?:ук)?)$/i.test(v[1]||'')&&/^(?:цена|price|unit[\s_-]*price|last[\s_-]*price)/i.test(v[2]||''))continue;
   const isBond=/^BOND:/i.test(v[0]);const symbol=isBond?v[0].slice(5):v[0];
   if(v.length!==(isBond?4:3))throw Error('Строка '+(k+1)+': для акции три колонки, для BOND: четыре (с дюрацией).');
   const [ticker,qtyText,priceText,durationText]=v;

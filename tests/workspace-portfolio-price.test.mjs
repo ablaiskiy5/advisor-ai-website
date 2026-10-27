@@ -68,3 +68,20 @@ test('manual holdings reject ambiguous thousands commas without changing decimal
   assert.equal(parseHoldings('AAPL; 1000; 10').total, 10000);
   assert.equal(parseHoldings('AAPL; 2; 0,125').total, 0.25);
 });
+
+test('first portfolio holding is not silently mistaken for a CSV header', () => {
+  const bond = parseHoldings('BOND:TICKER2027; 1; 950; 4\nAAPL; 1; 100');
+  assert.equal(bond.rows.length, 2);
+  assert.equal(bond.total, 1050);
+  assert.equal(bond.bondValue, 950);
+
+  const stock = parseHoldings('SYMBOL; 2; 100\nAAPL; 1; 50');
+  assert.equal(stock.rows.length, 2);
+  assert.equal(stock.total, 250);
+
+  // A real header is still supported, including English and Russian column names.
+  assert.equal(parseHoldings('Ticker; Quantity; Price USD\nAAPL; 2; 100').total, 200);
+  assert.equal(parseHoldings('Тикер; Количество; Цена\nAAPL; 2; 100').total, 200);
+  // A valid literal ticker named TICKER must not be treated as a header.
+  assert.equal(parseHoldings('TICKER; 2; 100\nAAPL; 1; 50').total, 250);
+});
