@@ -297,7 +297,7 @@ function resetChatSession(){
  setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
  error('');waiting(false);
 }
-async function history(){if(!db||!caseData||!user)return;attachmentHistoryVerified=false;const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+async function history(){if(!db||!caseData||!user)return;attachmentHistoryVerified=false;$('retry').classList.add('hidden');const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
  latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
