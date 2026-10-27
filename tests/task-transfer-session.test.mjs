@@ -79,3 +79,19 @@ test('oversized handoff cannot consume a paid AI parse request',async()=>{
  assert.equal(elements.organize.disabled,false);
  assert.match(notices.at(-1),/не более 10 000 символов/);
 });
+
+test('chat-to-task handoff retains all tasks beyond the AI 10k input limit',async()=>{
+ const a=chatHarness();
+ const fullText='Synthetic task; '.repeat(750);
+ assert.ok(fullText.length>10000);
+ const pending=a.transfer();
+ a.reply([{role:'user',content:fullText}]);
+ await pending;
+ const raw=a.staged.getItem('advisor_ai_task_brain_dump');
+ assert.ok(raw,'Transfer payload must exist');
+ assert.equal(JSON.parse(raw).text,fullText,'No tasks may be silently discarded during handoff');
+ const b=receiver(raw);
+ assert.equal(b.consume('owner-a'),true);
+ assert.equal(b.brain.value,fullText,'All tasks remain available for review and splitting');
+ assert.match(b.notices.at(-1),/10 000 символов/);
+});
