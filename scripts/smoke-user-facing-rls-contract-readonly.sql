@@ -1,7 +1,7 @@
 -- Read-only drift audit for the five owner-scoped Workspace tables.
 -- Run with a trusted administrative SQL connection. No private rows are read.
 -- PASS checks the CURRENT policy shape, not owner-positive browser behavior.
--- The TRUNCATE count is a separate defense-in-depth review signal:
+-- TRUNCATE and callable-RPC metadata are separate defense-in-depth signals:
 -- RLS does not apply to TRUNCATE, but this audit does not establish a browser
 -- exploit path. Do not alter live grants without an approved migration/review.
 -- Re-run after intended RLS changes and update the expected command sets.
@@ -22,6 +22,12 @@ WITH expected(table_name, expected_commands, expected_count) AS (
         CASE WHEN c.oid IS NULL THEN false ELSE
           has_table_privilege('authenticated', c.oid, 'TRUNCATE')
         END AS authenticated_can_truncate,
+        -- Separate explicit ACL grants from inherited/effective privileges.
+        COALESCE((SELECT bool_or(a.privilege_type='TRUNCATE'
+          AND a.grantee=(SELECT oid FROM pg_roles WHERE rolname='authenticated'))
+          FROM aclexplode(c.relacl) a), false) AS direct_authenticated_truncate,
+        COALESCE((SELECT bool_or(a.privilege_type='TRUNCATE' AND a.grantee=0)
+          FROM aclexplode(c.relacl) a), false) AS public_truncate,
         (SELECT count(*) FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=e.table_name) AS policy_count,
         (SELECT string_agg(p.cmd, ',' ORDER BY p.cmd) FROM pg_policies p
          WHERE p.schemaname='public' AND p.tablename=e.table_name) AS commands,
@@ -43,6 +49,19 @@ SELECT count(*) AS expected_table_count,
  CASE WHEN count(*)=5 AND bool_and(table_exists AND rls_enabled AND no_anonymous_grants
    AND policy_count=expected_count AND commands=expected_commands AND policies_owner_scoped)
  THEN 'PASS' ELSE 'FAIL' END AS owner_policy_contract,
- count(*) FILTER (WHERE authenticated_can_truncate) AS authenticated_truncate_grants
+ count(*) FILTER (WHERE authenticated_can_truncate) AS authenticated_truncate_grants,
+ count(*) FILTER (WHERE direct_authenticated_truncate) AS direct_authenticated_truncate_grants,
+ count(*) FILTER (WHERE public_truncate) AS public_truncate_grants,
+ -- Metadata only: a callable public RPC may be a separate SQL execution route.
+ -- These counts do NOT prove that other API paths are safe.
+ (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND has_function_privilege('authenticated',p.oid,'EXECUTE'))
+  AS authenticated_callable_public_functions,
+ (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.prosecdef
+    AND has_function_privilege('authenticated',p.oid,'EXECUTE'))
+  AS authenticated_callable_public_definer_functions,
+ has_schema_privilege('authenticated','public','CREATE')
+  AS authenticated_can_create_public_objects
 FROM audited;
 ROLLBACK;

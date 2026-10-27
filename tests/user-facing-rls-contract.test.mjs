@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const sql = readFileSync(new URL('../scripts/smoke-user-facing-rls-contract-readonly.sql', import.meta.url), 'utf8');
-const uncommented = sql.replace(/^--.*$/gm, '');
+const uncommented = sql.replace(/^\s*--.*$/gm, '');
 const unquoted = uncommented.replace(/'[^']*'/g, "''");
 
 test('owner-facing policy drift audit is read-only and rolled back', () => {
@@ -38,4 +38,17 @@ test('unexpected policies, owner-check drift or missing tables cannot produce PA
 test('SQL-only TRUNCATE privileges are surfaced for review without changing grants', () => {
   assert.ok(uncommented.includes("has_table_privilege('authenticated', c.oid, 'TRUNCATE')"));
   assert.match(uncommented, /count\(\*\) FILTER \(WHERE authenticated_can_truncate\) AS authenticated_truncate_grants/);
+});
+
+test('SQL privilege review distinguishes direct TRUNCATE grants and callable public functions', () => {
+  assert.match(uncommented, /aclexplode\(c\.relacl\)/);
+  assert.match(uncommented, /AS direct_authenticated_truncate/);
+  assert.match(uncommented, /AS public_truncate/);
+  assert.match(uncommented, /AS direct_authenticated_truncate_grants/);
+  assert.match(uncommented, /AS public_truncate_grants/);
+  assert.match(uncommented, /has_function_privilege\('authenticated',p\.oid,'EXECUTE'\)/);
+  assert.match(uncommented, /p\.prosecdef/);
+  assert.match(uncommented, /AS authenticated_callable_public_definer_functions/);
+  assert.match(uncommented, /has_schema_privilege\('authenticated','public','CREATE'\)/);
+  assert.doesNotMatch(uncommented, /\b(?:prosrc|pg_get_functiondef|pg_get_function_identity_arguments)\b/i);
 });
