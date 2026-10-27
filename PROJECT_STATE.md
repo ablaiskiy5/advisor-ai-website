@@ -1,3 +1,11 @@
+## Pilot onboarding and AI task workflow — 2026-10-27
+
+- User-reported screenshots exposed confusing registration, hard-to-find Workspace return links, and AI task/portfolio 403 denials on a newly registered confirmed account.
+- Merged **#166** (registration-first explanations and prominent Workspace links), **#167** (Russian-language Supabase auth 429 / retry guidance), **#168** (AI-generated task proposals grouped by sphere and priority with a count summary and approval preserved), and **#169** (persistent left-side Workspace link in six standalone work areas; mobile sticky header; hidden on print). Associated PR CI gates passed prior to merge.
+- Live Supabase account audit showed exactly **2 registered confirmed users**, of whom **1** was initially allowlisted; exactly **1** confirmed account was created on Oct 27 and missing pilot AI access. Inserted precisely that sole eligible recently registered account into `advisor_ai_allowed_emails` using a uniqueness-guarded query. Follow-up count confirmed **2 allowlisted / 2 confirmed accounts**. No bulk grant, no global-open access, no quotas or client data changed. Identity of the new user must be confirmed with the inviting colleague; no authenticated live AI invocation was performed.
+- Deployed `advisor-ai-organize-tasks` **v3** already returns area/priority/due_date/description in structured output; the front end previously displayed a flat editable review. The new grouped review makes classification apparent but does **not** bypass the API allowlist or confirm model output quality.
+- Outstanding launch gates: two real browsers/sessions independently verify signup and cross-user isolation, actual paid AI chat + organizer response, file uploads, exports and mobile navigation. Enable leaked-password protection in Supabase dashboard. Never describe the pilot as compliance-approved for confidential client records without independent checks.
+
 ## Verified core synchronization — 2026-10-27
 
 - Compared the owned private plugin release **2.2.0** `skills/instructions/SKILL.md` to the deployed `advisor-ai-chat` **v27** embedded `pluginSkillInstructions`: exact string match (9,364 characters). This is shared instructional content, **not** direct access to the private plugin or to client cases.
