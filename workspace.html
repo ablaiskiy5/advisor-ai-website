@@ -435,6 +435,8 @@ async function importData(file){
  if(!file)return;
  const importRevision=authRevision,importOwner=session?.user?.id||null;
  const importIsCurrent=()=>authRevision===importRevision&&(session?.user?.id||null)===importOwner;
+ // A large JSON backup can freeze mobile browsers before record-count validation runs.
+ if(file.size>64*1024*1024){if(importIsCurrent())toast('Файл копии больше 64 МБ. Раздели JSON-копию на части перед импортом.');return}
  let parsed;
  try{parsed=JSON.parse(await file.text())}
  catch{if(importIsCurrent())toast('Файл не является JSON');return}
