@@ -82,7 +82,7 @@ test('oversized handoff cannot consume a paid AI parse request',async()=>{
 
 test('chat-to-task handoff retains all tasks beyond the AI 10k input limit',async()=>{
  const a=chatHarness();
- const fullText='Synthetic task; '.repeat(750);
+ const fullText='Synthetic task; '.repeat(750).trim();
  assert.ok(fullText.length>10000);
  const pending=a.transfer();
  a.reply([{role:'user',content:fullText}]);
