@@ -13,7 +13,8 @@ const helpers = productionSlice('const incompleteUploadFallback=', 'const error=
 const historySource = productionSlice('async function history()', 'async function requestAI()');
 const requestSource = productionSlice('async function requestAI()', 'const allowedFiles=');
 
-function fixture(messageId = 'synthetic-message', storage = new Map(), storageDisabled = false) {
+function fixture(messageId = 'synthetic-message', storage = new Map(), storageDisabled = false, attachmentError = false) {
+  let failAttachmentHistory = attachmentError;
   const sessionStorage = {
     setItem(k, v) { if (storageDisabled) throw Error('disabled'); storage.set(k, v); },
     getItem(k) { if (storageDisabled) throw Error('disabled'); return storage.get(k) ?? null; },
@@ -34,7 +35,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
       from(table) {
         const result = table === 'advisor_ai_messages'
           ? { data: [{ id: messageId, role: 'user', content: 'Synthetic input', created_at: '2026-10-27' }], error: null }
-          : { data: [], error: null };
+          : { data: [], error: failAttachmentHistory ? { message: 'synthetic attachment metadata outage' } : null };
         const builder = {
           select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; },
           limit() { return Promise.resolve(result); }
@@ -45,6 +46,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
     },
     user: { id: 'owner-A' }, caseData: { id: 'case-A' }, caseId: 'case-A',
     sessionEpoch: 1, working: false, lastAnswer: '', latestUserMessageId: null,
+    attachmentHistoryVerified: false,
     exhaustedRetryMessages: new Set(),
     isCurrentChat(epoch, owner) { return epoch === 1 && owner === ctx.user.id; },
     waiting() {}, bubble() { return { append() {} }; },
@@ -54,7 +56,9 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
   };
   const history = runInNewContext(historySource + '\n;history', ctx);
   const requestAI = runInNewContext(requestSource + '\n;requestAI', ctx);
-  return { ctx, f, nodes, history, requestAI, storage, get warning() { return warning; }, get aiCalls() { return aiCalls; } };
+  return { ctx, f, nodes, history, requestAI, storage,
+    setAttachmentError(value) { failAttachmentHistory = value; },
+    get warning() { return warning; }, get aiCalls() { return aiCalls; } };
 }
 
 test('partial upload marker survives a simulated page reload without storing file data', async () => {
@@ -102,4 +106,20 @@ test('disabled session storage still blocks paid AI retry in the current page', 
   assert.equal(s.aiCalls, 0, 'Blocked storage must not allow a paid retry in the current page');
   s.f.clearIncompleteUpload('owner-A', 'case-A', 'msg-1');
   assert.equal(s.f.incompleteUploadFor('owner-A', 'case-A'), null);
+});
+
+test('attachment metadata failure hides retry and blocks paid AI until a successful history refresh', async () => {
+  const s = fixture('msg-1', new Map(), false, true);
+  await s.history();
+  assert.equal(s.ctx.attachmentHistoryVerified, false);
+  assert.equal(s.nodes.retry.hidden, true, 'Never offer AI retry with unverified attachment history');
+  assert.match(s.warning, /История файлов временно недоступна/);
+  await s.requestAI();
+  assert.equal(s.aiCalls, 0, 'No paid AI call when attachment metadata is unavailable');
+  assert.match(s.warning, /не удалось проверить историю вложений/);
+
+  s.setAttachmentError(false);
+  await s.history();
+  assert.equal(s.ctx.attachmentHistoryVerified, true);
+  assert.equal(s.nodes.retry.hidden, false, 'Retry becomes available after metadata is verified');
 });
