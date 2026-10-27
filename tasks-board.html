@@ -186,6 +186,7 @@ async function submitTaskEditor(event){
   if(!editorId&&(typeof result.data?.id!=='string'||!result.data.id||result.data.user_id!==ownerId))throw Error('Создание задачи не подтверждено сервером. Обнови список перед повтором.');
   // The owner-scoped write has already been confirmed. A refresh failure must
   // not tell the user to save again, which could create a duplicate task.
+  $('edit-note').textContent='';
   $('task-editor').classList.add('hidden');editingId=null;
   try{await load()}
   catch(refreshError){
