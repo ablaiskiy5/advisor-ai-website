@@ -21,7 +21,7 @@ test('signed in account keeps backup and refresh behind optional advanced sectio
 });
 test('registration has no technical JSON controls',()=>{
  const html=settings(false);
- assert.match(html,/Создать аккаунт/);
+ assert.match(html,/① Зарегистрироваться/);
  assert.doesNotMatch(html,/Импорт JSON|Скачать копию кейсов|Повторно загрузить кейсы/);
 });
 test('password recovery stays accessible',()=>{
