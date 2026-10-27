@@ -98,6 +98,6 @@ async function run(){
  await reject('portfolio_concentration',{holdings:[]},'Empty holdings');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:-1,modified_duration:5,yield_change_bp:100},'Negative bond notional');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:10001},'Yield shock beyond limit');
- console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 17 rejection checks');
+ console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 18 rejection checks');
 }
 run().catch(error=>{console.error(error.message);process.exitCode=1});
