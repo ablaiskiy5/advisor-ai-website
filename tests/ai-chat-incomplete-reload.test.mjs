@@ -13,8 +13,9 @@ const helpers = productionSlice('const incompleteUploadFallback=', 'const error=
 const historySource = productionSlice('async function history()', 'async function requestAI()');
 const requestSource = productionSlice('async function requestAI()', 'const allowedFiles=');
 
-function fixture(messageId = 'synthetic-message', storage = new Map(), storageDisabled = false, attachmentError = false) {
+function fixture(messageId = 'synthetic-message', storage = new Map(), storageDisabled = false, attachmentError = false, messageError = false) {
   let failAttachmentHistory = attachmentError;
+  let failMessageHistory = messageError;
   const sessionStorage = {
     setItem(k, v) { if (storageDisabled) throw Error('disabled'); storage.set(k, v); },
     getItem(k) { if (storageDisabled) throw Error('disabled'); return storage.get(k) ?? null; },
@@ -34,7 +35,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
     db: {
       from(table) {
         const result = table === 'advisor_ai_messages'
-          ? { data: [{ id: messageId, role: 'user', content: 'Synthetic input', created_at: '2026-10-27' }], error: null }
+          ? { data: failMessageHistory ? null : [{ id: messageId, role: 'user', content: 'Synthetic input', created_at: '2026-10-27' }], error: failMessageHistory ? { message: 'synthetic message history outage' } : null }
           : { data: [], error: failAttachmentHistory ? { message: 'synthetic attachment metadata outage' } : null };
         const builder = {
           select() { return this; }, eq() { return this; }, in() { return this; }, order() { return this; },
@@ -58,6 +59,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
   const requestAI = runInNewContext(requestSource + '\n;requestAI', ctx);
   return { ctx, f, nodes, history, requestAI, storage,
     setAttachmentError(value) { failAttachmentHistory = value; },
+    setMessageError(value) { failMessageHistory = value; },
     get warning() { return warning; }, get aiCalls() { return aiCalls; } };
 }
 
@@ -122,4 +124,18 @@ test('attachment metadata failure hides retry and blocks paid AI until a success
   await s.history();
   assert.equal(s.ctx.attachmentHistoryVerified, true);
   assert.equal(s.nodes.retry.hidden, false, 'Retry becomes available after metadata is verified');
+});
+
+test('message history failure also hides stale retry and blocks paid AI', async () => {
+  const s = fixture('msg-1', new Map(), false, false, true);
+  await s.history();
+  assert.equal(s.ctx.attachmentHistoryVerified, false);
+  assert.equal(s.nodes.retry.hidden, true);
+  assert.match(s.warning, /Ошибка загрузки истории/);
+  await s.requestAI();
+  assert.equal(s.aiCalls, 0);
+  s.setMessageError(false);
+  await s.history();
+  assert.equal(s.ctx.attachmentHistoryVerified, true);
+  assert.equal(s.nodes.retry.hidden, false);
 });
