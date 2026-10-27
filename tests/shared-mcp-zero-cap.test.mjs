@@ -51,3 +51,17 @@ test('ordinary ten-percent budget and other calculators preserve existing behavi
   assert.ok(Math.abs(calculate('portfolio_concentration', {holdings:[{ticker:'A',value:70},{ticker:'B',value:30}]}).hhi - 0.58) < 1e-10);
   assert.equal(calculate('bond_duration_shock', {portfolio_usd:1_000_000,bond_usd:300_000,modified_duration:5,yield_change_bp:100}).change_usd, -15_000);
 });
+
+test('non-finite position percentages fail closed instead of serializing as null', () => {
+  assert.throws(() => calculate('trade_risk_budget', {
+    portfolio_usd: Number.MIN_VALUE, pool_percent: 10,
+    positions: [{name: 'EXTREME', amount_usd: 1}]
+  }), /Invalid position percentage/);
+  const normal = calculate('trade_risk_budget', {
+    portfolio_usd: 1_000_000, pool_percent: 10,
+    positions: [{name: 'A', amount_usd: 50_000}, {name: 'ZERO', amount_usd: 0}]
+  });
+  assert.equal(normal.positions[0].percent_of_portfolio, 5);
+  assert.equal(normal.positions[1].percent_of_portfolio, 0);
+  assert.equal(normal.within_pool, true);
+});
