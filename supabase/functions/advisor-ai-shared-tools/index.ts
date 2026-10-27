@@ -18,7 +18,7 @@ function calculate(name,a){
  }
  if(name==='trade_risk_budget'){
   const {portfolio_usd,pool_percent,positions}=a;if(!finite(portfolio_usd)||portfolio_usd<=0||portfolio_usd>1e15||!finite(pool_percent)||pool_percent<0||pool_percent>100||!Array.isArray(positions)||positions.length>50)throw Error('Invalid budget');
-  const budget=portfolio_usd*pool_percent/100;let total=0;const details=positions.map(p=>{if(!p||typeof p.name!=='string'||!finite(p.amount_usd)||p.amount_usd<0||p.amount_usd>1e13)throw Error('Invalid position');total+=p.amount_usd;return {name:p.name.slice(0,90),amount_usd:p.amount_usd,percent_of_portfolio:100*p.amount_usd/portfolio_usd}});
+  const budget=portfolio_usd*pool_percent/100;let total=0;const details=positions.map(p=>{if(!p||typeof p.name!=='string'||!finite(p.amount_usd)||p.amount_usd<0||p.amount_usd>1e13)throw Error('Invalid position');const percent=100*p.amount_usd/portfolio_usd;if(!finite(percent))throw Error('Invalid position percentage');total+=p.amount_usd;return {name:p.name.slice(0,90),amount_usd:p.amount_usd,percent_of_portfolio:percent}});
   return {portfolio_usd,pool_percent,budget_usd:budget,allocated_usd:total,remaining_usd:budget-total,within_pool:total<=budget||(budget>0&&total-budget<=8*Number.EPSILON*Math.max(total,budget)),positions:details};
  }
  if(name==='bond_duration_shock'){
