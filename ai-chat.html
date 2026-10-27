@@ -113,7 +113,7 @@ const $=id=>document.getElementById(id),caseId=new URLSearchParams(location.sear
 let db=null,caseData=null,user=null,working=false,lastAnswer='',pendingFiles=[];
 let sessionEpoch=0;
 // Fail closed on AI retry if attachment metadata cannot be verified.
-let attachmentHistoryVerified=false;
+let attachmentHistoryVerified=false,historyRequestSeq=0;
 let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
@@ -286,7 +286,7 @@ function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&u
 function resetChatSession(){
  if(typeof voiceRecognition!=='undefined'&&voiceRecognition)stopDictation(true);
  if($('voice-status'))$('voice-status').textContent='';
- sessionEpoch++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
+ sessionEpoch++;historyRequestSeq++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
  incompleteUploadFallback.clear();
  exhaustedRetryMessages.clear();latestUserMessageId=null;attachmentHistoryVerified=false;
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
@@ -297,7 +297,7 @@ function resetChatSession(){
  setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
  error('');waiting(false);
 }
-async function history(){if(!db||!caseData||!user)return;attachmentHistoryVerified=false;$('retry').classList.add('hidden');const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId))return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+async function history(){if(!db||!caseData||!user)return;const requestSeq=++historyRequestSeq;attachmentHistoryVerified=false;$('retry').classList.add('hidden');const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
  latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
@@ -313,7 +313,7 @@ async function history(){if(!db||!caseData||!user)return;attachmentHistoryVerifi
   attachments=files.data||[];
   attachmentErr=files.error;
  }
- if(!isCurrentChat(epoch,ownerId))return;
+ if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return;
  attachmentHistoryVerified=!attachmentErr;
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message+'. AI-повтор отключён до успешного обновления истории.');
  const incompleteId=incompleteUploadFor(ownerId,caseId);
