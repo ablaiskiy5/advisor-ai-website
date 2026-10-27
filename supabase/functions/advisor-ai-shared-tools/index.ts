@@ -9,7 +9,7 @@ function calculate(name,a){
  if(!a||typeof a!=='object'||Array.isArray(a))throw Error('Arguments must be an object');
  if(name==='bond_current_yield'){
   const {face,coupon_percent,price}=a;if(!finite(face)||face<=0||!finite(coupon_percent)||coupon_percent<0||coupon_percent>100||!finite(price)||price<=0)throw Error('Invalid face, coupon or price');
-  const annual_coupon=face*coupon_percent/100;return {annual_coupon_usd:annual_coupon,current_yield_percent:100*annual_coupon/price,formula:'annual_coupon / price',note:'Current yield is not YTM; ignores maturity, price pull-to-par and default'};
+  const annual_coupon=face*(coupon_percent/100);const current_yield_percent=(annual_coupon/price)*100;if(!finite(annual_coupon)||!finite(current_yield_percent))throw Error('Invalid bond yield result');return {annual_coupon_usd:annual_coupon,current_yield_percent,formula:'annual_coupon / price',note:'Current yield is not YTM; ignores maturity, price pull-to-par and default'};
  }
  if(name==='portfolio_concentration'){
   if(!Array.isArray(a.holdings)||a.holdings.length===0||a.holdings.length>100)throw Error('Holdings: 1–100 entries');
@@ -23,7 +23,7 @@ function calculate(name,a){
  }
  if(name==='bond_duration_shock'){
   const {portfolio_usd,bond_usd,modified_duration,yield_change_bp}=a;if(!finite(portfolio_usd)||portfolio_usd<=0||!finite(bond_usd)||bond_usd<0||bond_usd>portfolio_usd||!finite(modified_duration)||modified_duration<0||modified_duration>100||!finite(yield_change_bp)||Math.abs(yield_change_bp)>10000)throw Error('Invalid duration scenario');
-  const change_usd=-bond_usd*modified_duration*yield_change_bp/10000;return {change_usd,portfolio_change_percent:100*change_usd/portfolio_usd,assumptions:'Linear duration approximation; excludes convexity, spread movements, FX, transaction costs and default'};
+  const change_usd=-bond_usd*(modified_duration*(yield_change_bp/10000));const portfolio_change_percent=(change_usd/portfolio_usd)*100;if(!finite(change_usd)||!finite(portfolio_change_percent))throw Error('Invalid duration result');return {change_usd,portfolio_change_percent,assumptions:'Linear duration approximation; excludes convexity, spread movements, FX, transaction costs and default'};
  }
  throw Error('Unknown tool');
 }
