@@ -70,6 +70,7 @@ async function run(){
  assert(zeroCap.remaining_usd<0,'Positive allocation must exceed a zero pool');
  const zeroEmpty=await invoke('trade_risk_budget',{portfolio_usd:1000000,pool_percent:0,positions:[]});
  equalBoolean(zeroEmpty.within_pool,true,'Zero cap accepts an empty pool');
+ await reject('trade_risk_budget',{portfolio_usd:Number.MIN_VALUE,pool_percent:10,positions:[{name:'EXTREME',amount_usd:1}]},'Non-finite position percentage');
 
  const shock=await invoke('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:100});
  equalNumber(shock.portfolio_change_percent,-1.5,'Duration stress');
@@ -97,6 +98,6 @@ async function run(){
  await reject('portfolio_concentration',{holdings:[]},'Empty holdings');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:-1,modified_duration:5,yield_change_bp:100},'Negative bond notional');
  await reject('bond_duration_shock',{portfolio_usd:1000000,bond_usd:300000,modified_duration:5,yield_change_bp:10001},'Yield shock beyond limit');
- console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 17 rejection checks');
+ console.log('OK: public MCP discovery, 4 allowlisted tools, arithmetic invariants and 18 rejection checks');
 }
 run().catch(error=>{console.error(error.message);process.exitCode=1});
