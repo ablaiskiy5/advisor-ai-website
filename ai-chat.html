@@ -366,7 +366,7 @@ async function send(){
   $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
  }catch(e){
   if(!isCurrentChat(epoch,ownerId))return;
-  // Сохранённое текстовое сообщение остаётся в истории; удаляем неприкреплённые файлы, если возможно.
+  // Сохранённый текст остаётся в истории; повтор AI не восстанавливает недостающие вложения.
   const recovery=messageId?(linkedCount<files.length
    ?'Текст вопроса сохранён, но привязано только '+linkedCount+' из '+files.length+' вложений. «Повторить ответ AI» не загружает отсутствующие файлы: прикрепи их новым сообщением перед анализом.'
    :'Сообщение'+(files.length?' и все вложения сохранены':' сохранено')+'; можно нажать «Повторить ответ AI».'):'';
