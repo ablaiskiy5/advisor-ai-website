@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const sql = readFileSync(new URL('../scripts/smoke-user-facing-rls-contract-readonly.sql', import.meta.url), 'utf8');
-const uncommented = sql.replace(/^--.*$/gm, '');
+const uncommented = sql.replace(/^\s*--.*$/gm, '');
 const unquoted = uncommented.replace(/'[^']*'/g, "''");
 
 test('owner-facing policy drift audit is read-only and rolled back', () => {
