@@ -226,7 +226,19 @@ async function saveDrafts(){
    &&data.every(row=>typeof row?.id==='string'&&row.id.length>0&&row.user_id===ownerId)
    &&new Set(data.map(row=>row.id)).size===selected.length;
   if(!confirmed)throw Error('Сервер не подтвердил все созданные задачи. Обнови список перед повтором, чтобы избежать дублей.');
-  $('review').classList.add('hidden');$('brain').value='';feedback('Сохранено: '+selected.length);await load();
+  // The insert is already confirmed. A failed refresh must never be reported as a failed save.
+  $('review').classList.add('hidden');$('brain').value='';
+  try{await load()}
+  catch(refreshError){
+   if(current()){
+    taskListComplete=false;
+    feedback('Сохранено: '+selected.length+'. Не удалось обновить список: '+(refreshError?.message||'ошибка соединения')+'. Не сохраняй повторно; нажми «Обновить».');
+   }
+   return;
+  }
+  if(current())feedback(taskListComplete
+   ?'Сохранено: '+selected.length+'. Список обновлён.'
+   :'Сохранено: '+selected.length+'. Список не обновлён. Не сохраняй повторно; нажми «Обновить».');
  }catch(e){if(current())feedback('Не удалось сохранить: '+e.message)}
  finally{if(current()){busy=false;$('save-drafts').disabled=false}}
 }
