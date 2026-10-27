@@ -37,8 +37,8 @@ test('unsupported browser provides a manual input fallback',()=>{
  assert.match(h.nodes['brain-voice-status'].textContent,/не поддерживает диктовку/);
 });
 test('task logout aborts mic; AI parse never auto-sends raw microphone stream',()=>{
- assert.match(html,/if\(taskVoiceEngine\)stopTaskDictation\(true\)/);
+ assert.match(html,/if\(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine\)stopTaskDictation\(true\)/);
  assert.match(html,/id="brain-mic"/);
  assert.match(html,/id="brain-voice-status" role="status"/);
- assert.match(html,/if\(taskVoiceEngine\)stopTaskDictation\(\)/);
+ assert.match(html,/if\(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine\)stopTaskDictation\(\)/);
 });
