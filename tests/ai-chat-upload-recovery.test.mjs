@@ -19,7 +19,7 @@ function scenario({ files = 2, failUploadAt = 0, failLinkAt = 0, failHistory = f
   }));
   const ctx = {
     user: { id: 'synthetic-owner' }, caseData: { id: 'synthetic-case' },
-    caseId: 'synthetic-case', sessionEpoch: 1, working: false, pendingFiles,
+    caseId: 'synthetic-case', sessionEpoch: 1, working: false, voiceRecognition: null, pendingFiles,
     allowedFiles: { 'application/pdf': '.pdf' },
     crypto: { randomUUID: () => 'synthetic-uuid-' + counters.uploads },
     mimeForFile: () => 'application/pdf',
