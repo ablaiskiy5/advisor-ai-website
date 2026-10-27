@@ -1,3 +1,11 @@
+## Chat attachment recovery is explicit about partial uploads — 2026-10-27
+
+- Confirmed defect in `ai-chat.html`: if a user message was saved but an image/PDF upload or its metadata insert failed, the interface suggested `Повторить ответ AI`. That operation does not reupload missing attachments and could lead to an incomplete portfolio/file analysis.
+- [PR #192](https://github.com/ablaiskiy5/advisor-ai-website/pull/192) changes only chat failure guidance: counts attachments confirmed linked to the message; on partial failure tells the user exactly how many linked and to send missing files in a new message **before** asking AI to analyze. If all attachments were linked and only history refresh failed, ordinary AI retry remains available.
+- Five synthetic Node VM regressions cover failed first upload, partial upload, metadata failure, completed upload with failed history refresh, and successful upload/AI path. The first PR CI attempt failed because the new test harness omitted the existing `voiceRecognition` variable; corrected on branch. All three checks passed on the corrected code head: [Integrated Quality Gate](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40511222255), [presentation checks](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40511222258), [DOCX validation](https://github.com/ablaiskiy5/advisor-ai-website/actions/runs/40511222250). Verify final PR-head checks and GitHub Pages independently before claiming deployed release.
+- Scope: static browser feedback and synthetic tests only. No real attachments, client data, plugin release, Supabase schema/RLS/functions, secrets, quotas, trades or outbound messages changed. RLS remains enabled on all nine public tables; independent two-account authenticated E2E remains outstanding.
+- Next: verify all final PR checks, merge if successful, verify merged-main CI and Pages; later test the upload/retry flow with consented synthetic accounts and check orphaned storage objects without deleting any live data.
+
 ## Scenario-first Workspace, light UI and concise AI responses — 2026-10-27
 
 - User/colleague feedback: black-on-dark dense chat unreadable, excessive generic AI prose, universal create-case-then-fill-form flow across every section, cluttered buttons and unattractive/inconsistent visual styling.
