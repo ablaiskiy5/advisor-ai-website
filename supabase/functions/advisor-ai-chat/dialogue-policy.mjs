@@ -29,3 +29,22 @@ export async function askWithReserve(body, ask) {
 export function successfulSearches(output = []) {
   return output.filter(item => item.type === 'web_search_call' && item.status === 'completed').length;
 }
+
+// Read-only provider availability check, cached to avoid repeated provider requests.
+let modelProbeCache;
+export async function probeDialogueModel(model, key, fetcher = fetch, now = Date.now()) {
+  if (modelProbeCache?.model === model && modelProbeCache.until > now) return modelProbeCache.promise;
+  const promise = (async () => {
+    if (!key) return null;
+    try {
+      const response = await fetcher('https://api.openai.com/v1/models/' + encodeURIComponent(model), {
+        headers: {Authorization: 'Bearer ' + key}, signal: AbortSignal.timeout(5000)
+      });
+      if (response.ok) return true;
+      if (response.status === 404) return false;
+      return null; // Auth/rate/network errors do not establish model access.
+    } catch { return null; }
+  })();
+  modelProbeCache = {model, until: now + 300000, promise};
+  return promise;
+}

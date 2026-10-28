@@ -1,6 +1,6 @@
 ## Stronger dialogue/search — 2026-10-28
 
-Prepared chat-only GPT-6 Astra policy, live high-context search and explicit unavailable-model reserve. Existing request quotas/Auth/RLS and task model preserved. 409 Node tests and stress/presentation checks pass. See docs/DIALOGUE_MODEL_UPGRADE.md for pricing, reproducibility and limits. Release/deployment verification pending.
+Prepared chat-only GPT-6 Astra policy, live high-context search and explicit unavailable-model reserve. Existing request quotas/Auth/RLS and task model preserved. PR #232 merged as d48c893199fa6e7750672fe939131966f9791ea0; PR/main integrated CI and Pages run 40685305358 passed. Chat v29 ACTIVE with verify_jwt=true and exact source/module readback. Live public metadata GET=200 and unsigned POST=401. Both actual transformed handler paths passed synthetic tests (flagship and explicit model reserve). 410 Node tests pass after adding cached read-only model-availability metadata; deployment of that probe pending. See docs/DIALOGUE_MODEL_UPGRADE.md for pricing, reproducibility and limits. Real-account response/search quality remains unverified.
 
 ## Section workbenches instead of automatic chat redirects — 2026-10-28
 
