@@ -467,18 +467,27 @@ async function saveResult(){
  if(!answer)return;
  const btn=$('save-result');btn.disabled=true;$('result-status').textContent='Сохраняю итог в карточке…';
  try{
-  const {data:fresh,error:readError}=await db.from('workspace_items').select('notes').eq('id',caseId).eq('user_id',ownerId).single();
+  const {data:fresh,error:readError}=await db.from('workspace_items').select('notes,updated_at').eq('id',caseId).eq('user_id',ownerId).single();
   if(!isCurrentChat(epoch,ownerId))return;
   if(readError)throw readError;
+  if(!fresh)throw Error('Карточка недоступна. Обнови страницу перед сохранением.');
+  const readVersion=fresh.updated_at;
+  if(readVersion!==null&&(typeof readVersion!=='string'||!Number.isFinite(Date.parse(readVersion))))throw Error('Не удалось проверить версию карточки. Обнови страницу.');
   const prior=fresh.notes||'';
   if(prior.includes(answer)){$('result-status').textContent='Этот ответ уже сохранён в заметках кейса.';return}
   const header='Итог Advisor AI · '+new Date().toLocaleString('ru-RU');
   const addition='\n\n──── '+header+' ────\n'+answer;
   const notes=(prior+addition).trim();
   if(notes.length>50000)throw Error('В карточке уже слишком много текста. Скачай итог файлом.');
-  const {data:updated,error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId).eq('user_id',ownerId).select('id,notes').single();
+  // Compare-and-swap: reject a stale summary instead of overwriting another tab's changes.
+  const updatedAt=new Date(Math.max(Date.now(),readVersion===null?0:Date.parse(readVersion)+1)).toISOString();
+  let write=db.from('workspace_items').update({notes,updated_at:updatedAt}).eq('id',caseId).eq('user_id',ownerId);
+  write=readVersion===null?write.is('updated_at',null):write.eq('updated_at',readVersion);
+  const {data:updated,error:updateError}=await write.select('id,notes').single();
   if(!isCurrentChat(epoch,ownerId))return;
+  if(updateError?.code==='PGRST116')throw Error('Карточка изменилась или недоступна. Обнови её и повтори сохранение.');
   if(updateError)throw updateError;
+  if(!updated)throw Error('Карточка изменилась или недоступна. Обнови её и повтори сохранение.');
   if(updated?.id!==caseId||updated?.notes!==notes)throw Error('Сервер не подтвердил сохранение итога. Обнови карточку перед повтором.');
   savedCase.notes=notes;
   $('result-status').textContent='Итог сохранён в заметках карточки. Открой кабинет, чтобы посмотреть и отредактировать.';
