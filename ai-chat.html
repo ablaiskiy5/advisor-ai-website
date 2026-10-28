@@ -476,9 +476,10 @@ async function saveResult(){
   const addition='\n\n──── '+header+' ────\n'+answer;
   const notes=(prior+addition).trim();
   if(notes.length>50000)throw Error('В карточке уже слишком много текста. Скачай итог файлом.');
-  const {error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId).eq('user_id',ownerId);
+  const {data:updated,error:updateError}=await db.from('workspace_items').update({notes,updated_at:new Date().toISOString()}).eq('id',caseId).eq('user_id',ownerId).select('id,notes').single();
   if(!isCurrentChat(epoch,ownerId))return;
   if(updateError)throw updateError;
+  if(updated?.id!==caseId||updated?.notes!==notes)throw Error('Сервер не подтвердил сохранение итога. Обнови карточку перед повтором.');
   savedCase.notes=notes;
   $('result-status').textContent='Итог сохранён в заметках карточки. Открой кабинет, чтобы посмотреть и отредактировать.';
  }catch(e){
