@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
+import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL,providerFailure} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
 test('dialogue upgrade keeps bounded Responses settings and live high-context search',()=>{
  const body={instructions:'Original',input:['history'],store:false};
  assert.equal(configureDialogue(body,{kind:'ideas'}),true);
@@ -36,4 +36,13 @@ test('provider model probe is read-only, cached and never returns secrets',async
  assert.equal(calls,1);
  assert.equal(await probeDialogueModel('missing','synthetic',async()=>({ok:false,status:404}),2000),false);
  assert.equal(await probeDialogueModel('unknown','synthetic',async()=>({ok:false,status:403}),3000),null);
+});
+
+test('billing 429 differs from retryable rate limits without exposing provider details',()=>{
+ for(const code of ['credit_balance_exhausted','insufficient_quota','organization_usage_limit_exceeded']){
+  const result=providerFailure(429,{error:{code,message:'private provider details'}});
+  assert.equal(result.status,503);assert.equal(result.retryable,false);assert.equal(result.code,'ai_billing_unavailable');assert.doesNotMatch(result.error,/private provider details/);
+ }
+ const rate=providerFailure(429,{error:{code:'rate_limit_exceeded'}});assert.equal(rate.status,429);assert.equal(rate.retryable,true);
+ assert.equal(providerFailure(500,{}),null);
 });

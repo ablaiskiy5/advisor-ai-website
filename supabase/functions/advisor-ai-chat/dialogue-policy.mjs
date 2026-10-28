@@ -48,3 +48,17 @@ export async function probeDialogueModel(model, key, fetcher = fetch, now = Date
   modelProbeCache = {model, until: now + 300000, promise};
   return promise;
 }
+
+export function providerFailure(status, payload) {
+  const code = String(payload?.error?.code || '');
+  const type = String(payload?.error?.type || '');
+  const billingCodes = ['credit_balance_exhausted','insufficient_quota','billing_hard_limit_reached','billing_not_active','project_usage_limit_exceeded','organization_usage_limit_exceeded','project_spend_limit_exceeded','organization_spend_limit_exceeded'];
+  if (billingCodes.includes(code) || type === 'insufficient_quota') {
+    return {status:503, code:'ai_billing_unavailable', retryable:false,
+      error:code==='credit_balance_exhausted'
+        ?'Исчерпан API-баланс сервиса. Владельцу подключённого API-аккаунта нужно пополнить баланс или заменить ключ на оплаченный. Ожидание и повторные запросы не устранят эту причину.'
+        :'AI недоступен из-за оплаты или лимита расходов API-аккаунта. Владельцу сервиса нужно проверить Billing и лимиты. Повторные запросы не устранят эту причину.'};
+  }
+  if (status===429) return {status:429,code:'ai_rate_limit',retryable:true,error:'AI временно ограничил частоту запросов. Попробуй позже.'};
+  return null;
+}

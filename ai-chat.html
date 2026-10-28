@@ -314,10 +314,15 @@ async function requestAI(){
  }catch(e){
   if(isCurrentChat(epoch,ownerId)){
    const message=String(e?.message||'Неизвестная ошибка');
+   $('file-status').textContent='Анализ не завершён. Вопрос и вложения сохранены.';
+   const billing=/API-баланс|оплаты или лимита расходов|ai_billing_unavailable/i.test(message);
    const exhausted=/Лимит повторных попыток|retry_limit/i.test(message);
    const quota=/лимит AI-запросов|Общий лимит AI|дневной лимит|лимит.*исчерпан/i.test(message);
    const restricted=/участникам пилота|доступ.*отключён|AI-доступ.*не разрешён/i.test(message);
-   if(exhausted){
+   if(billing){
+    $('retry').classList.add('hidden');
+    error(message+' Вопрос и вложения сохранены. После восстановления оплаты обнови историю и повтори ответ.');
+   }else if(exhausted){
     if(latestUserMessageId)exhaustedRetryMessages.add(latestUserMessageId);
     $('retry').classList.add('hidden');
     error('Три попытки обработки этого сообщения использованы. Отправь новый вопрос, если нужно продолжить. '+message);
@@ -327,6 +332,7 @@ async function requestAI(){
     $('retry').classList.add('hidden');
     error('Для AI нужен подтверждённый email и активный аккаунт. '+message);
    }else{
+    $('retry').classList.remove('hidden');
     error('Ответ не получен: '+message+'. Вопрос и вложения сохранены. Можно нажать «Повторить ответ AI» (не более трёх попыток на вопрос).');
    }
   }
