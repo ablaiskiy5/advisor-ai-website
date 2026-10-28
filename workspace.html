@@ -401,8 +401,8 @@ async function saveSnapshot(){
   return;
  }
  if(!isCurrentWorkspaceSession(revision,ownerId)||active!==caseId)return;
- if(response.error){snapshotUi('Не удалось сохранить снимок: '+response.error.message);return}
- const saved=response.data;
+ if(response?.error){snapshotUi('Не удалось сохранить снимок: '+response.error.message);return}
+ const saved=response?.data;
  const confirmed=saved&&typeof saved.id==='string'&&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.id)&&
   saved.case_id===caseId&&saved.user_id===ownerId&&saved.title===e.title&&
