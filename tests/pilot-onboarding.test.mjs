@@ -7,7 +7,7 @@ test('onboarding states independent email/password accounts, not ChatGPT SSO',()
  assert.match(page,/Это не вход через ChatGPT/);
 });
 test('onboarding explains verification and initial AI quota',()=>{
- assert.match(page,/подтверди адрес, затем войди/);
+ assert.match(page,/Если вход не выполнится автоматически/);
  assert.match(page,/до 10 запросов за 24 часа/);
  assert.match(page,/только для заранее разрешённых адресов/);
 });

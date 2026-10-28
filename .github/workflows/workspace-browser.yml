@@ -1,0 +1,22 @@
+name: Workspace browser UX
+on:
+  pull_request:
+    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', '.github/workflows/workspace-browser.yml']
+  push:
+    branches: [main]
+    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', '.github/workflows/workspace-browser.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium-synthetic-ux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-workspace-browser.mjs
