@@ -421,7 +421,33 @@ function restoreSnapshot(){
  calculatePortfolio();toast('Версия загружена в редактор. Для сохранения нажми «Сохранить позиции и расчёт».');
 }
 
-async function saveDetail(id){let e=entries.find(x=>x.id===id);if(!e)return;let title=document.getElementById('f-title').value.trim(),chat=document.getElementById('f-chat').value.trim();if(!title){toast('Нужен заголовок кейса');return}if(!validChat(chat)){toast('Ссылка должна начинаться с https://chatgpt.com/c/...');return}let updated={...e,title,kind:document.getElementById('f-kind').value,status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value,prompt:document.getElementById('f-prompt').value,chat_url:chat,updated_at:now()};if(await persist(updated)){render();toast('Изменения сохранены')}}
+async function saveDetail(id){
+ const e=entries.find(x=>x.id===id);if(!e)return;
+ const title=document.getElementById('f-title').value.trim(),chat=document.getElementById('f-chat').value.trim();
+ if(!title){toast('Нужен заголовок кейса');return}
+ if(!validChat(chat)){toast('Ссылка должна начинаться с https://chatgpt.com/c/...');return}
+ const updated={...e,title,kind:document.getElementById('f-kind').value,status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value,prompt:document.getElementById('f-prompt').value,chat_url:chat,updated_at:now()};
+ if(!isCloud()){if(await persist(updated)){render();toast('Изменения сохранены')}return}
+ const ownerId=session.user.id,revision=authRevision,readVersion=e.updated_at;
+ if(typeof readVersion!=='string'||!Number.isFinite(Date.parse(readVersion))){toast('Не удалось проверить версию карточки. Обнови список кейсов.');return}
+ // An older tab must not replace a newer AI summary or a colleague's edits.
+ updated.updated_at=new Date(Math.max(Date.now(),Date.parse(readVersion)+1)).toISOString();
+ const changes={title:updated.title,kind:updated.kind,status:updated.status,notes:updated.notes,prompt:updated.prompt,chat_url:updated.chat_url,updated_at:updated.updated_at};
+ try{
+  const {data,error}=await cloud.from('workspace_items').update(changes).eq('id',id).eq('user_id',ownerId).eq('updated_at',readVersion).select('id,title,kind,status,notes,prompt,chat_url,updated_at').single();
+  if(!isCurrentWorkspaceSession(revision,ownerId))return;
+  if(error?.code==='PGRST116'||(!error&&!data)){toast('Карточка изменилась в другой вкладке или недоступна. Скопируй свои правки перед обновлением списка.');return}
+  if(error){toast('Ошибка облачного сохранения: '+error.message);return}
+  const confirmed=data.id===id&&Object.keys(changes).every(key=>key==='updated_at'?Number.isFinite(Date.parse(data[key]))&&Date.parse(data[key])===Date.parse(changes[key]):data[key]===changes[key]);
+  if(!confirmed){toast('Сервер не подтвердил сохранение карточки. Обнови список перед повтором.');return}
+  const index=entries.findIndex(x=>x.id===id);
+  if(index>=0&&entries[index].updated_at===readVersion)entries[index]={...e,...changes};
+  else{toast('Карточка сохранена, но список обновился. Перезагрузи список кейсов.');return}
+  render();toast('Изменения сохранены');
+ }catch(error){
+  if(isCurrentWorkspaceSession(revision,ownerId))toast('Ошибка облачного сохранения: '+(error.message||'проверь соединение'));
+ }
+}
 async function deleteItem(id){if(!confirm('Удалить этот кейс без возможности восстановления?'))return;if(await remove(id)){active=null;render();toast('Кейс удалён')}}
 async function copyCase(id){let e=entries.find(x=>x.id===id);if(!e)return;let txt=e.prompt+'\n\nРабочий контекст:\n'+(e.notes||'Пока нет заметок')+'\n\nПожалуйста, уточняй недостаточные данные и не выдумывай цифры.';try{await navigator.clipboard.writeText(txt);toast('Запрос скопирован. Вставь его в ChatGPT: Ctrl+V.')}catch{prompt('Скопируй запрос вручную:',txt)}}
 function openChat(id){let e=entries.find(x=>x.id===id);if(!e?.chat_url)return;if(!validChat(e.chat_url)){toast('Ссылка на ChatGPT недействительна. Исправь её в карточке кейса.');return}window.open(e.chat_url,'_blank','noopener')}
