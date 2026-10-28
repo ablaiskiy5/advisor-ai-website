@@ -20,7 +20,7 @@ test('each main section offers a distinct pair of work journeys',()=>{
  assert.match(el.journeyPanel('portfolio'),/скриншот или PDF/);
  assert.match(el.journeyPanel('academy'),/Тренировать аттестацию/);
 });
-test('one-click creation writes one owned case and navigates directly to chat',async()=>{
+test('missing workbench script falls back to an owned case and chat',async()=>{
  const saved=[],window={location:{assign:url=>saved.push(['url',url])}};
  let writes=0;
  const app=runInNewContext(code+`;({startWorkspaceFlow})`,{section,window,document:{getElementById:()=>null},newCaseKind:null,active:null,page:'home',authRevision:0,session:{user:{id:'owner-1'}},isCloud:()=>true,
@@ -45,4 +45,10 @@ test('case configuration is secondary and workspace uses light scenario cards',(
  assert.match(html,/\.home-journeys\{display:grid/);
  assert.match(html,/\.journey-actions\{display:grid/);
  assert.match(html,/color-scheme:light/);
+});
+
+test('supported workbenches open locally without creating empty cases or navigating to chat',async()=>{
+ let opened='',writes=0,navigated=0,rendered=0;
+ const app=runInNewContext(code+';({startWorkspaceFlow})',{section,AdvisorWorkbench:{supports:()=>true,open:(kind,flow)=>opened=kind+':'+flow},isCloud:()=>true,document:{getElementById:()=>null},window:{location:{assign:()=>navigated++}},active:null,newCaseKind:null,page:'home',persist:async()=>writes++,render:()=>rendered++,toast(){}});
+ await app.startWorkspaceFlow('ideas','company');assert.equal(opened,'ideas:company');assert.equal(writes,0);assert.equal(navigated,0);assert.equal(rendered,1);
 });

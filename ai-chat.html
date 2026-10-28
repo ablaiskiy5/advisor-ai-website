@@ -75,7 +75,7 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 /* Distinguish verified HTTPS source links within AI analysis without trusting model HTML. */
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
-</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/answer-renderer.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
@@ -148,61 +148,10 @@ function safeExternalChatLink(value){
  }catch{}
  return 'https://chatgpt.com/';
 }
-function safeCitedUrl(raw){
- // Model output is untrusted: only real HTTPS URLs become interactive source links.
- try{
-  const url=new URL(raw);
-  if(url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return '';
-  return url.href;
- }catch{return ''}
-}
-function renderInlineSafe(node,value){
- const parts=String(value).split(/(\*\*[^*\n]+\*\*|\[[^\]\n]{1,120}\]\(https:\/\/[^\s)\n]{1,2048}\)|`[^`\n]+`)/g);
- for(const part of parts){let el=null;
-  if(part.startsWith('**')&&part.endsWith('**')&&part.length>4){el=document.createElement('strong');el.textContent=part.slice(2,-2)}
-  else if(part.startsWith('`')&&part.endsWith('`')&&part.length>2){el=document.createElement('code');el.textContent=part.slice(1,-1)}
-  else{
-   const match=/^\[([^\]\n]{1,120})\]\((https:\/\/[^\s)\n]{1,2048})\)$/.exec(part);
-   const url=match?safeCitedUrl(match[2]):'';
-   if(url){
-    el=document.createElement('a');el.href=url;el.target='_blank';el.rel='noopener noreferrer';el.textContent=match[1];
-   }
-  }
-  if(el)node.append(el);else node.append(document.createTextNode(part));
- }
-}
-function renderAnswerSafe(root,message){
- const lines=String(message||'').split(/\r?\n/);
- for(let i=0;i<lines.length;i++){
-  const line=lines[i],t=line.trim();if(!t)continue;
-  if(t.startsWith('|')&&t.endsWith('|')&&i+1<lines.length&&/^\s*\|?[-:| ]+\|?\s*$/.test(lines[i+1])){
-   const wrap=document.createElement('div');wrap.className='table-scroll';
-   const table=document.createElement('table');let header=true;
-   while(i<lines.length&&lines[i].trim().startsWith('|')&&lines[i].trim().endsWith('|')){
-    const cells=lines[i++].trim().slice(1,-1);
-    if(/^[-:| ]+$/.test(cells))continue;
-    const row=document.createElement('tr');
-    for(const val of cells.split('|')){const td=document.createElement(header?'th':'td');renderInlineSafe(td,val.trim());row.append(td)}
-    table.append(row);header=false;
-   }i--;wrap.append(table);root.append(wrap);continue;
-  }
-  const heading=/^(#{1,4})\s+(.+)$/.exec(t);
-  if(heading){const el=document.createElement(heading[1].length<3?'h2':'h3');renderInlineSafe(el,heading[2]);root.append(el);continue}
-  const bullet=/^([-*•]\s+|\d+[.)]\s+)(.+)$/.exec(t);
-  if(bullet){
-   const type=/^\d/.test(t)?'ol':'ul',prev=root.lastElementChild;
-   const list=prev?.classList?.contains('answer-list')&&prev.tagName.toLowerCase()===type?prev:document.createElement(type);
-   if(list!==prev){list.className='answer-list';root.append(list)}
-   const item=document.createElement('li');renderInlineSafe(item,bullet[2]);list.append(item);continue;
-  }
-  if(/^>\s?/.test(t)){const quote=document.createElement('blockquote');renderInlineSafe(quote,t.replace(/^>\s?/,''));root.append(quote);continue}
-  const el=document.createElement('p');renderInlineSafe(el,line);root.append(el);
- }
-}
 function bubble(role,content){
  const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');
  const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';
- const node=document.createElement('div');if(role==='assistant'){node.className='rendered';renderAnswerSafe(node,content)}else node.textContent=content;
+ const node=document.createElement('div');if(role==='assistant'){node.className='rendered';if(typeof renderAnswerSafe==='function')renderAnswerSafe(node,content);else node.textContent=content}else node.textContent=content;
  el.append(who,node);return el;
 }
 function formatMessengerText(value,kind){
@@ -376,7 +325,7 @@ async function requestAI(){
     error('Лимит AI достигнут. Подожди восстановления лимита за 24 часа. Вопрос и вложения сохранены. '+message);
    }else if(restricted){
     $('retry').classList.add('hidden');
-    error('Для AI нужен подтверждённый email из списка участников пилота. '+message);
+    error('Для AI нужен подтверждённый email и активный аккаунт. '+message);
    }else{
     error('Ответ не получен: '+message+'. Вопрос и вложения сохранены. Можно нажать «Повторить ответ AI» (не более трёх попыток на вопрос).');
    }

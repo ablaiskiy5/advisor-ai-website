@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 const html=readFileSync(new URL('../ai-chat.html',import.meta.url),'utf8');
-const begin=html.indexOf('function renderInlineSafe('),end=html.indexOf('function bubble(role,content)');
+const shared=readFileSync(new URL('../assets/answer-renderer.js',import.meta.url),'utf8');
+const begin=shared.indexOf('function safeCitedUrl('),end=shared.length;
 assert.ok(begin>=0&&end>begin);
-const renderer=html.slice(begin,end);
+const renderer=shared.slice(begin,end);
 function render(markdown){
  class Node{
   constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.className='';this.textContent=''}
@@ -15,7 +16,7 @@ function render(markdown){
  }
  const document={createElement:tag=>new Node(tag),createTextNode:value=>({text:String(value)})};
  const root=new Node('div');
- runInNewContext(renderer+';renderAnswerSafe(root,markdown)',{document,root,markdown});
+ runInNewContext(renderer+';renderAnswerSafe(root,markdown)',{document,root,markdown,URL});
  return root;
 }
 test('AI reply uses legible semantic headings, lists and paragraphs',()=>{
