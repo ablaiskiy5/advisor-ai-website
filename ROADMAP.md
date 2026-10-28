@@ -10,8 +10,8 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [ ] Validate the recently changed light chat, case navigation, AI short-response quality and source links with real user flows.
 
 ## P1 — Advisor workflows and usability
-- [ ] Publish shared navigation/history/document hubs: implemented and locally browser-verified on `ux/shared-workspace-navigation`; push blocked by approval review (see PROJECT_STATE.md).
-- [ ] Publish owner-scoped input drafts and unsaved attachment/proposal warnings: locally implemented/tested, pending the same release gate.
+- [x] Shared navigation/history/document hubs published in PR #226; PR/main CI, Pages and public browser navigation verified (see PROJECT_STATE.md).
+- [x] Owner-scoped input drafts and unsaved attachment/proposal warnings published in PR #226; synthetic browser/session coverage passed. Real two-user checks remain P0.
 - [ ] Refine portfolio ingestion, concentration/risk/rebalance outputs, explainable assumptions and market-data provenance.
 - [ ] Make portfolio, ideas, market scenarios, education and tasks each have their own frictionless first action; eliminate unnecessary fields and dead ends.
 - [ ] Check AI brain-dump task grouping and priority proposal, user confirmation, long-text handling and account-scoped persistence.

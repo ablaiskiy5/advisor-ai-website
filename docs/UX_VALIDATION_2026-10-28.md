@@ -1,6 +1,6 @@
 # Workspace UX release validation — 28 October 2026
 
-Local branch `ux/shared-workspace-navigation`, integrated with `main` through `ee13b71` / PR #225. **Not pushed, not deployed.** Local UI tests use synthetic records and intercept all external requests; no real accounts, client records, paid AI, invitations or database writes were used.
+Released as [PR #226](https://github.com/ablaiskiy5/advisor-ai-website/pull/226), merge `07f778f0f660c488ec697c2dd3ed435facc49212`, after integration with main through PR #225. **Published; PR/main checks and Pages succeeded.** Local UI tests use synthetic records and intercept all external requests; no real accounts, client records, paid AI, invitations or database writes were used.
 
 ## Scope and evidence
 
@@ -23,7 +23,8 @@ Local branch `ux/shared-workspace-navigation`, integrated with `main` through `e
 | Actual Word/PDF/PPTX visual output and browser downloads | NOT TESTED | No visual validation in Word/PowerPoint/PDF viewer in this run |
 | Real two-user server/storage isolation | NOT TESTED | Client draft isolation is not proof of RLS, signed-URL or owner-positive access |
 | Safari/iOS real device | NOT TESTED | Responsive Chromium widths only |
-| PR, remote CI and Pages deployment of this branch | NOT TESTED | Publication explicitly authorized by owner on 28 October; awaiting remote checks |
+| PR, remote CI and Pages deployment | PASS | PR #226; 9 PR + 9 merged-main code checks successful; Pages run 40641075168 successful |
+| Published public pages and new assets | PASS | HTTP 200 for 11 pages and 3 assets; cloud browser verified login screen, menu collapse/expand and Tasks/Workspace navigation |
 
 ## Reproduce
 
@@ -37,7 +38,7 @@ node scripts/test-docx-export.mjs
 node scripts/test-workspace-browser.mjs
 ```
 
-DOCX test requires `docx` (the production exporter uses 9.5.1). Browser test requires `playwright@1.56.1` and Chromium. Optional `ADVISOR_CHROMIUM_PATH` points to an installed executable; `ADVISOR_QA_DIR` writes synthetic screenshots outside the repository. Local execution used Chromium 138; CI installs Playwright's matching browser. The new CI workflow has not run remotely yet.
+DOCX test requires `docx` (the production exporter uses 9.5.1). Browser test requires `playwright@1.56.1` and Chromium. Optional `ADVISOR_CHROMIUM_PATH` points to an installed executable; `ADVISOR_QA_DIR` writes synthetic screenshots outside the repository. Local execution used Chromium 138; CI installs Playwright's matching browser. The new CI workflow passed on the PR and on merged main. Local external Chromium navigation returned `ERR_EMPTY_RESPONSE`; independent cloud-browser public navigation succeeded. Real authenticated browser workflows remain untested.
 
 ## Implementation boundaries
 
@@ -47,6 +48,6 @@ DOCX test requires `docx` (the production exporter uses 9.5.1). Browser test req
 - Assistant is currently a direction picker. A free-text home router, a full document library and automated colleague invitations remain future work.
 - No plugin release, backend deployment, SQL privilege, quota, secret or live account setting was changed.
 
-## Release next step
+## Next verification
 
-The owner explicitly authorized branch publication on 28 October. Fetch/reconcile current main, rerun validations, open PR, observe required checks and review policy, then merge and verify Pages. Keep authenticated launch gates open until they actually pass.
+Run independently authenticated, consented two-user flows for signup/email confirmation, AI access, actual answers, task proposals, private attachments, cross-user isolation and document downloads. Public-page navigation and synthetic fixtures do not close these gates.
