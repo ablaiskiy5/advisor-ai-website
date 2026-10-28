@@ -2,7 +2,7 @@
 
 Safe filtered function logs confirm four provider HTTP 429 failures with code `credit_balance_exhausted` around 12:59–13:03 UTC. Existing backend incorrectly called every 429 a temporary frequency limit. This is an account credit/billing blocker; model-list access confirmed earlier did not establish funded inference. No provider payment/account owner/balance amount has been inspected and no payment or key change was performed.
 
-Prepared explicit billing/quota classification separate from retryable rate errors, with a clear owner-action message. Chat stops the stale analyzing status, hides immediate billing retry suggestions, and restores a visible retry action for transient failures. Questions/files/history are preserved. 413 Node tests pass, including production UI failure handling and provider classification. Deployment/release pending; paid AI remains blocked until owner restores account credits. Do not claim the service is repaired by this UX/error fix.
+Prepared explicit billing/quota classification separate from retryable rate errors, with a clear owner-action message. Chat stops the stale analyzing status, hides immediate billing retry suggestions, and restores a visible retry action for transient failures. Questions/files/history are preserved. 413 Node tests pass, including production UI failure handling and provider classification. PR #235 merged as b49d8b0d931a2ad089489b9445b3bea4eca5082b; all four PR and merged-main checks passed; Pages deployment 40698177441 succeeded. Chat v31 ACTIVE with JWT verification and exact deployed source/module readback. Paid AI remains blocked until owner restores account credits. Do not claim the service is repaired by this UX/error fix.
 
 ## Stronger dialogue/search — 2026-10-28
 
