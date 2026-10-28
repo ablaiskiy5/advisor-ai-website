@@ -40,7 +40,7 @@ label{color:#586f8e;font-size:13px}
 .btn:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #a7c8ff;outline-offset:2px}
 @media(max-width:860px){main{padding:16px 12px 85px}.panel{padding:16px}.panel:has(#brain){padding:17px}.draft{grid-template-columns:1fr 1fr}.board{grid-template-columns:1fr}#brain{min-height:170px}}
 @media(max-width:480px){.draft{grid-template-columns:minmax(0,1fr)}.draft .wide{grid-column:span 1}#organize{width:100%}.panel{padding:14px}h1{font-size:29px}.top .brand{font-size:19px}}
-.brain-microphone{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 6px}.brain-microphone #brain-mic{min-height:44px}.brain-microphone select{min-height:44px;padding:8px 12px;width:auto;border:1px solid #b8c7da;border-radius:9px;background:#fff;color:#193653}.brain-microphone span{flex:1 1 250px;font-size:12px;line-height:1.5;color:#506582}</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+.brain-microphone{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 6px}.brain-microphone #brain-mic{min-height:44px}.brain-microphone select{min-height:44px;padding:8px 12px;width:auto;border:1px solid #b8c7da;border-radius:9px;background:#fff;color:#193653}.brain-microphone span{flex:1 1 250px;font-size:12px;line-height:1.5;color:#506582}</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><div class="top"><div class="brand">◈ Advisor <b>AI</b> / Мои задачи</div><a class="btn main" style="text-decoration:none" href="./workspace.html">⌂ Мой Workspace</a></div>
 <h1>Выгрузи всё из головы</h1><p class="muted">Работа, клиенты, дом, здоровье, спорт, учёба и собственные проекты. Пиши как есть. AI разложит дела на карточки, а ты сможешь двигать их одним нажатием.</p>
 <section class="panel"><h2>Напиши всё как есть — AI наведёт порядок</h2><p class="muted">Не нужно вручную создавать карточки. Просто напиши всё подряд: AI сам предложит сферы, приоритеты и задачи. Проверь результат и сохрани.</p><textarea id="brain" maxlength="10000" placeholder="Например: позвонить клиенту про ребалансировку; во вторник стоматолог; подготовиться к аттестации; оплатить счета; доделать телеграм-бота; тренировка; проверить неторговые поручения..."></textarea><div class="brain-microphone"><button class="btn" type="button" id="brain-mic" disabled>🎙 Надиктовать список дел</button><select id="brain-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="brain-voice-status" role="status" aria-live="polite">Диктуй как есть. Распознанный текст можно отредактировать перед AI-разбором.</span></div><div class="tools" style="margin-top:12px"><button class="btn main" id="organize">✦ AI: разложить по сферам и приоритетам</button><button class="btn" id="manual">Добавить вручную (необязательно)</button><span id="info" class="status" role="status" aria-live="polite"></span></div><p class="muted" style="font-size:12px">AI предложит не более 30 карточек за один раз. Сверь предложения с исходным списком: если дел больше или часть пропущена, разбей запись на несколько запросов. Перед сохранением проверь названия, детали, сроки и приоритеты. Напоминания не назначаются автоматически.</p></section>
@@ -155,6 +155,7 @@ function renderFocus(list,today){
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
  try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
+ globalThis.AdvisorDrafts?.purge();
  if(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine)stopTaskDictation(true);
  $('brain-mic').disabled=true;
  $('brain-voice-status').textContent='';
@@ -168,7 +169,7 @@ function handleTaskAuthChange(event,session){
  if(event==='SIGNED_OUT'||event==='USER_DELETED'){clearTaskSession();return}
  if(event==='SIGNED_IN'&&session?.user?.id&&session.user.id!==user?.id){
   clearTaskSession('Переключение аккаунта…');
-  const nextUserId=session.user.id;user=session.user;
+  const nextUserId=session.user.id;user=session.user;globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);
   setTimeout(()=>{if(user?.id===nextUserId)return load().catch(e=>feedback('Ошибка загрузки: '+e.message))},0);
  }
 }
@@ -334,7 +335,7 @@ async function saveDrafts(){
    &&new Set(data.map(row=>row.id)).size===selected.length;
   if(!confirmed)throw Error('Сервер не подтвердил все созданные задачи. Обнови список перед повтором, чтобы избежать дублей.');
   // The insert is already confirmed. A failed refresh must never be reported as a failed save.
-  $('review').classList.add('hidden');$('brain').value='';
+  $('review').classList.add('hidden');$('brain').value='';globalThis.AdvisorDrafts?.acknowledge(['brain']);
   try{await load()}
   catch(refreshError){
    if(current()){
@@ -436,8 +437,9 @@ async function init(){
  if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
  db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
  const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
- user=data.user;consumeTaskTransfer(user.id);$('brain-mic').disabled=false;filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();
+ user=data.user;globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);consumeTaskTransfer(user.id);globalThis.AdvisorDrafts?.capture();$('brain-mic').disabled=false;filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();
  $('brain-mic').onclick=toggleTaskDictation;$('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('export-calendar').onclick=exportCalendar;$('export-csv').onclick=exportCsv;$('edit-form').addEventListener('submit',submitTaskEditor);$('close-editor').onclick=()=>$('task-editor').classList.add('hidden');$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
 }
+globalThis.workspaceHasTransientWork=()=>busy||!$('review').classList.contains('hidden')||!$('task-editor').classList.contains('hidden');
 init().catch(e=>feedback('Ошибка: '+e.message));
 </script></body></html>

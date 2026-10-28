@@ -29,4 +29,4 @@ test('password recovery stays accessible',()=>{
  assert.match(html,/id="new-password"/);
  assert.doesNotMatch(html,/Резервная копия/);
 });
-test('login opens the Home screen',()=>assert.match(source,/page=nextOwner\?'home':'settings'/));
+test('login defaults to Home and retains a requested known section',()=>assert.match(source,/page=nextOwner\?\(globalThis\.workspaceRequestedSection\?\.\(\)\|\|'home'\):'settings'/));

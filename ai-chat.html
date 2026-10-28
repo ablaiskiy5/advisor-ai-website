@@ -75,14 +75,15 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 /* Distinguish verified HTTPS source links within AI analysis without trusting model HTML. */
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
-</style></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
+ <p class="input-guidance hidden" id="input-guidance"></p>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
- <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+ <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><label class="answer-depth" for="answer-depth">Формат ответа<select id="answer-depth"><option value="auto">По задаче</option><option value="brief">Кратко</option><option value="detailed">Подробно</option></select></label><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Действия с результатом</h2>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button>
@@ -284,6 +285,8 @@ function ready(active){$('question').disabled=!active;$('send').disabled=!active
 function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=v||!lastAnswer;$('copy-telegram').disabled=v||!lastAnswer;$('quick-docx').disabled=v||!lastAnswer;$('quick-pdf').disabled=v||!lastAnswer;$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
+ globalThis.AdvisorDrafts?.purge();
+ if($('input-guidance')){$('input-guidance').textContent='';$('input-guidance').classList.add('hidden')}
  if(typeof voiceRecognition!=='undefined'&&voiceRecognition)stopDictation(true);
  if($('voice-status'))$('voice-status').textContent='';
  sessionEpoch++;historyRequestSeq++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
@@ -386,8 +389,8 @@ function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=
 function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!mimeForFile(f)){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
 async function send(){
  if(working||!user||!caseData)return;
- if(voiceRecognition)stopDictation();const epoch=sessionEpoch,ownerId=user.id;const typed=$('question').value.trim();if(!typed&&!pendingFiles.length)return;
- const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.':'');
+ if(voiceRecognition)stopDictation();const epoch=sessionEpoch,ownerId=user.id;const rawTyped=$('question').value.trim();if(!rawTyped&&!pendingFiles.length)return;const depth=$('answer-depth')?.value;const depthNote=depth==='brief'?'\n\nФормат ответа: кратко, вывод и практические действия.':depth==='detailed'?'\n\nФормат ответа: подробно, с аргументами, расчётами при наличии данных и источниками.':'';const typed=rawTyped+(rawTyped?depthNote:'');if(typed.length>5000){error('Сократи вопрос: вместе с выбранным форматом ответа он должен быть не длиннее 5000 символов.');return;}
+ const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.'+depthNote:'');
  waiting(true);error('');$('file-status').textContent='';
  let messageId=null,linkedCount=0;
  try{
@@ -403,7 +406,7 @@ async function send(){
    if(recordError)throw Error('Не удалось привязать файл к сообщению: '+recordError.message);
    linkedCount++;
   }
-  $('question').value='';pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
+  $('question').value='';globalThis.AdvisorDrafts?.acknowledge(['question']);pendingFiles=[];renderFiles();$('file-status').textContent=files.length?'Файлы загружены. Анализирую…':'';await history();if(!isCurrentChat(epoch,ownerId))return;
  }catch(e){
   if(!isCurrentChat(epoch,ownerId))return;
   // The user message is saved: do not requeue attachments already linked to it.
@@ -431,6 +434,12 @@ const quickOptions={
  markets:[['Рынок сейчас','Разбери актуальные ставки, ФРС, инфляцию, нефть, UST, доллар, Nasdaq, золото и тенге с датами и источниками.'],['Макросценарии','Покажи причинные связи макрошока и сценарии для классов активов, отделяя факты от гипотез.']],
  tasks:[['Разложи хаос','Раздели все упомянутые дела по сферам жизни, срокам, приоритетам и ближайшим действиям, не выдумывая дат.'],['План дня','Подготовь реалистичный план на сегодня из доступных дел, выдели три главных приоритета.']]
 };
+function guidanceFor(kind,text=''){
+ if(/covered\s*call|ковер[еэ]д|покрыт.{0,12}колл/i.test(text))return 'Для covered call: тикер, количество акций, срок и приемлемая цена продажи. Для расчёта премии нужна актуальная опционная цепочка с датой; без неё премии будут только условными.';
+ if(/облигац|\bISIN\b|\bYTM\b|купон|дюраци/i.test(text))return 'Для облигации: ISIN или условия выпуска. Для точной доходности нужны дата расчёта, цена, график купонов и условия погашения.';
+ return ({portfolio:'Пришли скриншот, PDF или список: тикер, количество, стоимость позиции. Для точности полезны валюта, свободные средства и горизонт. CSV можно загрузить в редакторе позиций.',ideas:'Назови компанию, тикер или сектор. Горизонт и цель помогут уточнить вывод; для предварительного разбора достаточно темы.',markets:'Укажи событие или вопрос. Для «сегодня» нужны актуальные источники с датой; неподтверждённые причины и цифры должны быть обозначены.',academy:'Назови тему или выбери тренировку. Можно начать с нуля — подробная анкета не нужна.',tasks:'Напиши все дела одним текстом. Укажи известные сроки; если сроков нет, их не нужно придумывать.'})[kind]||'Опиши задачу. Начнём с того, что уже известно.';
+}
+function updateInputGuidance(){const node=$('input-guidance');if(!node)return;node.textContent=caseData?guidanceFor(caseData.kind,$('question').value):'';node.classList.toggle('hidden',!caseData)}
 function showQuickOptions(kind){const root=$('quick-actions');root.textContent='';for(const [label,prompt] of (quickOptions[kind]||[])){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{if(working)return;if($('question').value.trim()&&!confirm('Заменить введённый текст?'))return;$('question').value=prompt;await send()};root.append(b)}}
 const summaryPrompts={
  portfolio:'Сформируй итоговый отчёт по обсуждаемому портфелю только на основе информации этого кейса. Структура: 1) исходные данные и допущения; 2) структура и концентрации; 3) основные риски; 4) аргументированные варианты ребалансировки; 5) конкретные следующие шаги; 6) какие данные ещё нужны. Отделяй установленные факты от гипотез. Не придумывай доли, цены и тикеры.',
@@ -659,9 +668,12 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  if(openingEpoch!==sessionEpoch||user?.id!==check.data.user.id)return;
  if(err||!data){error('Кейс не найден или доступ к нему закрыт.');$('case-title').textContent='Нет доступа';return}
  caseData=data;showQuickOptions(data.kind);if(data.kind==='tasks')$('to-tasks').classList.remove('hidden');$('return-case').href='./workspace.html?case='+encodeURIComponent(caseId);$('case-title').textContent=data.title;const kinds={portfolio:'Портфели',ideas:'Инвестиционные идеи',academy:'Обучение',markets:'Рынки',tasks:'Задачи'};setStatus((kinds[data.kind]||'Кейс')+' · переписка сохраняется автоматически');$('context').textContent='Раздел: '+(kinds[data.kind]||data.kind)+'.\n\n'+(data.prompt||'')+'\n\nЗаметки доступны в карточке кейса.';$('external').href=safeExternalChatLink(data.chat_url);
+ globalThis.AdvisorDrafts?.bind(user.id,'chat:'+caseId,['question']);updateInputGuidance();
  ready(true);waiting(false);void checkCoreIntegrity();await history();
 }
+$('question').addEventListener('input',updateInputGuidance);
 $('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('quick-docx').addEventListener('click',downloadDocx);$('quick-pdf').addEventListener('click',downloadPdf);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
+window.workspaceHasTransientWork=()=>working||pendingFiles.length>0;
 init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script><script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.umd.cjs"></script></body></html>

@@ -49,7 +49,7 @@ test('stale response after sign-out, account switch or same-owner re-login is ig
  }
 });
 test('consumer runs only after auth.getUser and sign-out clears transfer',()=>{
- assert.match(board,/const \{data,error\}=await db\.auth\.getUser\(\);[\s\S]*?user=data\.user;consumeTaskTransfer\(user\.id\);/);
+ assert.match(board,/const \{data,error\}=await db\.auth\.getUser\(\);[\s\S]*?user=data\.user;[\s\S]*?consumeTaskTransfer\(user\.id\);/);
  assert.match(board,/function clearTaskSession\([^)]*\)\{\s*try\{sessionStorage\.removeItem\('advisor_ai_task_brain_dump'\)/);
 });
 
