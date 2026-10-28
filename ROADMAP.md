@@ -15,7 +15,8 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [x] Shared navigation/history/document hubs published in PR #226; PR/main CI, Pages and public browser navigation verified (see PROJECT_STATE.md).
 - [x] Owner-scoped input drafts and unsaved attachment/proposal warnings published in PR #226; synthetic browser/session coverage passed. Real two-user checks remain P0.
 - [ ] Refine portfolio ingestion, concentration/risk/rebalance outputs, explainable assumptions and market-data provenance.
-- [ ] Make portfolio, ideas, market scenarios, education and tasks each have their own frictionless first action; eliminate unnecessary fields and dead ends.
+- [x] Six inline research/markets/Academy workflows with owned history and optional chat (local verification; release status in PROJECT_STATE.md).
+- [ ] Simplify portfolio file review and document generation/export; preserve numeric-editor and task-organizer workflows.
 - [ ] Check AI brain-dump task grouping and priority proposal, user confirmation, long-text handling and account-scoped persistence.
 - [ ] Test document/presentation export rendering, structure and readability using non-client fixtures.
 

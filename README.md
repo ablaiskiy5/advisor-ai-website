@@ -8,7 +8,7 @@ Investment-advisor workbench built as a static GitHub Pages frontend with Supaba
 
 | Page | Purpose |
 | --- | --- |
-| [workspace.html](workspace.html) | Signed-in case dashboard, portfolio imports and snapshots |
+| [workspace.html](workspace.html) | Signed-in dashboard, inline research/Academy, portfolios and snapshots |
 | [ai-chat.html](ai-chat.html) | AI dialogue, file analysis and export |
 | [portfolio-report.html](portfolio-report.html) | Concentration, duration, rebalancing and stress scenarios |
 | [bond-analysis.html](bond-analysis.html) | Bond arithmetic |

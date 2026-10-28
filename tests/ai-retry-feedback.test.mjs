@@ -7,9 +7,9 @@ test('retry exhaustion disables repeated calls and offers new question',()=>{
  assert.match(page,/if\(exhausted\)\{[\s\S]*?\$\('retry'\)\.classList\.add\('hidden'\)/);
  assert.match(page,/Три попытки обработки этого сообщения использованы/);
 });
-test('quota and pilot access failures have actionable guidance',()=>{
+test('quota and account access failures have actionable guidance',()=>{
  assert.match(page,/Подожди восстановления лимита за 24 часа/);
- assert.match(page,/подтверждённый email из списка участников пилота/);
+ assert.match(page,/подтверждённый email и активный аккаунт/);
  assert.match(page,/не более трёх попыток на вопрос/);
 });
 test('history refresh does not re-enable an exhausted message retry',()=>{

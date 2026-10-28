@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const s=readFileSync(new URL('../ai-chat.html',import.meta.url),'utf8');
+const s=readFileSync(new URL('../assets/answer-renderer.js',import.meta.url),'utf8');
 const begin=s.indexOf('function safeCitedUrl('),end=s.indexOf('function renderAnswerSafe(');
 assert.ok(begin>0&&end>begin);
 function render(text){
