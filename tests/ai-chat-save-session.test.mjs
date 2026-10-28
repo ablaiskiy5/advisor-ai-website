@@ -13,7 +13,7 @@ function database(read,write){
   assert.equal(table,'workspace_items');
   return {
    select(){const filters=[];return {eq(k,v){filters.push([k,v]);return this},single(){queries.push({op:'read',filters});return read()}}},
-   update(values){const filters=[];return {eq(k,v){filters.push([k,v]);return this},select(columns){assert.equal(columns,'id,notes');return this},single(){queries.push({op:'write',filters,values});return write(values)}}}
+   update(values){const filters=[];return {eq(k,v){filters.push([k,v]);return this},is(k,v){filters.push([k,v]);return this},select(columns){assert.equal(columns,'id,notes');return this},single(){queries.push({op:'write',filters,values});return write(values)}}}
   };
  }};
 }
@@ -24,10 +24,13 @@ function app(db){
  return {ctx,nodes,save:runInNewContext(source,ctx).saveResult};
 }
 function ownerScoped(queries){
- for(const q of queries)assert.equal(JSON.stringify(q.filters),JSON.stringify([['id','case-1'],['user_id','owner-a']]));
+ for(const q of queries){
+  assert.deepEqual(q.filters.slice(0,2),[['id','case-1'],['user_id','owner-a']]);
+  if(q.op==='write')assert.deepEqual(q.filters[2],['updated_at','2026-10-28T00:00:00.000Z']);
+ }
 }
 test('successful save scopes read and write to owner and preserves the answer',async()=>{
- const db=database(async()=>({data:{notes:'Previous'},error:null}),async values=>({data:{id:'case-1',notes:values.notes},error:null})),a=app(db);
+ const db=database(async()=>({data:{notes:'Previous',updated_at:'2026-10-28T00:00:00.000Z'},error:null}),async values=>({data:{id:'case-1',notes:values.notes},error:null})),a=app(db);
  await a.save();
  assert.equal(db.queries.length,2);ownerScoped(db.queries);
  assert.match(db.queries[1].values.notes,/Previous/);
@@ -41,7 +44,7 @@ test('account switch during read prevents old-owner write and feedback',async()=
  const db=database(()=>new Promise(r=>release=r),async()=>({error:null})),a=app(db),pending=a.save();
  a.ctx.sessionEpoch++;a.ctx.user={id:'owner-b'};a.ctx.caseData={notes:'Owner B'};
  a.nodes['result-status'].textContent='Owner B';a.nodes['save-result'].disabled=false;
- release({data:{notes:'Old owner'},error:null});await pending;
+ release({data:{notes:'Old owner',updated_at:'2026-10-28T00:00:00.000Z'},error:null});await pending;
  assert.equal(db.queries.length,1);ownerScoped(db.queries);
  assert.equal(a.ctx.caseData.notes,'Owner B');
  assert.equal(a.nodes['result-status'].textContent,'Owner B');
@@ -49,7 +52,7 @@ test('account switch during read prevents old-owner write and feedback',async()=
 });
 test('same-account re-login during write ignores late success',async()=>{
  let release;
- const db=database(async()=>({data:{notes:'Previous'},error:null}),()=>new Promise(r=>release=r)),a=app(db),pending=a.save();
+ const db=database(async()=>({data:{notes:'Previous',updated_at:'2026-10-28T00:00:00.000Z'},error:null}),()=>new Promise(r=>release=r)),a=app(db),pending=a.save();
  for(let i=0;i<4&&!release;i++)await Promise.resolve();
  assert.equal(typeof release,'function');
  a.ctx.sessionEpoch++;a.ctx.caseData={notes:'New login'};
@@ -62,7 +65,7 @@ test('same-account re-login during write ignores late success',async()=>{
 });
 test('late write failure never leaks previous owner error',async()=>{
  let release;
- const db=database(async()=>({data:{notes:'Previous'},error:null}),()=>new Promise(r=>release=r)),a=app(db),pending=a.save();
+ const db=database(async()=>({data:{notes:'Previous',updated_at:'2026-10-28T00:00:00.000Z'},error:null}),()=>new Promise(r=>release=r)),a=app(db),pending=a.save();
  for(let i=0;i<4&&!release;i++)await Promise.resolve();
  assert.equal(typeof release,'function');
  a.ctx.sessionEpoch++;a.ctx.user={id:'owner-b'};a.ctx.caseData={notes:'Owner B'};
