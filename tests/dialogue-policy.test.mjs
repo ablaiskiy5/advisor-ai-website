@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {configureDialogue,askWithReserve,successfulSearches,DIALOGUE_MODEL} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
+import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
 test('dialogue upgrade keeps bounded Responses settings and live high-context search',()=>{
  const body={instructions:'Original',input:['history'],store:false};
  assert.equal(configureDialogue(body,{kind:'ideas'}),true);
@@ -26,4 +26,14 @@ test('billing, rate, transport, tool failures and successful calls never trigger
 });
 test('only completed searches count as verified tool execution',()=>{
  assert.equal(successfulSearches([{type:'web_search_call',status:'failed'},{type:'web_search_call',status:'in_progress'},{type:'web_search_call',status:'completed'},{type:'mcp_call',status:'completed'}]),1);
+});
+
+test('provider model probe is read-only, cached and never returns secrets',async()=>{
+ let calls=0;
+ const fetcher=async(url,options)=>{calls++;assert.match(url,/\/models\/gpt-6-astra$/);assert.equal(options.method,undefined);return {ok:true}};
+ assert.equal(await probeDialogueModel(DIALOGUE_MODEL,'synthetic-key',fetcher,1000),true);
+ assert.equal(await probeDialogueModel(DIALOGUE_MODEL,'synthetic-key',fetcher,1001),true);
+ assert.equal(calls,1);
+ assert.equal(await probeDialogueModel('missing','synthetic',async()=>({ok:false,status:404}),2000),false);
+ assert.equal(await probeDialogueModel('unknown','synthetic',async()=>({ok:false,status:403}),3000),null);
 });

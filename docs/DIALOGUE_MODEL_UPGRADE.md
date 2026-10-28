@@ -18,3 +18,9 @@ Published Astra pricing at inspection: $10/M input and $50/M output tokens. Exam
 `supabase/functions/advisor-ai-chat/dialogue-policy.mjs` is the public tested module. `scripts/upgrade-dialogue-backend.mjs` transforms an authorized local v28 source export with exact single-occurrence guards. The complete deployed baseline contains private plugin reference material and is deliberately not committed. Deploy transformed `index.ts` plus this module with JWT verification enabled. Roll back using the saved v28 export if deployment verification fails.
 
 Local validation: 409 Node regressions passed; portfolio stress and 60 presentation cases plus two guards passed. Focused tests cover the production policy, unavailable-model retry, no retry for billing/rate/auth failures, preserved request data and completed-search counting. Full real-account output quality and end-to-end search remain unverified.
+
+## Release verification
+
+PR #232 merged as d48c893199fa6e7750672fe939131966f9791ea0; PR/main integrated checks and Pages run 40685305358 passed. Chat v29 ACTIVE, JWT true, both deployed files match reviewed contents exactly. Actual transformed handler passes synthetic end-to-end save and unavailable-model reserve paths; public live metadata GET=200 and unsigned POST=401. No paid inference was made for these checks.
+
+The follow-up metadata probe performs only GET /v1/models/{configured_model}, caches a single pending/result check per isolate for five minutes and returns only model name and true/false/null availability. No key, account identity, model catalogue or raw provider errors are returned. It uses no paid inference. API listing availability does not establish successful inference or web-search quality.
