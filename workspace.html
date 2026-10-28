@@ -359,6 +359,7 @@ async function savePortfolio(){const data=calculatePortfolio();if(!data)return;c
 
 
 const snapshotsCache=new Map();
+let snapshotLoadRevision=0;
 function snapshotProfile(row){
  const d=parseHoldings(row.holdings),target=row.target_bond_pct===null||row.target_bond_pct===undefined?null:Number(row.target_bond_pct);
  return {data:d,target,date:row.created_at,title:row.title||'',id:row.id};
@@ -388,18 +389,37 @@ async function saveSnapshot(){
  const note=window.prompt('Комментарий к снимку (необязательно):','') ;
  if(note===null)return;
  if(note.length>2000){snapshotUi('Комментарий слишком длинный.');return}
- const ownerId=session.user.id,revision=authRevision;
- const {error}=await cloud.from('portfolio_snapshots').insert({case_id:e.id,user_id:ownerId,title:e.title,holdings:raw,target_bond_pct:target,notes:note});
- if(!isCurrentWorkspaceSession(revision,ownerId))return;
- if(error){snapshotUi('Не удалось сохранить снимок: '+error.message);return}
+ const ownerId=session.user.id,revision=authRevision,caseId=e.id;
+ let response;
+ try{
+  response=await cloud.from('portfolio_snapshots')
+   .insert({case_id:caseId,user_id:ownerId,title:e.title,holdings:raw,target_bond_pct:target,notes:note})
+   .select('id,case_id,user_id,title,holdings,target_bond_pct,notes').single();
+ }catch(err){
+  if(isCurrentWorkspaceSession(revision,ownerId)&&active===caseId)
+   snapshotUi('Не удалось подтвердить сохранение снимка. Обнови историю перед повторной попыткой, чтобы избежать дубликата.');
+  return;
+ }
+ if(!isCurrentWorkspaceSession(revision,ownerId)||active!==caseId)return;
+ if(response.error){snapshotUi('Не удалось сохранить снимок: '+response.error.message);return}
+ const saved=response.data;
+ const confirmed=saved&&typeof saved.id==='string'&&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.id)&&
+  saved.case_id===caseId&&saved.user_id===ownerId&&saved.title===e.title&&
+  saved.holdings===raw&&saved.notes===note&&
+  (saved.target_bond_pct===null?null:Number(saved.target_bond_pct))===target;
+ if(!confirmed){
+  snapshotUi('Сохранение снимка не подтверждено. Обнови историю перед повторной попыткой, чтобы избежать дубликата.');
+  return;
+ }
  snapshotUi('Снимок сохранён: '+d.rows.length+' позиций.');await loadSnapshots();
 }
 async function loadSnapshots(){
  if(!isCloud()){snapshotUi('Войди в аккаунт для истории версий.');return}
  const e=entries.find(x=>x.id===active);if(!e||e.kind!=='portfolio')return;
- const ownerId=session.user.id,revision=authRevision;
+ const ownerId=session.user.id,revision=authRevision,loadRevision=++snapshotLoadRevision;
  const {data,error}=await cloud.from('portfolio_snapshots').select('id,case_id,title,holdings,target_bond_pct,notes,created_at').eq('case_id',e.id).eq('user_id',ownerId).order('created_at',{ascending:false}).limit(50);
- if(!isCurrentWorkspaceSession(revision,ownerId)||active!==e.id)return;
+ if(!isCurrentWorkspaceSession(revision,ownerId)||active!==e.id||loadRevision!==snapshotLoadRevision)return;
  if(error){snapshotUi('Не удалось загрузить историю: '+error.message);return}
  snapshotsCache.clear();const holder=document.getElementById('snapshot-history');if(!holder)return;holder.textContent='';
  const p=document.createElement('p');p.textContent=data?.length?'Снимков: '+data.length+'. Выбери две версии для сравнения или восстанови одну в редактор.':'История пока пуста. Добавь первый снимок.';holder.append(p);
