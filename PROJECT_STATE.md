@@ -1,3 +1,7 @@
+## Stronger dialogue/search — 2026-10-28
+
+Prepared chat-only GPT-6 Astra policy, live high-context search and explicit unavailable-model reserve. Existing request quotas/Auth/RLS and task model preserved. 409 Node tests and stress/presentation checks pass. See docs/DIALOGUE_MODEL_UPGRADE.md for pricing, reproducibility and limits. Release/deployment verification pending.
+
 ## Section workbenches instead of automatic chat redirects — 2026-10-28
 
 - User feedback: most primary buttons opened the same chat, making sections feel interchangeable. Added six section-native workbenches: company research, sector comparison, market-event explanation, macro scenarios, lesson and one-question-at-a-time exam. Clicking a journey opens its local intake without database or paid AI side effects; an explicit submit creates an acknowledged owned case/message and runs the existing authenticated backend. Results render in the same section, with copy/TXT and optional full chat/history.
