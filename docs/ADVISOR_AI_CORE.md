@@ -2,13 +2,17 @@
 
 Last verified: 2026-10-27 (read-only plugin skill, deployed Edge Function source, database RLS metadata and security advisors; no authenticated browser E2E). For live handoffs and the release gate, read [PROJECT_STATE.md](../PROJECT_STATE.md). This is an engineering status file, not a claim of successful end-to-end user testing.
 
+## Automatic registration access — 2026-10-28
+
+Confirmed email/password users now qualify automatically for AI without per-email approval. Existing chat v28 auto-enrolls at 10 requests per 24h. Task organizer v4 reserves requests atomically (12/user, 150/global task requests per 24h) through a service-only RPC; explicitly disabled accounts remain blocked. These task limits are separate from the chat global cap. Auth, RLS and owner checks stay enforced. SQL rollback smoke passed, but actual two-user browser/AI flows still need verification.
+
 ## Production components
 
 - **ChatGPT Plugin**: existing private `Advisor AI | Investment Intelligence`, release **2.2.0**. The plugin package contains its comprehensive 2.1 skill, retained academy/source files, and a remote `.mcp.json` connection to the shared mathematical tools.
 - **Workspace frontend**: GitHub Pages `workspace.html`, `ai-chat.html`, `tasks-board.html`, `bond-analysis.html`, and `portfolio-report.html`.
 - **Workspace AI backend**: Supabase Edge Function `advisor-ai-chat` **v28**, accessed through the user's authenticated case with RLS. Uses the **actual text of the plugin's skill** as the analytical baseline, plus Academy and legacy reference material, web-search on relevant financial requests, and a shared MCP endpoint.
 - **Common MCP tools**: Supabase Edge Function `advisor-ai-shared-tools` **v7**, stateless HTTP JSON-RPC with legacy `initialize` and modern `server/discover` for four public deterministic tools: `bond_current_yield`, `portfolio_concentration`, `trade_risk_budget`, `bond_duration_shock`.
-- **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` **v3** with capped AI proposals.
+- **Tasks**: `tasks-board.html`, authenticated Supabase `advisor_tasks` with RLS, `advisor-ai-organize-tasks` **v4** with capped AI proposals and atomic task reservations.
 - **Files**: private `advisor-chat-attachments` bucket with owner restrictions; screenshot/PDF analysis via `advisor-ai-chat`.
 
 ## Verified analytical-core snapshot — 2026-10-27
