@@ -18,7 +18,8 @@ function harness(owner='owner-a'){
   return {
    select(){return this},eq(key,value){filters.push([key,value]);return this},
    order(){return this},limit(){return new Promise(resolve=>reads.push({table,filters,resolve}))},
-   upsert(row){return new Promise(resolve=>writes.push({row,resolve}))}
+   insert(row){writes.push({row,resolve:null});return this},
+   single(){return new Promise(resolve=>{writes.at(-1).resolve=resolve})}
   };
  }};
  const ctx={
