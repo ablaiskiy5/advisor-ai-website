@@ -21,6 +21,7 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [ ] Test document/presentation export rendering, structure and readability using non-client fixtures.
 
 ## P2 — Platform and plugin alignment
+- [ ] Verify real-account Astra availability, dated primary-source search and answer quality after the dialogue-policy upgrade.
 - [ ] Verify actual integration boundaries among public MCP calculation tools, private Supabase AI functions, and the existing Advisor AI plugin; do not describe shared plugin instructions as a callable private backend.
 - [ ] Review paid-AI limits, concurrency, auditability and cost protection with safe migrations and tests where needed.
 - [ ] Improve product onboarding and colleague documentation, then repeat mobile/device and accessibility regression checks.
