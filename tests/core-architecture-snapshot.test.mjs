@@ -8,7 +8,7 @@ const state = readFileSync(new URL('../PROJECT_STATE.md', import.meta.url), 'utf
 test('architecture snapshot identifies separately versioned production components', () => {
   assert.match(core, /Last verified: 2026-10-27/);
   assert.match(core, /advisor-ai-chat\` \*\*v28\*\*/);
-  assert.match(core, /advisor-ai-organize-tasks\` \*\*v3\*\*/);
+  assert.match(core, /advisor-ai-organize-tasks\` \*\*v4\*\*/);
   assert.match(core, /advisor-ai-shared-tools\` \*\*v7\*\*/);
   assert.match(core, /plugin release \*\*2\.2\.0\*\*/);
   assert.match(state, /advisor-ai-chat\` \*\*v28 ACTIVE\*\*/);
