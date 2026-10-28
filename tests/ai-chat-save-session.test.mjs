@@ -13,7 +13,7 @@ function database(read,write){
   assert.equal(table,'workspace_items');
   return {
    select(){const filters=[];return {eq(k,v){filters.push([k,v]);return this},single(){queries.push({op:'read',filters});return read()}}},
-   update(values){const filters=[];return {eq(k,v){filters.push([k,v]);if(filters.length===2){queries.push({op:'write',filters,values});return write()}return this}}}
+   update(values){const filters=[];return {eq(k,v){filters.push([k,v]);return this},select(columns){assert.equal(columns,'id,notes');return this},single(){queries.push({op:'write',filters,values});return write(values)}}}
   };
  }};
 }
@@ -27,7 +27,7 @@ function ownerScoped(queries){
  for(const q of queries)assert.equal(JSON.stringify(q.filters),JSON.stringify([['id','case-1'],['user_id','owner-a']]));
 }
 test('successful save scopes read and write to owner and preserves the answer',async()=>{
- const db=database(async()=>({data:{notes:'Previous'},error:null}),async()=>({error:null})),a=app(db);
+ const db=database(async()=>({data:{notes:'Previous'},error:null}),async values=>({data:{id:'case-1',notes:values.notes},error:null})),a=app(db);
  await a.save();
  assert.equal(db.queries.length,2);ownerScoped(db.queries);
  assert.match(db.queries[1].values.notes,/Previous/);
