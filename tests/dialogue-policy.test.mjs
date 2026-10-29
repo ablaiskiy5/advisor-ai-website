@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL,providerFailure} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
+import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL,providerFailure,prepareAssistantAnswer} from '../supabase/functions/advisor-ai-chat/dialogue-policy.mjs';
 test('dialogue upgrade keeps bounded Responses settings and live high-context search',()=>{
  const body={instructions:'Original',input:['history'],store:false};
  assert.equal(configureDialogue(body,{kind:'ideas'}),true);
@@ -45,4 +45,10 @@ test('billing 429 differs from retryable rate limits without exposing provider d
  }
  const rate=providerFailure(429,{error:{code:'rate_limit_exceeded'}});assert.equal(rate.status,429);assert.equal(rate.retryable,true);
  assert.equal(providerFailure(500,{}),null);
+});
+
+test('long financial reports are preserved exactly and oversized reports are rejected, not truncated',()=>{
+ for(const answer of ['я'.repeat(12001),'я'.repeat(80000),'😀'.repeat(80000)])assert.equal(prepareAssistantAnswer(answer),answer);
+ assert.throws(()=>prepareAssistantAnswer('я'.repeat(80001)),RangeError);
+ assert.throws(()=>prepareAssistantAnswer('  '),RangeError);
 });

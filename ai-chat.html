@@ -342,11 +342,15 @@ async function requestAI(){
   if(isCurrentChat(epoch,ownerId)){
    const message=String(e?.message||'Неизвестная ошибка');
    $('file-status').textContent='Анализ не завершён. Вопрос и вложения сохранены.';
+   const saveFailure=/Answer was not saved|сохранить.*в историю не удалось|Ответ превышает допустимый размер сохранения/i.test(message);
    const billing=/API-баланс|оплаты или лимита расходов|ai_billing_unavailable/i.test(message);
    const exhausted=/Лимит повторных попыток|retry_limit/i.test(message);
    const quota=/лимит AI-запросов|Общий лимит AI|дневной лимит|лимит.*исчерпан/i.test(message);
    const restricted=/участникам пилота|доступ.*отключён|AI-доступ.*не разрешён/i.test(message);
-   if(billing){
+   if(saveFailure){
+    $('retry').classList.add('hidden');
+    error('Ошибка сохранения ответа. '+message+' Твой вопрос и вложения сохранены.');
+   }else if(billing){
     $('retry').classList.add('hidden');
     error(message+' Вопрос и вложения сохранены. После восстановления оплаты обнови историю и повтори ответ.');
    }else if(exhausted){

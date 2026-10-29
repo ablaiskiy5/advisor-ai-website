@@ -19,3 +19,8 @@ test('transient rate failure reveals the real retry action and clears busy statu
  const f=fixture('AI временно ограничил частоту запросов. Попробуй позже.');await f.run();
  assert.equal(f.nodes.retry.classList.hidden,false);assert.match(f.error,/Повторить ответ AI/);assert.match(f.nodes['file-status'].textContent,/не завершён/);
 });
+
+test('failed answer persistence does not suggest repeating a paid generation',async()=>{
+ const f=fixture('AI подготовил ответ, но сохранить его в историю не удалось. Повтор запускает новую генерацию и может расходовать API-баланс.');await f.run();
+ assert.equal(f.nodes.retry.classList.hidden,true);assert.match(f.error,/Ошибка сохранения/);assert.doesNotMatch(f.error,/Можно нажать/);assert.deepEqual(f.waits,[true,false]);
+});
