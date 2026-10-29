@@ -10,7 +10,7 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [ ] Validate the recently changed light chat, case navigation, AI short-response quality and source links with real user flows.
 
 ## P1 — Advisor workflows and usability
-- [x] Full-page chat reading and per-answer PDF export with isolated capture; synthetic browser/PDF validation (release evidence in PROJECT_STATE.md).
+- [x] Large chat reading pane with visible composer and per-answer PDF export with isolated capture; synthetic browser/PDF validation (release evidence in PROJECT_STATE.md).
 - [x] Automatic AI eligibility for confirmed self-registration without per-email manual approval; task quotas use a service-only atomic reservation (2026-10-28).
 - [ ] Verify actual signup/email delivery and first AI response under an independently registered account.
 - [x] Shared navigation/history/document hubs published in PR #226; PR/main CI, Pages and public browser navigation verified (see PROJECT_STATE.md).

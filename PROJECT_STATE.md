@@ -2,7 +2,7 @@
 
 User found the full-page transcript made input unreachable below long history. Replaced that layout with a large bounded reading pane and a composer kept outside its scroll area. Available card height is calculated from its actual viewport position and recalculated on resize. File/voice/format/preset controls are grouped in a collapsed details menu with bounded expansion; mobile duplicate header is removed to recover reading space. Latest-answer navigation scrolls only the transcript; compose navigation focuses the visible field. Existing per-answer PDF isolation/export remains in place.
 
-Validation: 413 Node regressions pass. Synthetic Chromium tests at 1440/390/320px cover long-history scrolling, visible input/send, independent transcript scroll, expanded controls and per-answer PDF selection. These are UI tests with synthetic data, not private/live AI checks. Release pending.
+Validation: 413 Node regressions pass. Synthetic Chromium tests at 1440/390/320px cover long-history scrolling, visible input/send, independent transcript scroll, expanded controls and per-answer PDF selection. These are UI tests with synthetic data, not private/live AI checks. Published PR #239, merge 13654917b99160b4d07470c91b7a000c43ca5541. All four PR and four merged-main code checks passed, including the real PDF generation check. Pages deployment 40838114123 succeeded.
 
 ## Chat reading and PDF export — 2026-10-29
 
