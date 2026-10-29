@@ -1,3 +1,11 @@
+## Long AI answer persistence incident — 2026-10-29
+
+Filtered production logs identify four PostgreSQL 23514 failures on advisor_ai_messages_content_check. Live inspection confirmed one 12,000-character cap applied to both user and assistant messages, while chat v31 attempted to save up to 80,000. Long paid report generation therefore succeeded but the final database insert failed.
+
+Applied migration 20261029123902_allow_long_assistant_answers: retain user cap 12,000, allow assistant replies up to 80,000, preserve nonempty/role/owner/FK checks, RLS and grants. The migration tests synthetic boundary inserts in an ON COMMIT DROP temporary clone with the actual constraints: user 12,000 accepted/12,001 rejected; assistant 12,001 and 80,000 accepted/80,001 and empty rejected. Readback confirms the constraint is validated and message RLS remains enabled. No existing rows or private message contents were read or changed; no paid inference was run.
+
+Prepared backend guard that preserves the entire report rather than silently slicing it, counts Unicode code points like Postgres and returns explicit non-retryable storage errors. Chat suppresses the immediate paid-retry suggestion for such failures. 415 Node regressions pass. Earlier unsaved responses are not recovered by this migration; one owner-initiated generation in the existing case is needed to produce a new answer. Code/backend release pending; the live database defect itself is already fixed.
+
 ## Large reading pane with reachable composer — 2026-10-29
 
 User found the full-page transcript made input unreachable below long history. Replaced that layout with a large bounded reading pane and a composer kept outside its scroll area. Available card height is calculated from its actual viewport position and recalculated on resize. File/voice/format/preset controls are grouped in a collapsed details menu with bounded expansion; mobile duplicate header is removed to recover reading space. Latest-answer navigation scrolls only the transcript; compose navigation focuses the visible field. Existing per-answer PDF isolation/export remains in place.

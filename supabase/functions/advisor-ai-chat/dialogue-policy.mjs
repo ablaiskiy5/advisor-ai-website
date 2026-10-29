@@ -62,3 +62,11 @@ export function providerFailure(status, payload) {
   if (status===429) return {status:429,code:'ai_rate_limit',retryable:true,error:'AI временно ограничил частоту запросов. Попробуй позже.'};
   return null;
 }
+
+export const MAX_ASSISTANT_CHARACTERS = 80000;
+export function prepareAssistantAnswer(answer) {
+  if (typeof answer !== 'string' || !answer.trim()) throw new RangeError('Empty assistant answer');
+  // Postgres char_length counts Unicode code points, not UTF-16 code units.
+  if (Array.from(answer).length > MAX_ASSISTANT_CHARACTERS) throw new RangeError('Assistant answer exceeds storage limit');
+  return answer; // Never silently truncate a financial report.
+}
