@@ -1,3 +1,9 @@
+## Large reading pane with reachable composer — 2026-10-29
+
+User found the full-page transcript made input unreachable below long history. Replaced that layout with a large bounded reading pane and a composer kept outside its scroll area. Available card height is calculated from its actual viewport position and recalculated on resize. File/voice/format/preset controls are grouped in a collapsed details menu with bounded expansion; mobile duplicate header is removed to recover reading space. Latest-answer navigation scrolls only the transcript; compose navigation focuses the visible field. Existing per-answer PDF isolation/export remains in place.
+
+Validation: 413 Node regressions pass. Synthetic Chromium tests at 1440/390/320px cover long-history scrolling, visible input/send, independent transcript scroll, expanded controls and per-answer PDF selection. These are UI tests with synthetic data, not private/live AI checks. Release pending.
+
 ## Chat reading and PDF export — 2026-10-29
 
 Removed viewport height caps and nested vertical transcript scrolling. Messages expand in normal page flow with jump links to the latest answer and composer, and new replies scroll to their beginning. Every assistant reply has its own PDF download bound to that reply; the sidebar still exports the latest reply.

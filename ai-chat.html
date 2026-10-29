@@ -75,22 +75,34 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 /* Distinguish verified HTTPS source links within AI analysis without trusting model HTML. */
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
-/* Full-height reading uses the page scroll, not a cramped inner viewport. */
+/* Keep a large reading pane and composer together within the available viewport. */
 .answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3}.answer-actions button{min-height:44px;font-size:14px}
 .reading-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
-.reading-nav a{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
+.reading-nav button{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
 #latest-answer,#question{scroll-margin-top:80px}
-@media print{.reading-nav{display:none}}
+.chat{height:var(--chat-height,calc(100dvh - 250px));min-height:320px;max-height:none;padding:16px}
+#messages{position:relative;flex:1 1 auto;min-height:120px;overflow:auto;overscroll-behavior:contain}
+.chat>*:not(#messages){flex-shrink:0}
+.reading-nav{margin-bottom:10px;gap:8px}.reading-nav button{font-size:13px;min-height:34px;padding:6px 10px}
+.composer-tools{margin:6px 0;background:#f6f9fd;border:1px solid #dce5f0;border-radius:10px;font-size:13px}
+.composer-tools>summary{padding:8px 10px;cursor:pointer;font-weight:650}
+.composer-tools[open]{max-height:180px;overflow:auto;padding:0 10px 8px}
+.chat .composer{padding-top:10px;background:#fff;flex-direction:row;align-items:stretch}
+.chat textarea{min-height:72px;max-height:120px;resize:none}.chat #send{min-width:100px}
+#error:empty,#file-status:empty{display:none}
+@media(max-width:900px){body.has-workspace-shell main>header,body.has-workspace-shell main>.crumb{display:none}#case-sub{font-size:13px;margin:6px 0 12px}#case-title{font-size:27px}}
+@media(max-width:500px){.chat{padding:10px}.chat #send{min-width:76px;padding:8px}.chat textarea{min-height:74px}.reading-nav button{font-size:12px}}
+@media print{.reading-nav,.composer-tools,.composer{display:none}}
 </style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/answer-renderer.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
- <p class="input-guidance hidden" id="input-guidance"></p>
- <nav class="reading-nav" aria-label="Переходы по диалогу"><a href="#latest-answer">К последнему ответу ↓</a><a href="#question">Написать сообщение ↓</a></nav>
+ <nav class="reading-nav" aria-label="Переходы по диалогу"><button id="jump-latest" type="button">Последний ответ ↓</button><button id="jump-compose" type="button">Написать</button></nav>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
- <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><label class="answer-depth" for="answer-depth">Формат ответа<select id="answer-depth"><option value="auto">По задаче</option><option value="brief">Кратко</option><option value="detailed">Подробно</option></select></label><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
+<div id="file-status" class="file-status" aria-live="polite"></div><details class="composer-tools"><summary>Файлы, диктовка и настройки</summary> <p class="input-guidance hidden" id="input-guidance"></p>
+ <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><label class="answer-depth" for="answer-depth">Формат ответа<select id="answer-depth"><option value="auto">По задаче</option><option value="brief">Кратко</option><option value="detailed">Подробно</option></select></label></details><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
  </section><aside class="card info"><h2>Действия с результатом</h2>
  <button id="retry" class="action hidden">Повторить ответ AI</button>
  <button id="to-tasks" class="action hidden">☑ Разложить переписку по задачам</button>
@@ -294,7 +306,7 @@ async function history(){if(!db||!caseData||!user)return;const requestSeq=++hist
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}if(latestAnswerNode)latestAnswerNode.id='latest-answer';$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}if(latestAnswerNode){latestAnswerNode.id='latest-answer';list.scrollTop=latestAnswerNode.offsetTop||0;}$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
  if(incompleteLatest&&!attachmentErr)error('У последнего сообщения не все вложения загружены. Прикрепи недостающие файлы новым сообщением перед AI-анализом. Повтор ответа не загружает файлы.');
 }
 async function requestAI(){
@@ -317,7 +329,6 @@ async function requestAI(){
   if(data?.error)throw Error(data.error);
   await history();
   if(!isCurrentChat(epoch,ownerId))return;
-  globalThis.document?.getElementById?.('latest-answer')?.scrollIntoView?.({block:'start'});
   const usage=data?.tools;
   if(usage){
    const parts=[];
@@ -655,5 +666,9 @@ $('question').addEventListener('input',updateInputGuidance);
 $('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('quick-docx').addEventListener('click',downloadDocx);$('quick-pdf').addEventListener('click',downloadPdf);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 window.workspaceHasTransientWork=()=>working||pendingFiles.length>0;
-init().catch(e=>error('Не удалось открыть AI-чат: '+e.message));
+function fitChatViewport(){const chat=document.querySelector('.chat');if(!chat)return;const top=chat.getBoundingClientRect().top;chat.style.setProperty('--chat-height',Math.max(320,window.innerHeight-Math.max(top,12)-16)+'px')}
+window.addEventListener('resize',fitChatViewport);
+$('jump-latest').addEventListener('click',()=>{const latest=document.getElementById('latest-answer');if(latest)$('messages').scrollTop=latest.offsetTop});
+$('jump-compose').addEventListener('click',()=>$('question').focus());
+init().then(()=>requestAnimationFrame(fitChatViewport)).catch(e=>error('Не удалось открыть AI-чат: '+e.message));
 </script><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script><script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.umd.cjs"></script></body></html>
