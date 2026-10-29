@@ -49,7 +49,7 @@ try{
  // Exercise actual DOM navigation and draft recovery, without real accounts or network writes.
  const casePath='/ai-chat.html?case=22222222-2222-4222-8222-222222222222';
  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
- // Long answers must expand the page rather than sit in a small scroll box.
+ // Long history stays inside a large reading pane while the composer remains visible.
  for(const width of [1440,390,320]){
   await page.setViewportSize({width,height:900});
   await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
@@ -59,16 +59,22 @@ try{
    renderAnswerSafe(node,'## Разбор портфеля\n\n'+Array.from({length:32},(_,i)=>'Раздел '+(i+1)+'. Проверяем концентрацию, ликвидность и сценарии. Это синтетический длинный ответ для проверки удобного чтения.').join('\n\n'));
   });
   const layout=await page.locator('#messages').evaluate(node=>({height:node.clientHeight,scroll:node.scrollHeight,overflow:getComputedStyle(node).overflowY}));
-  assert.ok(layout.height>1600,'Long transcript should expand well beyond the viewport');
-  assert.ok(layout.scroll<=layout.height+2,'Transcript must not have an inner vertical scroll');
-  assert.equal(layout.overflow,'visible');
+  if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'pinned-debug-'+width+'.png')})}
+  assert.ok(layout.height>300,'Reading pane must retain useful height '+width+' '+JSON.stringify(layout));
+  assert.ok(layout.scroll>layout.height+1000,'Long transcript scrolls inside the pane');
+  assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Composer must remain in view');
+  assert.ok(await page.locator('#send').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Send must remain in view');
+  assert.equal(layout.overflow,'auto');
+  const composerTop=await page.locator('#question').evaluate(n=>n.getBoundingClientRect().top);await page.locator('#messages').evaluate(n=>n.scrollTop=n.scrollHeight);
+  assert.equal(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().top),composerTop,'Reading history must not move the composer');
+  await page.locator('.composer-tools>summary').click();assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight));await page.locator('.composer-tools>summary').click();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Long chat must fit '+width);
-  await page.locator('.reading-nav a[href="#latest-answer"]').click();
-  assert.ok(await page.evaluate(()=>Math.abs(document.getElementById('latest-answer').getBoundingClientRect().top-80)<5));
+  await page.locator('#jump-latest').click();
+  assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight));
   if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'chat-reading-'+width+'.png')})}
   await page.evaluate(()=>{window.pdfRequested=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};const selected=bubble('assistant','Unique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
   await page.locator('#selected-pdf-test .answer-pdf').click();assert.equal(await page.evaluate(()=>window.pdfRequested),'Unique selected earlier answer');
-  await page.locator('.reading-nav a[href="#question"]').click();await page.locator('#question').focus();
+  await page.locator('#jump-compose').click();await page.locator('#question').focus();
   assert.equal(await page.locator('#question').evaluate(n=>n===document.activeElement),true);
  }
  await page.setViewportSize({width:1440,height:900});
