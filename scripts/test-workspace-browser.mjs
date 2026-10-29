@@ -49,6 +49,30 @@ try{
  // Exercise actual DOM navigation and draft recovery, without real accounts or network writes.
  const casePath='/ai-chat.html?case=22222222-2222-4222-8222-222222222222';
  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
+ // Long answers must expand the page rather than sit in a small scroll box.
+ for(const width of [1440,390,320]){
+  await page.setViewportSize({width,height:900});
+  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
+  await page.locator('#question').fill('Synthetic long reading check');await page.locator('#send').click();
+  await page.locator('#latest-answer').waitFor();
+  await page.locator('#latest-answer .rendered').evaluate(node=>{
+   renderAnswerSafe(node,'## Разбор портфеля\n\n'+Array.from({length:32},(_,i)=>'Раздел '+(i+1)+'. Проверяем концентрацию, ликвидность и сценарии. Это синтетический длинный ответ для проверки удобного чтения.').join('\n\n'));
+  });
+  const layout=await page.locator('#messages').evaluate(node=>({height:node.clientHeight,scroll:node.scrollHeight,overflow:getComputedStyle(node).overflowY}));
+  assert.ok(layout.height>1600,'Long transcript should expand well beyond the viewport');
+  assert.ok(layout.scroll<=layout.height+2,'Transcript must not have an inner vertical scroll');
+  assert.equal(layout.overflow,'visible');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Long chat must fit '+width);
+  await page.locator('.reading-nav a[href="#latest-answer"]').click();
+  assert.ok(await page.evaluate(()=>Math.abs(document.getElementById('latest-answer').getBoundingClientRect().top-80)<5));
+  if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'chat-reading-'+width+'.png')})}
+  await page.evaluate(()=>{window.pdfRequested=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};const selected=bubble('assistant','Unique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
+  await page.locator('#selected-pdf-test .answer-pdf').click();assert.equal(await page.evaluate(()=>window.pdfRequested),'Unique selected earlier answer');
+  await page.locator('.reading-nav a[href="#question"]').click();await page.locator('#question').focus();
+  assert.equal(await page.locator('#question').evaluate(n=>n===document.activeElement),true);
+ }
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
  await page.locator('#question').fill('Synthetic covered call question');
  assert.match(await page.locator('#input-guidance').textContent(),/актуальная опционная цепочка/);
  await page.locator('#shell-sidebar [data-section="ideas"]').click();

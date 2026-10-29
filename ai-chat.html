@@ -9,16 +9,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .brand{font-weight:850;font-size:24px}.brand span{color:#8cabff}.muted{color:#9daecc}.crumb{font-size:11px;letter-spacing:1.8px;font-weight:700;color:#8cadfb}
 h1{font-size:clamp(23px,4vw,35px);margin:9px 0 7px;overflow-wrap:anywhere;line-height:1.15}p{line-height:1.5}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 275px;gap:17px;align-items:start}.card{border:1px solid #304260;background:#151f34;border-radius:16px;padding:18px;min-width:0}
-.chat{display:flex;flex-direction:column;min-height:66dvh;max-height:80dvh}
-#messages{flex:1;min-height:200px;overflow:auto;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain;padding:5px 2px 17px}
-.bubble{max-width:90%;width:max-content;min-width:90px;padding:12px 15px;border-radius:14px;background:#223249;border:1px solid #334563;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:14px}
+.chat{display:flex;flex-direction:column;min-height:0;max-height:none}
+#messages{flex:none;min-height:240px;overflow:visible;display:flex;flex-direction:column;gap:12px;padding:5px 2px 17px}
+.bubble{flex-shrink:0;max-width:90%;width:max-content;min-width:90px;padding:12px 15px;border-radius:14px;background:#223249;border:1px solid #334563;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:14px}
 .bubble.assistant{width:100%;max-width:100%;white-space:normal;line-height:1.6}.bubble.assistant .rendered p{margin:8px 0}.bubble.assistant .rendered h3{font-size:16px;margin:16px 0 7px;color:#eaf2ff}.bubble.assistant .rendered .line-item{padding:3px 0 3px 10px;border-left:2px solid #4a6597}.bubble.assistant .rendered table{border-collapse:collapse;width:100%;min-width:380px}.bubble.assistant .rendered th,.bubble.assistant .rendered td{padding:6px;border-bottom:1px solid #405678;text-align:left}.bubble.assistant .table-scroll{overflow-x:auto;max-width:100%}.bubble.user{align-self:flex-end;background:#244171;border-color:#3d6297}.sender{font-size:11px;color:#afc9ef;font-weight:750;margin-bottom:7px}
 .composer{border-top:1px solid #334561;padding-top:15px;display:flex;gap:10px;align-items:end}.attachments{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:9px 0}.attachments button{font-size:12px;padding:8px 12px}.filetag{border:1px solid #496184;background:#233856;padding:5px 8px;border-radius:7px;font-size:12px;overflow-wrap:anywhere}.filehint{font-size:11px;color:#aebfd9}.file-status{font-size:12px;color:#c7d7f6;padding:4px 0}
 textarea{width:100%;min-height:76px;max-height:190px;resize:vertical;padding:12px;border:1px solid #3c5070;border-radius:10px;background:#0c1528;color:white;outline-offset:2px}
 .notice{padding:12px 14px;border:1px solid #3c5374;border-radius:10px;background:#1a2a45;font-size:13px;line-height:1.55;margin:12px 0;overflow-wrap:anywhere}
 .info h2{font-size:16px;margin:0 0 15px}.info p{font-size:13px;color:#adc0dc}.action{width:100%;margin:6px 0;text-align:center}.hidden{display:none!important}
 #error{color:#ffcd9e;min-height:18px;font-size:13px;margin:9px 0}
-@media(max-width:780px){main{padding:17px 13px 28px}.layout{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.chat{min-height:63dvh;max-height:none}.info{order:2}header{margin-bottom:17px}.composer{flex-direction:column;align-items:stretch}textarea{min-height:80px} .bubble{max-width:98%}}
+@media(max-width:780px){main{padding:17px 13px 28px}.layout{grid-template-columns:minmax(0,1fr)}.card{padding:12px}.chat{min-height:0;max-height:none}.info{order:2}header{margin-bottom:17px}.composer{flex-direction:column;align-items:stretch}textarea{min-height:80px} .bubble{max-width:98%}}
 #print-report{display:none}
 @media print{body{background:white!important;color:#111!important}main>*:not(#print-report){display:none!important}#print-report{display:block!important;font-family:Arial,sans-serif;font-size:11pt;color:#111;line-height:1.5}#print-report h1{font-size:20pt;margin-bottom:8px}#print-report p{color:#555}.print-content{white-space:pre-wrap;overflow-wrap:anywhere}}
 a.workspace-dock{position:fixed;left:14px;bottom:14px;z-index:999;display:inline-flex;align-items:center;min-height:46px;padding:10px 16px;border-radius:11px;border:1px solid #98b6f4;background:#304f86;color:#fff!important;text-decoration:none;font-weight:750;box-shadow:0 7px 25px #0008}a.workspace-dock:hover{background:#4168a6}a.workspace-dock:focus-visible{outline:3px solid #dbe8ff;outline-offset:3px}@media(max-width:600px){a.workspace-dock{position:sticky;display:flex;top:0;left:0;bottom:auto;width:100%;justify-content:center;border-radius:0;border-left:0;border-right:0;box-shadow:0 4px 18px #0009}}@media print{a.workspace-dock{display:none!important}}
@@ -29,7 +29,7 @@ main{max-width:1300px;padding:29px clamp(16px,3vw,42px) 68px}
 header{margin-bottom:20px}.brand{color:#172744}.brand span{color:#386bcc}.crumb{color:#426caa}.muted{color:#62738d}
 h1{font-size:clamp(27px,3.5vw,39px);line-height:1.2;letter-spacing:-.65px}
 .card{background:#fff;border:1px solid #dce5f0;border-radius:19px;box-shadow:0 10px 35px rgba(26,49,83,.055);padding:22px}
-.chat{min-height:74dvh;max-height:86dvh}
+.chat{min-height:0;max-height:none}
 #messages{gap:18px;background:#f6f8fc;border:1px solid #e7edf5;border-radius:15px;padding:19px 16px;scrollbar-color:#cad8e8 transparent}
 .bubble{font-size:15px;line-height:1.65;color:#193151;background:#f9fbff;border:1px solid #dde7f3;padding:17px 20px;border-radius:16px}
 .bubble.assistant{color:#253348;background:#fff;border-color:#dbe4ed;box-shadow:0 5px 18px rgba(32,62,94,.055);font-size:16px;line-height:1.72;max-width:100%;width:100%;white-space:normal;padding:22px clamp(17px,2.6vw,30px)}
@@ -75,12 +75,19 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 /* Distinguish verified HTTPS source links within AI analysis without trusting model HTML. */
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
+/* Full-height reading uses the page scroll, not a cramped inner viewport. */
+.answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3}.answer-actions button{min-height:44px;font-size:14px}
+.reading-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
+.reading-nav a{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
+#latest-answer,#question{scroll-margin-top:80px}
+@media print{.reading-nav{display:none}}
 </style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/answer-renderer.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
  <p class="input-guidance hidden" id="input-guidance"></p>
+ <nav class="reading-nav" aria-label="Переходы по диалогу"><a href="#latest-answer">К последнему ответу ↓</a><a href="#question">Написать сообщение ↓</a></nav>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
  <div id="quick-actions" class="attachments" aria-label="Быстрые действия"></div><div class="attachments"><button id="add-file" type="button" disabled>📎 Прикрепить</button><input id="attach-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.png,.jpg,.jpeg,.webp,.pdf" multiple class="hidden"><span class="filehint">Скриншоты и PDF до 5 МБ каждый, максимум 3 файла. AI учитывает последние вложения и при следующих вопросах в этом кейсе.</span></div><div id="file-list" class="attachments" aria-live="polite"></div><div id="file-status" class="file-status" aria-live="polite"></div><div class="voice-controls"><button id="dictate" type="button" disabled>🎙 Надиктовать</button><select id="dictation-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="voice-status" role="status" aria-live="polite">После диктовки проверь текст и нажми «Отправить». Распознавание зависит от браузера.</span></div><label class="answer-depth" for="answer-depth">Формат ответа<select id="answer-depth"><option value="auto">По задаче</option><option value="brief">Кратко</option><option value="detailed">Подробно</option></select></label><div class="composer"><textarea id="question" maxlength="5000" placeholder="Задай вопрос или прикрепи скриншот портфеля…" aria-label="Вопрос Advisor AI" disabled></textarea><button id="send" class="primary" disabled>Отправить →</button></div>
@@ -90,7 +97,7 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
  <button id="summary" class="action primary" disabled>Создать документ по кейсу</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ</button>
  <div class="messenger-actions" aria-label="Копировать ответ для клиента"><button id="copy-whatsapp" type="button" disabled>Копировать для WhatsApp</button><button id="copy-telegram" type="button" disabled>Копировать для Telegram</button></div><p class="messenger-help">Копируется последний ответ с разметкой. Проверь текст перед отправкой клиенту.</p>
- <div class="document-shortcuts"><button id="quick-docx" type="button" disabled>↓ Word</button><button id="quick-pdf" type="button" disabled>↓ PDF</button></div><p class="messenger-help">Создай документ с AI или скачай последний ответ. Полный список форматов — ниже.</p><details class="chat-sidebar-details chat-exports"><summary>Остальные форматы и печать</summary>
+ <div class="document-shortcuts"><button id="quick-docx" type="button" disabled>↓ Word</button><button id="quick-pdf" type="button" disabled>↓ PDF</button></div><p class="messenger-help">Здесь скачивается последний ответ. Под каждым ответом есть своя кнопка «Скачать PDF этого ответа». Полный список форматов — ниже.</p><details class="chat-sidebar-details chat-exports"><summary>Остальные форматы и печать</summary>
  <button id="download-result" class="action" disabled>Скачать текст .txt</button>
  <button id="download-pdf" class="action" disabled>PDF</button>
  <button id="download-docx" class="action" disabled>Word (.docx)</button>
@@ -152,7 +159,13 @@ function bubble(role,content){
  const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');
  const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';
  const node=document.createElement('div');if(role==='assistant'){node.className='rendered';if(typeof renderAnswerSafe==='function')renderAnswerSafe(node,content);else node.textContent=content}else node.textContent=content;
- el.append(who,node);return el;
+ el.append(who,node);
+ if(role==='assistant'){
+  const actions=document.createElement('div');actions.className='answer-actions';
+  const pdf=document.createElement('button');pdf.type='button';pdf.className='answer-pdf';pdf.textContent='↓ Скачать PDF этого ответа';pdf.disabled=working;
+  pdf.addEventListener('click',async()=>{pdf.disabled=true;pdf.textContent='Создаю PDF…';try{await downloadPdf(content)}finally{pdf.disabled=working;pdf.textContent='↓ Скачать PDF этого ответа'}});actions.append(pdf);el.append(actions);
+ }
+ return el;
 }
 function formatMessengerText(value,kind){
  const src=String(value||'').replace(/\r\n/g,'\n').trim();
@@ -231,7 +244,7 @@ function toggleDictation(){
 }
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active;$('dictate').disabled=!active}
-function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=v||!lastAnswer;$('copy-telegram').disabled=v||!lastAnswer;$('quick-docx').disabled=v||!lastAnswer;$('quick-pdf').disabled=v||!lastAnswer;$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;$('send').textContent=v?'Думаю…':'Отправить →'}
+function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=v||!lastAnswer;$('copy-telegram').disabled=v||!lastAnswer;$('quick-docx').disabled=v||!lastAnswer;$('quick-pdf').disabled=v||!lastAnswer;$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;globalThis.document?.querySelectorAll?.('.answer-pdf')?.forEach(b=>b.disabled=v);$('send').textContent=v?'Думаю…':'Отправить →'}
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
  globalThis.AdvisorDrafts?.purge();
@@ -272,14 +285,16 @@ async function history(){if(!db||!caseData||!user)return;const requestSeq=++hist
  if(incompleteId&&latestUserMessageId&&incompleteId!==latestUserMessageId)clearIncompleteUpload(ownerId,caseId,incompleteId);
  const incompleteLatest=Boolean(incompleteId&&incompleteId===latestUserMessageId);
  const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
+ let latestAnswerNode=null;
  for(const m of (data||[]).reverse()){
   const node=bubble(m.role,m.content);
+  if(m.role==='assistant')latestAnswerNode=node;
   for(const f of (grouped.get(m.id)||[])){const btn=document.createElement('button');btn.className='filetag';btn.textContent='📎 '+f.filename;btn.title='Открыть вложение';btn.style.marginTop='8px';
    btn.addEventListener('click',async()=>{if(!isCurrentChat(epoch,ownerId))return;btn.disabled=true;try{const {data:link,error:linkErr}=await db.storage.from('advisor-chat-attachments').createSignedUrl(f.object_path,60);if(!isCurrentChat(epoch,ownerId))return;if(linkErr)throw linkErr;window.open(link.signedUrl,'_blank','noopener')}catch(e){if(isCurrentChat(epoch,ownerId))error('Не удалось открыть файл: '+e.message)}finally{btn.disabled=false}});
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}list.scrollTop=list.scrollHeight;$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}if(latestAnswerNode)latestAnswerNode.id='latest-answer';$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
  if(incompleteLatest&&!attachmentErr)error('У последнего сообщения не все вложения загружены. Прикрепи недостающие файлы новым сообщением перед AI-анализом. Повтор ответа не загружает файлы.');
 }
 async function requestAI(){
@@ -302,6 +317,7 @@ async function requestAI(){
   if(data?.error)throw Error(data.error);
   await history();
   if(!isCurrentChat(epoch,ownerId))return;
+  globalThis.document?.getElementById?.('latest-answer')?.scrollIntoView?.({block:'start'});
   const usage=data?.tools;
   if(usage){
    const parts=[];
@@ -463,14 +479,14 @@ async function saveResult(){
 }
 function printResult(){if(!lastAnswer||!caseData)return;const area=$('print-report');area.textContent='';const title=document.createElement('h1');title.textContent='Advisor AI — '+caseData.title;const date=document.createElement('p');date.textContent='Дата: '+new Date().toLocaleString('ru-RU');const body=document.createElement('div');body.className='print-content';body.textContent=lastAnswer;area.append(title,date,body);window.print()}
 function fileName(){return (caseData?.title||'case').replace(/[\\/:*?"<>|]/g,' ').slice(0,60).trim()||'case'}
-function printableContent(){
- const root=document.createElement('article');root.style.cssText='background:#fff;color:#162033;font-family:Arial,sans-serif;padding:24px;width:730px;line-height:1.45;overflow-wrap:break-word;';
+function printableContent(answer=lastAnswer){
+ const root=document.createElement('article');root.style.cssText='background:#fff;color:#162033;font-family:Arial,sans-serif;box-sizing:border-box;padding:18px;width:100%;max-width:100%;margin:0;line-height:1.45;overflow-wrap:break-word;';
  const h=document.createElement('h1');h.textContent='Advisor AI · '+caseData.title;h.style.cssText='font-size:20px;line-height:1.2;margin:0 0 12px;';
  const p=document.createElement('p');p.textContent='Дата: '+new Date().toLocaleDateString('ru-RU');p.style.cssText='font-size:11px;color:#607089;border-bottom:1px solid #ccd5e3;padding-bottom:9px;';
  const body=document.createElement('div');body.style.cssText='font-size:12px;line-height:1.55;';
- renderAnswerSafe(body,lastAnswer);
+ renderAnswerSafe(body,answer);
  // Explicit inline styles survive html2pdf's temporary cloned container.
- body.querySelectorAll('h3').forEach(el=>el.style.cssText='font-size:16px;color:#162f57;margin:16px 0 8px;break-after:avoid;');
+ body.querySelectorAll('h2,h3').forEach(el=>el.style.cssText='font-size:16px;color:#162f57;margin:16px 0 8px;break-after:avoid;');
  body.querySelectorAll('p,.line-item').forEach(el=>el.style.cssText='margin:7px 0;white-space:pre-wrap;');
  body.querySelectorAll('strong').forEach(el=>el.style.fontWeight='700');
  body.querySelectorAll('.table-scroll').forEach(el=>el.style.cssText='width:100%;overflow:visible;margin:10px 0;');
@@ -515,17 +531,26 @@ async function downloadPresentation(){
  }catch(e){$('result-status').textContent='Ошибка PowerPoint: '+e.message}
  finally{btn.disabled=working||!lastAnswer;btn.textContent='⬇ Презентация .pptx'}
 }
-async function downloadPdf(){
- if(!lastAnswer||!caseData)return;
+let pdfExportInProgress=false;
+async function downloadPdf(answer=lastAnswer){
+ if(pdfExportInProgress||!lastAnswer||!caseData)return;
+ pdfExportInProgress=true;
  const button=$('download-pdf');button.disabled=true;button.textContent='Создаю PDF…';
  // html2pdf clones the source into its own visible capture container; do not move it off-screen.
- const documentNode=printableContent();
+ const documentNode=printableContent(typeof answer==='string'?answer:lastAnswer);
+ let captureFrame=null;
  try{
   if(typeof window.html2pdf!=='function')throw Error('Библиотека создания PDF не загрузилась. Проверь соединение.');
-  await window.html2pdf().set({margin:9,filename:'AdvisorAI-'+fileName()+'.pdf',image:{type:'jpeg',quality:.95},html2canvas:{scale:1.8,backgroundColor:'#ffffff',windowWidth:850},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(documentNode).save();
+  // Render in an isolated document: shell padding and page scroll must not affect PDF bounds.
+  captureFrame=document.createElement('iframe');captureFrame.title='Подготовка PDF';captureFrame.setAttribute('aria-hidden','true');captureFrame.style.cssText='position:fixed;left:0;top:0;width:850px;height:900px;border:0;opacity:0;pointer-events:none;';document.body.append(captureFrame);
+  const captureDoc=captureFrame.contentDocument;captureDoc.open();captureDoc.write('<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:white}</style></head><body></body></html>');captureDoc.close();
+  captureDoc.body.append(captureDoc.importNode(documentNode,true));
+  await new Promise((resolve,reject)=>{const script=captureDoc.createElement('script');const timeout=setTimeout(()=>reject(Error('Не удалось загрузить библиотеку PDF')),20000);script.onload=()=>{clearTimeout(timeout);resolve()};script.onerror=()=>{clearTimeout(timeout);reject(Error('Не удалось загрузить библиотеку PDF'))};script.src='https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';captureDoc.head.append(script)});
+  const pdfBlob=await captureFrame.contentWindow.html2pdf().set({margin:9,filename:'AdvisorAI-'+fileName()+'.pdf',image:{type:'jpeg',quality:.95},html2canvas:{scale:1.8,backgroundColor:'#ffffff',windowWidth:850,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['p','li','tr','h1','h2','h3']}}).from(captureDoc.body.firstElementChild).outputPdf('blob');
+  const pdfUrl=URL.createObjectURL(pdfBlob);const download=document.createElement('a');download.href=pdfUrl;download.download='AdvisorAI-'+fileName()+'.pdf';document.body.append(download);download.click();download.remove();setTimeout(()=>URL.revokeObjectURL(pdfUrl),30000);
   $('result-status').textContent='PDF сохранён. Проверь его перед отправкой клиенту.';
  }catch(e){$('result-status').textContent='Не удалось создать PDF: '+e.message+'. Используй кнопку «Печать / сохранить PDF».'}
- finally{button.disabled=false;button.textContent='⬇ Скачать PDF'}
+ finally{captureFrame?.remove();pdfExportInProgress=false;button.disabled=working||!lastAnswer;button.textContent='⬇ Скачать PDF'}
 }
 function docxRichRuns(value,api){
  const pieces=String(value).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);

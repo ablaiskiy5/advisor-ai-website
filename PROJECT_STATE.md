@@ -1,3 +1,11 @@
+## Chat reading and PDF export — 2026-10-29
+
+Removed viewport height caps and nested vertical transcript scrolling. Messages expand in normal page flow with jump links to the latest answer and composer, and new replies scroll to their beginning. Every assistant reply has its own PDF download bound to that reply; the sidebar still exports the latest reply.
+
+Reproduced PDF clipping in a real generated file: site shell padding and capture coordinates displaced content. Export now renders through a clean same-origin iframe with zero shell padding/scroll, creates the PDF blob there, and initiates download in the parent document. The capture frame is removed on success/failure. Existing report text, table cells and source links are rendered safely; paragraph/list/row page-break avoidance is enabled. No model, billing, backend or database changes.
+
+Validation: 413 Node tests pass; DOCX file validation and presentation checks pass. Chromium synthetic app checks cover long full-height reading at 1440/390/320px and per-answer PDF selection. Actual html2pdf generated two three-page PDFs at desktop/mobile viewport sizes after scrolling. Rendered pages inspected; OCR confirms left/right markers, table edge cells and the final report section. These are synthetic export/layout checks, not verification of private case contents. Release/deployment pending.
+
 ## API credit incident — 2026-10-28
 
 Safe filtered function logs confirm four provider HTTP 429 failures with code `credit_balance_exhausted` around 12:59–13:03 UTC. Existing backend incorrectly called every 429 a temporary frequency limit. This is an account credit/billing blocker; model-list access confirmed earlier did not establish funded inference. No provider payment/account owner/balance amount has been inspected and no payment or key change was performed.
