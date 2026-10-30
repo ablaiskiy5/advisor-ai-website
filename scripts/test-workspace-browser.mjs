@@ -50,7 +50,7 @@ try{
  const casePath='/ai-chat.html?case=22222222-2222-4222-8222-222222222222';
  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
  // Long history stays inside a large reading pane while the composer remains visible.
- for(const width of [1440,390,320]){
+ for(const width of [2560,1920,1440,1024,390,320]){
   await page.setViewportSize({width,height:900});
   await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
   await page.locator('#question').fill('Synthetic long reading check');await page.locator('#send').click();
@@ -62,6 +62,15 @@ try{
   if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'pinned-debug-'+width+'.png')})}
   assert.ok(layout.height>300,'Reading pane must retain useful height '+width+' '+JSON.stringify(layout));
   assert.ok(layout.scroll>layout.height+1000,'Long transcript scrolls inside the pane');
+  const space=await page.evaluate(()=>{
+   const chat=document.querySelector('.chat').getBoundingClientRect(),main=document.querySelector('main').getBoundingClientRect();
+   const nav=innerWidth>900?document.querySelector('#shell-sidebar').getBoundingClientRect().right:0;
+   return {left:chat.left-nav,right:innerWidth-main.right,bottom:innerHeight-chat.bottom,width:chat.width};
+  });
+  assert.ok(space.left>=0&&space.left<=13,'Chat uses space beside navigation '+width+' '+JSON.stringify(space));
+  assert.ok(space.right>=-1&&space.right<=1,'Main uses full available width '+width);
+  assert.ok(space.bottom>=7&&space.bottom<=9,'Chat reaches viewport bottom with a small gutter '+width+' '+JSON.stringify(space));
+  if(width===1024)assert.ok(space.width>740,'Tablet actions move below the chat instead of narrowing it');
   assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Composer must remain in view');
   assert.ok(await page.locator('#send').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Send must remain in view');
   assert.equal(layout.overflow,'auto');
@@ -77,6 +86,16 @@ try{
   await page.locator('#jump-compose').click();await page.locator('#question').focus();
   assert.equal(await page.locator('#question').evaluate(n=>n===document.activeElement),true);
  }
+ // A shorter laptop viewport and sidebar toggle must refit without hiding the input.
+ await page.setViewportSize({width:1440,height:768});
+ await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
+ await page.locator('#case-title').evaluate(node=>node.textContent='Synthetic case heading with enough words to wrap across multiple lines '.repeat(4));
+ const waitForFittedChat=()=>page.waitForFunction(()=>Math.abs(innerHeight-document.querySelector('.chat').getBoundingClientRect().bottom-8)<1);
+ await waitForFittedChat();
+ await page.locator('#shell-collapse').click();await waitForFittedChat();
+ assert.ok(await page.locator('#question').evaluate(node=>node.getBoundingClientRect().bottom<=innerHeight),'Laptop composer remains visible after heading and sidebar changes');
+ assert.ok(await page.locator('.chat').evaluate(node=>Math.abs(node.getBoundingClientRect().left-document.querySelector('#shell-sidebar').getBoundingClientRect().right-12)<1),'Collapsed sidebar releases space to chat');
+ await page.locator('#shell-collapse').click();await waitForFittedChat();
  await page.setViewportSize({width:1440,height:900});
  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
  await page.locator('#question').fill('Synthetic covered call question');

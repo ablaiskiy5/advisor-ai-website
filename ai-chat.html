@@ -76,12 +76,21 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
 /* Keep a large reading pane and composer together within the available viewport. */
+body.has-workspace-shell main{max-width:none;margin:0;padding:12px 12px 8px;min-height:100dvh}
+body.has-workspace-shell main>header{margin-bottom:10px}
+body.has-workspace-shell main>header a{padding:7px 10px!important}
+body.has-workspace-shell #case-title{font-size:clamp(24px,2.4vw,32px);margin:6px 0}
+body.has-workspace-shell #case-sub{margin:6px 0 10px}
+.layout{grid-template-columns:minmax(0,1fr) 255px;gap:12px}
+@media(min-width:901px){body.has-workspace-shell main:not(.content){padding-left:12px;padding-right:12px}}
+@media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}.info{order:2}}
+@media(max-width:900px){body.has-workspace-shell main{min-height:calc(100dvh - 64px);padding:8px 8px 8px}}
 .answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3}.answer-actions button{min-height:44px;font-size:14px}
 .reading-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
 .reading-nav button{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
 #latest-answer,#question{scroll-margin-top:80px}
-.chat{height:var(--chat-height,calc(100dvh - 250px));min-height:320px;max-height:none;padding:16px}
-#messages{position:relative;flex:1 1 auto;min-height:120px;overflow:auto;overscroll-behavior:contain}
+.chat{height:var(--chat-height,calc(100dvh - 250px));min-height:320px;max-height:none;padding:12px}
+#messages{position:relative;flex:1 1 auto;min-height:120px;overflow:auto;overscroll-behavior:contain;padding:12px}
 .chat>*:not(#messages){flex-shrink:0}
 .reading-nav{margin-bottom:10px;gap:8px}.reading-nav button{font-size:13px;min-height:34px;padding:6px 10px}
 .composer-tools{margin:6px 0;background:#f6f9fd;border:1px solid #dce5f0;border-radius:10px;font-size:13px}
@@ -670,8 +679,10 @@ $('question').addEventListener('input',updateInputGuidance);
 $('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('quick-docx').addEventListener('click',downloadDocx);$('quick-pdf').addEventListener('click',downloadPdf);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 window.workspaceHasTransientWork=()=>working||pendingFiles.length>0;
-function fitChatViewport(){const chat=document.querySelector('.chat');if(!chat)return;const top=chat.getBoundingClientRect().top;chat.style.setProperty('--chat-height',Math.max(320,window.innerHeight-Math.max(top,12)-16)+'px')}
+function fitChatViewport(){const chat=document.querySelector('.chat');if(!chat)return;const top=chat.getBoundingClientRect().top;chat.style.setProperty('--chat-height',Math.max(320,window.innerHeight-Math.max(top,8)-8)+'px')}
 window.addEventListener('resize',fitChatViewport);
+// Refit after title wrapping, font loading or sidebar expansion changes the chat's top edge.
+if(typeof ResizeObserver==='function'){const chatLayoutObserver=new ResizeObserver(fitChatViewport);document.querySelectorAll('main>header,#case-title,#case-sub').forEach(node=>chatLayoutObserver.observe(node))}
 $('jump-latest').addEventListener('click',()=>{const latest=document.getElementById('latest-answer');if(latest)$('messages').scrollTop=latest.offsetTop});
 $('jump-compose').addEventListener('click',()=>$('question').focus());
 init().then(()=>requestAnimationFrame(fitChatViewport)).catch(e=>error('Не удалось открыть AI-чат: '+e.message));
