@@ -1,3 +1,9 @@
+## Chat uses available screen space — 2026-10-30
+
+User reported unused space to the left and below the chat. Removed the centered 1,300px main-width cap on the dialogue page, reduced exterior gutters to 12px desktop/8px mobile and the bottom gutter to 8px, compacted the heading area and reduced nested reading-pane padding. The optional result-actions column is 255px wide and moves below the chat at widths up to 1,100px, giving tablet users a full-width transcript. Input remains outside the scrolling messages. A ResizeObserver refits chat height when headings wrap or navigation width changes.
+
+Validation: 415 Node regressions pass. Synthetic Chromium long-history checks pass at 2,560/1,920/1,440/1,024/390/320px: the main spans available width, chat starts within 13px of navigation, reaches within 8px of the viewport bottom, and input/send remain visible with independently scrolling messages. Existing seven-page navigation/workbench/draft checks pass. A 1,440×768 laptop viewport also passes wrapped-title/sidebar-toggle refitting. Actual PDF download checks pass at desktop/mobile sizes after scrolling. No backend, message contents, billing, AI model or access changes. Publication pending; these are synthetic layout checks, not authenticated AI E2E.
+
 ## Long AI answer persistence incident — 2026-10-29
 
 Filtered production logs identify four PostgreSQL 23514 failures on advisor_ai_messages_content_check. Live inspection confirmed one 12,000-character cap applied to both user and assistant messages, while chat v31 attempted to save up to 80,000. Long paid report generation therefore succeeded but the final database insert failed.
