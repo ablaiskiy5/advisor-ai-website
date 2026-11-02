@@ -10,7 +10,7 @@ assert.ok(start>0&&end>start,'production chat session helpers exist');
 const helpers=html.slice(start,end);
 
 test('sign-out clears chat content, drafts, export source and owner state',()=>{
- const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status'];
+ const ids=['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','reload-answer','login-note','case-title','core-status'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  const ctx={sessionEpoch:0,historyRequestSeq:0,user:{id:'owner-A'},caseData:{id:'case-A'},lastAnswer:'private answer',pendingFiles:['file'],working:true,
   incompleteUploadFallback:new Map([['synthetic-marker','synthetic-message']]),exhaustedRetryMessages:new Set(),latestUserMessageId:null,
@@ -44,7 +44,7 @@ test('in-flight history, AI and upload paths verify current session',()=>{
 });
 
 test('delayed history cannot restore old-owner messages after sign-out',async()=>{
- const nodes=Object.fromEntries(['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','login-note','case-title','core-status']
+ const nodes=Object.fromEntries(['messages','question','attach-input','file-list','file-status','result-status','context','print-report','quick-actions','external','to-tasks','retry','reload-answer','login-note','case-title','core-status']
   .map(id=>[id,{textContent:'private',value:'private',href:'private',classList:{add(){},remove(){}}}]));
  let resolveQuery;
  const delayed=new Promise(resolve=>{resolveQuery=resolve});

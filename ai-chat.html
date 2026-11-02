@@ -107,7 +107,7 @@ body.has-workspace-shell #case-sub{margin:6px 0 10px}
 <div class="crumb">ADVISOR AI / WORKSPACE / ДИАЛОГ</div><h1 id="case-title">Загрузка кейса…</h1><p class="muted" id="case-sub">История хранится в личном облачном кабинете.</p>
 <div class="layout"><section class="card chat" aria-label="Диалог с Advisor AI">
  <div class="notice hidden" id="login-note">Для работы с AI войди в личный кабинет. <a href="./workspace.html">Перейти ко входу</a></div>
- <nav class="reading-nav" aria-label="Переходы по диалогу"><button id="jump-latest" type="button">Последний ответ ↓</button><button id="jump-compose" type="button">Написать</button></nav>
+ <nav class="reading-nav" aria-label="Переходы по диалогу"><button id="jump-latest" type="button">Последний ответ ↓</button><button id="jump-compose" type="button">Написать</button><button id="reload-answer" class="hidden" type="button">Загрузить сохранённый ответ</button></nav>
  <div id="messages" role="log" aria-live="polite"><div class="muted">Подключаемся…</div></div>
  <div id="error" role="alert"></div>
 <div id="file-status" class="file-status" aria-live="polite"></div><details class="composer-tools"><summary>Файлы, диктовка и настройки</summary> <p class="input-guidance hidden" id="input-guidance"></p>
@@ -146,6 +146,7 @@ let attachmentHistoryVerified=false,historyRequestSeq=0;
 let voiceRecognition=null,voiceAnchor='';
 const exhaustedRetryMessages=new Set();
 let latestUserMessageId=null;
+let pendingAnswerMessageId=null;
 // Store only the incomplete message UUID, never file names, text or content.
 // sessionStorage survives reload; the in-memory fallback protects the current page
 // when browser privacy settings disable sessionStorage (but cannot survive reload).
@@ -265,7 +266,7 @@ function toggleDictation(){
 }
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active;$('dictate').disabled=!active}
-function waiting(v){working=v;ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=v||!lastAnswer;$('copy-telegram').disabled=v||!lastAnswer;$('quick-docx').disabled=v||!lastAnswer;$('quick-pdf').disabled=v||!lastAnswer;$('retry').disabled=v;$('refresh').disabled=v;$('summary').disabled=v||!caseData;$('save-result').disabled=v||!lastAnswer;$('download-result').disabled=v||!lastAnswer;$('print-result').disabled=v||!lastAnswer;$('download-pdf').disabled=v||!lastAnswer;$('download-pptx').disabled=v||!lastAnswer;$('download-doc').disabled=v||!lastAnswer;$('download-docx').disabled=v||!lastAnswer;globalThis.document?.querySelectorAll?.('.answer-pdf')?.forEach(b=>b.disabled=v);$('send').textContent=v?'Думаю…':'Отправить →'}
+function waiting(v){working=v;const exportUnavailable=v||!lastAnswer||Boolean(pendingAnswerMessageId);ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=exportUnavailable;$('copy-telegram').disabled=exportUnavailable;$('quick-docx').disabled=exportUnavailable;$('quick-pdf').disabled=exportUnavailable;$('retry').disabled=v;$('refresh').disabled=v;$('reload-answer').disabled=v;$('summary').disabled=v||!caseData||Boolean(pendingAnswerMessageId);$('save-result').disabled=exportUnavailable;$('download-result').disabled=exportUnavailable;$('print-result').disabled=exportUnavailable;$('download-pdf').disabled=exportUnavailable;$('download-pptx').disabled=exportUnavailable;$('download-doc').disabled=exportUnavailable;$('download-docx').disabled=exportUnavailable;globalThis.document?.querySelectorAll?.('.answer-pdf')?.forEach(b=>b.disabled=v);$('send').textContent=v?'Думаю…':'Отправить →'}
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
  globalThis.AdvisorDrafts?.purge();
@@ -275,6 +276,7 @@ function resetChatSession(){
  sessionEpoch++;historyRequestSeq++;user=null;caseData=null;lastAnswer='';pendingFiles=[];working=false;
  incompleteUploadFallback.clear();
  exhaustedRetryMessages.clear();latestUserMessageId=null;attachmentHistoryVerified=false;
+ pendingAnswerMessageId=null;$('reload-answer').classList.add('hidden');
  $('messages').textContent='';$('question').value='';$('attach-input').value='';
  $('file-list').textContent='';$('file-status').textContent='';$('result-status').textContent='';
  $('context').textContent='';$('core-status').textContent='Нужен вход для проверки серверной методики.';$('print-report').textContent='';$('quick-actions').textContent='';
@@ -283,8 +285,7 @@ function resetChatSession(){
  setStatus('Сессия изменилась. Войди и обнови страницу для доступа к кейсу.');
  error('');waiting(false);
 }
-async function history(){if(!db||!caseData||!user)return;const requestSeq=++historyRequestSeq;attachmentHistoryVerified=false;$('retry').classList.add('hidden');const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return;if(err){error('Ошибка загрузки истории: '+err.message);return}lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
- latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
+async function history(){if(!db||!caseData||!user)return false;const requestSeq=++historyRequestSeq;attachmentHistoryVerified=false;$('retry').classList.add('hidden');const epoch=sessionEpoch,ownerId=user.id;const {data,error:err}=await db.from('advisor_ai_messages').select('id,role,content,created_at').eq('case_id',caseId).order('created_at',{ascending:false}).limit(80);if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return false;if(err){error('Ошибка загрузки истории: '+err.message);$('reload-answer').classList.remove('hidden');return false}
  // Only load attachments belonging to the 80 messages currently displayed.
  // Filtering by both case_id and message_id retains RLS and avoids the oldest-200 cutoff.
  const visibleMessageIds=(data||[]).map(m=>m.id);
@@ -299,7 +300,11 @@ async function history(){if(!db||!caseData||!user)return;const requestSeq=++hist
   attachments=files.data||[];
   attachmentErr=files.error;
  }
- if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return;
+ if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return false;
+ lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+ latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
+ if(pendingAnswerMessageId){const pendingQuestionIndex=(data||[]).findIndex(m=>m.id===pendingAnswerMessageId&&m.role==='user');if(pendingQuestionIndex>0&&data.slice(0,pendingQuestionIndex).some(m=>m.role==='assistant'))pendingAnswerMessageId=null}
+ $('reload-answer').classList.toggle('hidden',!pendingAnswerMessageId);
  attachmentHistoryVerified=!attachmentErr;
  if(attachmentErr)error('История файлов временно недоступна: '+attachmentErr.message+'. AI-повтор отключён до успешного обновления истории.');
  const incompleteId=incompleteUploadFor(ownerId,caseId);
@@ -307,7 +312,7 @@ async function history(){if(!db||!caseData||!user)return;const requestSeq=++hist
  const incompleteLatest=Boolean(incompleteId&&incompleteId===latestUserMessageId);
  const grouped=new Map();for(const a of (attachments||[])){if(!grouped.has(a.message_id))grouped.set(a.message_id,[]);grouped.get(a.message_id).push(a)}
  let latestAnswerNode=null;
- for(const m of (data||[]).reverse()){
+ for(const m of [...(data||[])].reverse()){
   const node=bubble(m.role,m.content);
   if(m.role==='assistant')latestAnswerNode=node;
   for(const f of (grouped.get(m.id)||[])){const btn=document.createElement('button');btn.className='filetag';btn.textContent='📎 '+f.filename;btn.title='Открыть вложение';btn.style.marginTop='8px';
@@ -315,11 +320,13 @@ async function history(){if(!db||!caseData||!user)return;const requestSeq=++hist
    node.append(btn)
   }
   list.append(node)
- }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}if(latestAnswerNode){latestAnswerNode.id='latest-answer';list.scrollTop=latestAnswerNode.offsetTop||0;}$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified);
+ }if(!list.children.length){const p=document.createElement('p');p.className='muted';p.textContent='Начни диалог. Вопросы и ответы останутся в истории этого кейса.';list.append(p)}if(latestAnswerNode){latestAnswerNode.id='latest-answer';list.scrollTop=latestAnswerNode.offsetTop||0;}$('retry').classList.toggle('hidden',!(data&&data[0]?.role==='user')||exhaustedRetryMessages.has(latestUserMessageId)||incompleteLatest||!attachmentHistoryVerified||Boolean(pendingAnswerMessageId));
  if(incompleteLatest&&!attachmentErr)error('У последнего сообщения не все вложения загружены. Прикрепи недостающие файлы новым сообщением перед AI-анализом. Повтор ответа не загружает файлы.');
+ return {latestRole:data?.[0]?.role||null,latestUserMessageId};
 }
 async function requestAI(){
- if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id;
+ if(working||!caseData||!user)return;const epoch=sessionEpoch,ownerId=user.id,requestedMessageId=latestUserMessageId;
+ if(pendingAnswerMessageId){await refreshChatHistory();return}
  if(!attachmentHistoryVerified){
   $('retry').classList.add('hidden');
   error('AI-анализ временно недоступен: не удалось проверить историю вложений. Обнови историю и повтори попытку после успешной загрузки файлов.');
@@ -331,13 +338,17 @@ async function requestAI(){
   return;
  }
  waiting(true);error('');$('file-status').textContent='Advisor AI анализирует вопрос и доступные вложения кейса…';
+ let responseSaved=false;
  try{
   const {data,error:err}=await db.functions.invoke('advisor-ai-chat',{body:{case_id:caseId}});
   if(!isCurrentChat(epoch,ownerId))return;
   if(err){let detail='';try{detail=(await err.context?.json())?.error||''}catch{}throw Error(detail||err.message)}
   if(data?.error)throw Error(data.error);
-  await history();
+  if(data?.ok!==true)throw Error('Сервер не подтвердил завершение AI-запроса. Сначала обнови историю.');
+  responseSaved=true;pendingAnswerMessageId=requestedMessageId;
+  const refreshed=await history();
   if(!isCurrentChat(epoch,ownerId))return;
+  if(!refreshed||pendingAnswerMessageId){showSavedAnswerRecovery();return}
   const usage=data?.tools;
   if(usage){
    const parts=[];
@@ -349,6 +360,7 @@ async function requestAI(){
   }
  }catch(e){
   if(isCurrentChat(epoch,ownerId)){
+   if(responseSaved){showSavedAnswerRecovery();return}
    const message=String(e?.message||'Неизвестная ошибка');
    $('file-status').textContent='Анализ не завершён. Вопрос и вложения сохранены.';
    const saveFailure=/Answer was not saved|сохранить.*в историю не удалось|Ответ превышает допустимый размер сохранения/i.test(message);
@@ -378,12 +390,32 @@ async function requestAI(){
   }
  }finally{if(isCurrentChat(epoch,ownerId))waiting(false)}
 }
+function showSavedAnswerRecovery(){
+ $('retry').classList.add('hidden');$('reload-answer').classList.remove('hidden');
+ $('file-status').textContent='AI подготовил и сохранил ответ. Осталось загрузить его из истории.';
+ error('Не удалось показать сохранённый ответ. Нажми «Загрузить сохранённый ответ». Это обновит историю без новой генерации и дополнительных AI-запросов.');
+}
+async function refreshChatHistory(){
+ if(working||!user||!caseData)return;const epoch=sessionEpoch,ownerId=user.id;
+ waiting(true);error('');
+ try{
+  const refreshed=await history();if(!isCurrentChat(epoch,ownerId))return;
+  if(pendingAnswerMessageId){showSavedAnswerRecovery();return}
+  if(refreshed)$('file-status').textContent='История обновлена. Новый AI-запрос не запускался.';
+ }catch{
+  if(isCurrentChat(epoch,ownerId)){
+   if(pendingAnswerMessageId)showSavedAnswerRecovery();
+   else{$('reload-answer').classList.remove('hidden');error('Не удалось загрузить историю. Попробуй обновить её ещё раз. Новый AI-запрос не запускался.')}
+  }
+ }finally{if(isCurrentChat(epoch,ownerId))waiting(false)}
+}
 const allowedFiles={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','application/pdf':'.pdf'};
 function mimeForFile(f){if(allowedFiles[f.type])return f.type;const name=f.name?.toLowerCase()||'';if(name.endsWith('.png'))return 'image/png';if(/\.jpe?g$/.test(name))return 'image/jpeg';if(name.endsWith('.webp'))return 'image/webp';if(name.endsWith('.pdf'))return 'application/pdf';return ''}
 function renderFiles(){$('file-list').textContent='';pendingFiles.forEach((f,i)=>{const tag=document.createElement('span');tag.className='filetag';tag.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' МБ) ';const remove=document.createElement('button');remove.textContent='×';remove.title='Убрать вложение';remove.disabled=working;remove.addEventListener('click',()=>{pendingFiles.splice(i,1);renderFiles()});tag.append(remove);$('file-list').append(tag)})}
 function addFiles(files){for(const f of files){if(pendingFiles.length>=3){error('Можно прикрепить не более 3 файлов.');break}if(!mimeForFile(f)){error('Поддерживаются PNG, JPEG, WebP и PDF.');continue}if(f.size===0||f.size>5242880){error('Файл '+f.name+' должен быть до 5 МБ.');continue}pendingFiles.push(f)}renderFiles();$('attach-input').value=''}
 async function send(){
  if(working||!user||!caseData)return;
+ if(pendingAnswerMessageId){showSavedAnswerRecovery();return}
  if(voiceRecognition)stopDictation();const epoch=sessionEpoch,ownerId=user.id;const rawTyped=$('question').value.trim();if(!rawTyped&&!pendingFiles.length)return;const depth=$('answer-depth')?.value;const depthNote=depth==='brief'?'\n\nФормат ответа: кратко, вывод и практические действия.':depth==='detailed'?'\n\nФормат ответа: подробно, с аргументами, расчётами при наличии данных и источниками.':'';const typed=rawTyped+(rawTyped?depthNote:'');if(typed.length>5000){error('Сократи вопрос: вместе с выбранным форматом ответа он должен быть не длиннее 5000 символов.');return;}
  const files=[...pendingFiles],content=typed||(files.length?'Проанализируй прикреплённые файлы: определи доступные позиции, суммы, риски и недостающие данные. Не выдумывай неразборчивые значения.'+depthNote:'');
  waiting(true);error('');$('file-status').textContent='';
@@ -676,7 +708,7 @@ async function init(){if(!caseId||!/^[0-9a-f-]{36}$/i.test(caseId)){error('От�
  ready(true);waiting(false);void checkCoreIntegrity();await history();
 }
 $('question').addEventListener('input',updateInputGuidance);
-$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('quick-docx').addEventListener('click',downloadDocx);$('quick-pdf').addEventListener('click',downloadPdf);$('refresh').addEventListener('click',()=>{if(!working)history()});$('retry').addEventListener('click',requestAI);
+$('add-file').addEventListener('click',()=>$('attach-input').click());$('attach-input').addEventListener('change',e=>addFiles(e.target.files||[]));$('question').addEventListener('paste',e=>{const images=[...(e.clipboardData?.files||[])].filter(f=>mimeForFile(f).startsWith('image/'));if(images.length){e.preventDefault();addFiles(images)}});$('dictate').addEventListener('click',toggleDictation);$('send').addEventListener('click',send);$('summary').addEventListener('click',makeSummary);$('to-tasks').addEventListener('click',transferToTasks);$('save-result').addEventListener('click',saveResult);$('copy-whatsapp').addEventListener('click',()=>copyMessenger('whatsapp'));$('copy-telegram').addEventListener('click',()=>copyMessenger('telegram'));$('download-result').addEventListener('click',downloadResult);$('print-result').addEventListener('click',printResult);$('download-pdf').addEventListener('click',downloadPdf);$('download-pptx').addEventListener('click',downloadPresentation);$('download-doc').addEventListener('click',downloadWord);$('download-docx').addEventListener('click',downloadDocx);$('quick-docx').addEventListener('click',downloadDocx);$('quick-pdf').addEventListener('click',downloadPdf);$('refresh').addEventListener('click',refreshChatHistory);$('reload-answer').addEventListener('click',refreshChatHistory);$('retry').addEventListener('click',requestAI);
 $('question').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')send()});
 window.workspaceHasTransientWork=()=>working||pendingFiles.length>0;
 function fitChatViewport(){const chat=document.querySelector('.chat');if(!chat)return;const top=chat.getBoundingClientRect().top;chat.style.setProperty('--chat-height',Math.max(320,window.innerHeight-Math.max(top,8)-8)+'px')}
