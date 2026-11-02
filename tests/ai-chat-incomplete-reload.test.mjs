@@ -25,6 +25,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
   const f = runInNewContext(helpers + '\n;({markIncompleteUpload,incompleteUploadFor,clearIncompleteUpload})', helpersContext);
   const nodes = {
     messages: { textContent: '', children: [], append(node) { this.children.push(node); }, scrollHeight: 0, scrollTop: 0 },
+    'reload-answer': {classList:{add(){},remove(){},toggle(){}}},
     retry: { hidden: false, classList: {
       toggle(name, hidden) { assert.equal(name, 'hidden'); nodes.retry.hidden = hidden; },
       add(name) { assert.equal(name, 'hidden'); nodes.retry.hidden = true; }
@@ -46,7 +47,7 @@ function fixture(messageId = 'synthetic-message', storage = new Map(), storageDi
       functions: { async invoke() { aiCalls++; return { data: {}, error: null }; } }
     },
     user: { id: 'owner-A' }, caseData: { id: 'case-A' }, caseId: 'case-A',
-    sessionEpoch: 1, historyRequestSeq: 0, working: false, lastAnswer: '', latestUserMessageId: null,
+    sessionEpoch: 1, historyRequestSeq: 0, working: false, lastAnswer: '', latestUserMessageId: null, pendingAnswerMessageId:null,
     attachmentHistoryVerified: false,
     exhaustedRetryMessages: new Set(),
     isCurrentChat(epoch, owner) { return epoch === 1 && owner === ctx.user.id; },

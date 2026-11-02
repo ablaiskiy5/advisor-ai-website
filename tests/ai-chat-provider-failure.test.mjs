@@ -7,7 +7,7 @@ const code=html.slice(html.indexOf('async function requestAI()'),html.indexOf('c
 function fixture(message){
  const nodes=Object.fromEntries(['retry','file-status'].map(id=>[id,{textContent:'',classList:{hidden:true,add(){this.hidden=true},remove(){this.hidden=false}}}]));
  let error='';const waits=[];
- const ctx={working:false,caseData:{id:'case'},caseId:'case',user:{id:'owner'},sessionEpoch:1,attachmentHistoryVerified:true,latestUserMessageId:'message',exhaustedRetryMessages:new Set(),incompleteUploadFor:()=>null,isCurrentChat:()=>true,$:id=>nodes[id],waiting:v=>waits.push(v),error:v=>error=v,
+ const ctx={working:false,pendingAnswerMessageId:null,caseData:{id:'case'},caseId:'case',user:{id:'owner'},sessionEpoch:1,attachmentHistoryVerified:true,latestUserMessageId:'message',exhaustedRetryMessages:new Set(),incompleteUploadFor:()=>null,isCurrentChat:()=>true,$:id=>nodes[id],waiting:v=>waits.push(v),error:v=>error=v,
  db:{functions:{invoke:async()=>({error:{message:'Server failed',context:{json:async()=>({error:message})}}})}}};
  return {run:runInNewContext(code+';requestAI',ctx),nodes,waits,get error(){return error}};
 }

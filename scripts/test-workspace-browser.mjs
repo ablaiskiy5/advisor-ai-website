@@ -15,16 +15,17 @@ try{
  await context.route('https://**/*',route=>route.fulfill({contentType:'text/javascript',body:route.request().url().includes('supabase-js')?`
  const syntheticUser={id:'11111111-1111-4111-8111-111111111111',email:'synthetic@example.invalid'};
  const syntheticCase={id:'22222222-2222-4222-8222-222222222222',kind:'portfolio',user_id:syntheticUser.id,title:'Synthetic portfolio',notes:'',prompt:'Synthetic analysis',status:'Новая',updated_at:'2026-10-27T00:00:00.000Z',chat_url:''};
- const syntheticCases=[syntheticCase],syntheticMessages=[];let syntheticClock=0;window.syntheticInvokes=[];
+ const syntheticCases=[syntheticCase],syntheticMessages=[],syntheticAttachments=[];let syntheticClock=0;window.syntheticInvokes=[];window.syntheticUploads=[];
  const stamp=()=>new Date(Date.now()+syntheticClock++*10).toISOString();
  const syntheticDb={auth:{getSession:async()=>({data:{session:localStorage.getItem('synthetic-signed-out')?null:{user:syntheticUser}}}),getUser:async()=>({data:{user:localStorage.getItem('synthetic-signed-out')?null:syntheticUser}}),signUp:async()=>({data:{session:null},error:null}),signInWithPassword:async()=>({data:{session:null},error:{code:'invalid_credentials'}}),onAuthStateChange(fn){window.syntheticAuth=fn},signOut:async()=>{window.syntheticAuth('SIGNED_OUT',null);return {}}},functions:{invoke:async(name,options)=>{
   if(options?.method==='GET')return{error:{message:'Synthetic metadata unavailable'}};
   const caseId=options.body.case_id,record=syntheticCases.find(x=>x.id===caseId),last=syntheticMessages.filter(x=>x.case_id===caseId).at(-1);window.syntheticInvokes.push({caseId,content:last?.content});
   const content=record?.prompt.includes('экзаменатор')?(last?.content.startsWith('Мой ответ')?'Оценка: 4/5. Следующий вопрос: как меняется цена облигации при росте ставки?':'Что означает модифицированная дюрация?'):['## Краткий вывод','Synthetic result with **facts**.','- One practical action','<img src=x onerror=alert(1)>'].join('\\n');
-  syntheticMessages.push({id:crypto.randomUUID(),case_id:caseId,user_id:syntheticUser.id,role:'assistant',content,created_at:stamp()});return{data:{ok:true,tools:{web_search_called:1}},error:null};
- }},from(table){let single=false,insert=null;const filters=[];const query={select(){return this},insert(row){insert=row;return this},eq(k,v){filters.push(row=>row[k]===v);return this},gte(k,v){filters.push(row=>row[k]>=v);return this},order(){return this},limit(){return this},range(){return this},in(k,values){filters.push(row=>values.includes(row[k]));return this},single(){single=true;return this},maybeSingle(){single=true;return this},then(resolve){
-  let rows=table==='workspace_items'?syntheticCases:table==='advisor_ai_messages'?syntheticMessages:[];
+  syntheticMessages.push({id:crypto.randomUUID(),case_id:caseId,user_id:syntheticUser.id,role:'assistant',content,created_at:stamp()});if(window.syntheticFailAnswerRead){window.syntheticHistoryFailures=1;window.syntheticFailAnswerRead=false}return{data:{ok:true,tools:{web_search_called:1}},error:null};
+ }},storage:{from:()=>({upload:async(path,file)=>{window.syntheticUploads.push({path,name:file.name});return {error:null}}})},from(table){let single=false,insert=null;const filters=[];const query={select(){return this},insert(row){insert=row;return this},eq(k,v){filters.push(row=>row[k]===v);return this},gte(k,v){filters.push(row=>row[k]>=v);return this},order(){return this},limit(){return this},range(){return this},in(k,values){filters.push(row=>values.includes(row[k]));return this},single(){single=true;return this},maybeSingle(){single=true;return this},then(resolve){
+  let rows=table==='workspace_items'?syntheticCases:table==='advisor_ai_messages'?syntheticMessages:table==='advisor_ai_attachments'?syntheticAttachments:[];
   if(insert){const row={id:crypto.randomUUID(),created_at:stamp(),...insert};rows.push(row);resolve({data:row,error:null});return}
+  if(table==='advisor_ai_messages'&&window.syntheticHistoryFailures>0){window.syntheticHistoryFailures--;resolve({data:null,error:{message:'Synthetic history read outage'}});return}
   rows=rows.filter(row=>filters.every(fn=>fn(row))).slice().reverse();resolve({data:single?rows[0]||null:rows,error:null});
  }};return query}};
  window.supabase={createClient:()=>syntheticDb};
@@ -96,6 +97,27 @@ try{
  assert.ok(await page.locator('#question').evaluate(node=>node.getBoundingClientRect().bottom<=innerHeight),'Laptop composer remains visible after heading and sidebar changes');
  assert.ok(await page.locator('.chat').evaluate(node=>Math.abs(node.getBoundingClientRect().left-document.querySelector('#shell-sidebar').getBoundingClientRect().right-12)<1),'Collapsed sidebar releases space to chat');
  await page.locator('#shell-collapse').click();await waitForFittedChat();
+ // File -> saved AI response -> failed history read -> read-only recovery, without another upload or generation.
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:900});await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
+  await page.locator('.composer-tools>summary').click();
+  await page.locator('#attach-input').setInputFiles({name:'synthetic-portfolio.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC84AAAAASUVORK5CYII=','base64')});
+  await page.locator('.composer-tools>summary').click();
+  await page.locator('#question').fill('Synthetic attachment recovery check');await page.evaluate(()=>window.syntheticFailAnswerRead=true);await page.locator('#send').click();
+  await page.locator('#reload-answer:not(.hidden):not([disabled])').waitFor();
+  assert.equal(await page.locator('#retry').isVisible(),false,'Saved response must never suggest paid retry');
+  assert.equal(await page.locator('#quick-pdf').isDisabled(),true,'Do not export an older response while the new saved response is unavailable');
+  assert.match(await page.locator('#error').textContent(),/без новой генерации/);
+  await page.locator('#reload-answer').click();await page.locator('#latest-answer').waitFor();
+  assert.equal(await page.locator('#reload-answer').isVisible(),false);
+  assert.equal(await page.locator('#retry').isVisible(),false);
+  assert.equal(await page.locator('#quick-pdf').isEnabled(),true);
+  assert.equal(await page.locator('.bubble.user').count(),1);assert.equal(await page.locator('.bubble.assistant').count(),1);
+  assert.match(await page.locator('.bubble.user .filetag').textContent(),/synthetic-portfolio.png/);
+  assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),1);assert.equal(await page.evaluate(()=>window.syntheticUploads.length),1);
+  await page.locator('#refresh').click();await page.waitForFunction(()=>!working);
+  assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),1,'History refresh remains read only');
+ }
  await page.setViewportSize({width:1440,height:900});
  await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();
  await page.locator('#question').fill('Synthetic covered call question');
