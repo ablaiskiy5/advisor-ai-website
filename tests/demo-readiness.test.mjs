@@ -29,7 +29,7 @@ test('missing production pages, missing assets, and accidental public function a
     [{assetStatus:404},/linked asset HTTP 404/],
     [{guardStatus:200},/accepted unsigned request/],
     [{guardStatus:500},/failed with HTTP 500/],
-    [{missingAssets:true},/no production CSS\\/JS assets/]
+    [{missingAssets:true},/no production CSS\/JS assets/]
   ]) {
     const {fetcher}=fakeFetch(setting);
     await assert.rejects(verifyDemoReadiness({fetcher,siteUrl:site,apiUrl:api}),match);
