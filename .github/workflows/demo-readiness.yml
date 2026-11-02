@@ -1,0 +1,38 @@
+name: Advisor AI Demo Readiness Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/smoke-demo-readiness.mjs'
+      - 'tests/demo-readiness.test.mjs'
+      - '.github/workflows/demo-readiness.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/smoke-demo-readiness.mjs'
+      - 'tests/demo-readiness.test.mjs'
+      - '.github/workflows/demo-readiness.yml'
+  schedule:
+    - cron: '10 3 * * 1-5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: advisor-ai-demo-readiness
+  cancel-in-progress: false
+
+jobs:
+  public-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test negative and positive smoke conditions without credentials
+        run: node --test tests/demo-readiness.test.mjs
+      - name: Verify live published pages, assets and private function rejection
+        run: node scripts/smoke-demo-readiness.mjs
