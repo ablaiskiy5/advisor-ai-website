@@ -85,7 +85,7 @@ body.has-workspace-shell #case-sub{margin:6px 0 10px}
 @media(min-width:901px){body.has-workspace-shell main:not(.content){padding-left:12px;padding-right:12px}}
 @media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}.info{order:2}}
 @media(max-width:900px){body.has-workspace-shell main{min-height:calc(100dvh - 64px);padding:8px 8px 8px}}
-.answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3}.answer-actions button{min-height:44px;font-size:14px}
+.answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3;display:flex;flex-wrap:wrap;gap:8px}.answer-actions button{min-height:44px;font-size:14px}.answer-action-status{flex-basis:100%;font-size:12px;line-height:1.5;color:#526c8e}.answer-action-status:empty{display:none}
 .reading-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
 .reading-nav button{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
 #latest-answer,#question{scroll-margin-top:80px}
@@ -118,7 +118,7 @@ body.has-workspace-shell #case-sub{margin:6px 0 10px}
  <button id="summary" class="action primary" disabled>Создать документ по кейсу</button>
  <button id="save-result" class="action" disabled>Сохранить последний ответ</button>
  <div class="messenger-actions" aria-label="Копировать ответ для клиента"><button id="copy-whatsapp" type="button" disabled>Копировать для WhatsApp</button><button id="copy-telegram" type="button" disabled>Копировать для Telegram</button></div><p class="messenger-help">Копируется последний ответ с разметкой. Проверь текст перед отправкой клиенту.</p>
- <div class="document-shortcuts"><button id="quick-docx" type="button" disabled>↓ Word</button><button id="quick-pdf" type="button" disabled>↓ PDF</button></div><p class="messenger-help">Здесь скачивается последний ответ. Под каждым ответом есть своя кнопка «Скачать PDF этого ответа». Полный список форматов — ниже.</p><details class="chat-sidebar-details chat-exports"><summary>Остальные форматы и печать</summary>
+ <div class="document-shortcuts"><button id="quick-docx" type="button" disabled>↓ Word</button><button id="quick-pdf" type="button" disabled>↓ PDF</button></div><p class="messenger-help">Здесь скачивается последний ответ. Под каждым ответом есть PDF, Word и копирование именно этого ответа. Полный список форматов — ниже.</p><details class="chat-sidebar-details chat-exports"><summary>Остальные форматы и печать</summary>
  <button id="download-result" class="action" disabled>Скачать текст .txt</button>
  <button id="download-pdf" class="action" disabled>PDF</button>
  <button id="download-docx" class="action" disabled>Word (.docx)</button>
@@ -184,8 +184,25 @@ function bubble(role,content){
  el.append(who,node);
  if(role==='assistant'){
   const actions=document.createElement('div');actions.className='answer-actions';
-  const pdf=document.createElement('button');pdf.type='button';pdf.className='answer-pdf';pdf.textContent='↓ Скачать PDF этого ответа';pdf.disabled=working;
-  pdf.addEventListener('click',async()=>{pdf.disabled=true;pdf.textContent='Создаю PDF…';try{await downloadPdf(content)}finally{pdf.disabled=working;pdf.textContent='↓ Скачать PDF этого ответа'}});actions.append(pdf);el.append(actions);
+  const status=document.createElement('div');status.className='answer-action-status';status.setAttribute('role','status');
+  const epoch=sessionEpoch,ownerId=user?.id;
+  const action=(className,label,busy,run)=>{
+   const button=document.createElement('button');button.type='button';button.className='answer-action '+className;button.textContent=label;button.disabled=working;
+   button.addEventListener('click',async()=>{
+    if(working||!isCurrentChat(epoch,ownerId))return;
+    button.disabled=true;button.textContent=busy;status.textContent=busy;
+    try{const message=await run();if(isCurrentChat(epoch,ownerId))status.textContent=message||$('result-status').textContent}
+    catch{if(isCurrentChat(epoch,ownerId))status.textContent='Действие не выполнено. Попробуй ещё раз или скачай ответ в другом формате.'}
+    finally{if(isCurrentChat(epoch,ownerId)){button.disabled=working;button.textContent=label}}
+   });actions.append(button);
+  };
+  action('answer-pdf','↓ Скачать PDF этого ответа','Создаю PDF…',async()=>{if(pdfExportInProgress)return 'PDF уже создаётся. Дождись завершения.';await downloadPdf(content)});
+  action('answer-docx','↓ Word этого ответа','Создаю Word…',()=>downloadDocx(content));
+  action('answer-copy','Копировать текст','Копирую…',async()=>{
+   if(!navigator.clipboard?.writeText)return 'Буфер обмена недоступен. Скачай ответ в Word или PDF.';
+   await navigator.clipboard.writeText(content);return 'Текст этого ответа скопирован.';
+  });
+  actions.append(status);el.append(actions);
  }
  return el;
 }
@@ -266,7 +283,7 @@ function toggleDictation(){
 }
 function setStatus(s){$('case-sub').textContent=s}
 function ready(active){$('question').disabled=!active;$('send').disabled=!active;$('add-file').disabled=!active;$('dictate').disabled=!active}
-function waiting(v){working=v;const exportUnavailable=v||!lastAnswer||Boolean(pendingAnswerMessageId);ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=exportUnavailable;$('copy-telegram').disabled=exportUnavailable;$('quick-docx').disabled=exportUnavailable;$('quick-pdf').disabled=exportUnavailable;$('retry').disabled=v;$('refresh').disabled=v;$('reload-answer').disabled=v;$('summary').disabled=v||!caseData||Boolean(pendingAnswerMessageId);$('save-result').disabled=exportUnavailable;$('download-result').disabled=exportUnavailable;$('print-result').disabled=exportUnavailable;$('download-pdf').disabled=exportUnavailable;$('download-pptx').disabled=exportUnavailable;$('download-doc').disabled=exportUnavailable;$('download-docx').disabled=exportUnavailable;globalThis.document?.querySelectorAll?.('.answer-pdf')?.forEach(b=>b.disabled=v);$('send').textContent=v?'Думаю…':'Отправить →'}
+function waiting(v){working=v;const exportUnavailable=v||!lastAnswer||Boolean(pendingAnswerMessageId);ready(Boolean(user&&caseData)&&!v);$('copy-whatsapp').disabled=exportUnavailable;$('copy-telegram').disabled=exportUnavailable;$('quick-docx').disabled=exportUnavailable;$('quick-pdf').disabled=exportUnavailable;$('retry').disabled=v;$('refresh').disabled=v;$('reload-answer').disabled=v;$('summary').disabled=v||!caseData||Boolean(pendingAnswerMessageId);$('save-result').disabled=exportUnavailable;$('download-result').disabled=exportUnavailable;$('print-result').disabled=exportUnavailable;$('download-pdf').disabled=exportUnavailable;$('download-pptx').disabled=exportUnavailable;$('download-doc').disabled=exportUnavailable;$('download-docx').disabled=exportUnavailable;globalThis.document?.querySelectorAll?.('.answer-action')?.forEach(b=>b.disabled=v);$('send').textContent=v?'Думаю…':'Отправить →'}
 function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&!!caseData&&user?.id===ownerId}
 function resetChatSession(){
  globalThis.AdvisorDrafts?.purge();
@@ -589,24 +606,28 @@ async function downloadPresentation(){
 }
 let pdfExportInProgress=false;
 async function downloadPdf(answer=lastAnswer){
- if(pdfExportInProgress||!lastAnswer||!caseData)return;
+ if(typeof answer!=='string')answer=lastAnswer;
+ if(pdfExportInProgress||!answer||!caseData||!user)return;
+ const epoch=sessionEpoch,ownerId=user.id,exportFileName=fileName();
  pdfExportInProgress=true;
  const button=$('download-pdf');button.disabled=true;button.textContent='Создаю PDF…';
  // html2pdf clones the source into its own visible capture container; do not move it off-screen.
- const documentNode=printableContent(typeof answer==='string'?answer:lastAnswer);
  let captureFrame=null;
  try{
+  const documentNode=printableContent(answer);
   if(typeof window.html2pdf!=='function')throw Error('Библиотека создания PDF не загрузилась. Проверь соединение.');
   // Render in an isolated document: shell padding and page scroll must not affect PDF bounds.
   captureFrame=document.createElement('iframe');captureFrame.title='Подготовка PDF';captureFrame.setAttribute('aria-hidden','true');captureFrame.style.cssText='position:fixed;left:0;top:0;width:850px;height:900px;border:0;opacity:0;pointer-events:none;';document.body.append(captureFrame);
   const captureDoc=captureFrame.contentDocument;captureDoc.open();captureDoc.write('<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:white}</style></head><body></body></html>');captureDoc.close();
   captureDoc.body.append(captureDoc.importNode(documentNode,true));
   await new Promise((resolve,reject)=>{const script=captureDoc.createElement('script');const timeout=setTimeout(()=>reject(Error('Не удалось загрузить библиотеку PDF')),20000);script.onload=()=>{clearTimeout(timeout);resolve()};script.onerror=()=>{clearTimeout(timeout);reject(Error('Не удалось загрузить библиотеку PDF'))};script.src='https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';captureDoc.head.append(script)});
-  const pdfBlob=await captureFrame.contentWindow.html2pdf().set({margin:9,filename:'AdvisorAI-'+fileName()+'.pdf',image:{type:'jpeg',quality:.95},html2canvas:{scale:1.8,backgroundColor:'#ffffff',windowWidth:850,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['p','li','tr','h1','h2','h3']}}).from(captureDoc.body.firstElementChild).outputPdf('blob');
-  const pdfUrl=URL.createObjectURL(pdfBlob);const download=document.createElement('a');download.href=pdfUrl;download.download='AdvisorAI-'+fileName()+'.pdf';document.body.append(download);download.click();download.remove();setTimeout(()=>URL.revokeObjectURL(pdfUrl),30000);
+  if(!isCurrentChat(epoch,ownerId))return;
+  const pdfBlob=await captureFrame.contentWindow.html2pdf().set({margin:9,filename:'AdvisorAI-'+exportFileName+'.pdf',image:{type:'jpeg',quality:.95},html2canvas:{scale:1.8,backgroundColor:'#ffffff',windowWidth:850,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['p','li','tr','h1','h2','h3']}}).from(captureDoc.body.firstElementChild).outputPdf('blob');
+  if(!isCurrentChat(epoch,ownerId))return;
+  const pdfUrl=URL.createObjectURL(pdfBlob);const download=document.createElement('a');download.href=pdfUrl;download.download='AdvisorAI-'+exportFileName+'.pdf';document.body.append(download);download.click();download.remove();setTimeout(()=>URL.revokeObjectURL(pdfUrl),30000);
   $('result-status').textContent='PDF сохранён. Проверь его перед отправкой клиенту.';
- }catch(e){$('result-status').textContent='Не удалось создать PDF: '+e.message+'. Используй кнопку «Печать / сохранить PDF».'}
- finally{captureFrame?.remove();pdfExportInProgress=false;button.disabled=working||!lastAnswer;button.textContent='⬇ Скачать PDF'}
+ }catch(e){if(isCurrentChat(epoch,ownerId))$('result-status').textContent='Не удалось создать PDF: '+e.message+'. Используй кнопку «Печать / сохранить PDF».'}
+ finally{captureFrame?.remove();pdfExportInProgress=false;if(isCurrentChat(epoch,ownerId)){button.disabled=working||!lastAnswer||Boolean(pendingAnswerMessageId);button.textContent='⬇ Скачать PDF'}}
 }
 function docxRichRuns(value,api){
  const pieces=String(value).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);
@@ -644,9 +665,10 @@ function docxParagraphs(content,api){
  }
  return output;
 }
-async function downloadDocx(){
- if(!lastAnswer||!caseData||!user)return;
- const epoch=sessionEpoch,ownerId=user.id,reportTitle=caseData.title||'Аналитический отчёт',reportText=lastAnswer,exportFileName=fileName();
+async function downloadDocx(answer=lastAnswer){
+ if(typeof answer!=='string')answer=lastAnswer;
+ if(!answer||!caseData||!user)return;
+ const epoch=sessionEpoch,ownerId=user.id,reportTitle=caseData.title||'Аналитический отчёт',reportText=answer,exportFileName=fileName();
  const button=$('download-docx');button.disabled=true;button.textContent='Создаю .docx…';
  try{
   const api=window.docx;
@@ -665,7 +687,7 @@ async function downloadDocx(){
   a.href=url;a.download='AdvisorAI-'+exportFileName+'.docx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
   $('result-status').textContent='Скачан настоящий редактируемый Word .docx. Проверь таблицы и факты перед отправкой.';
  }catch(e){if(isCurrentChat(epoch,ownerId))$('result-status').textContent='Не удалось создать .docx: '+e.message+'. Можно воспользоваться Word (.doc) или PDF.'}
- finally{if(isCurrentChat(epoch,ownerId)){button.disabled=working||!lastAnswer;button.textContent='⬇ Редактируемый Word (.docx)'}}
+ finally{if(isCurrentChat(epoch,ownerId)){button.disabled=working||!lastAnswer||Boolean(pendingAnswerMessageId);button.textContent='⬇ Редактируемый Word (.docx)'}}
 }
 function downloadWord(){
  if(!lastAnswer||!caseData)return;
