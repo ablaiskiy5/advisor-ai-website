@@ -82,8 +82,19 @@ try{
   await page.locator('#jump-latest').click();
   assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight));
   if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'chat-reading-'+width+'.png')})}
-  await page.evaluate(()=>{window.pdfRequested=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};const selected=bubble('assistant','Unique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
+  const callsBeforeExport=await page.evaluate(()=>window.syntheticInvokes.length);
+  await page.evaluate(()=>{window.pdfRequested=null;window.wordRequested=null;window.copiedAnswer=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};window.downloadDocx=async answer=>{window.wordRequested=answer};Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedAnswer=text}}});const selected=bubble('assistant','Unique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
   await page.locator('#selected-pdf-test .answer-pdf').click();assert.equal(await page.evaluate(()=>window.pdfRequested),'Unique selected earlier answer');
+  await page.locator('#selected-pdf-test .answer-docx').click();assert.equal(await page.evaluate(()=>window.wordRequested),'Unique selected earlier answer');
+  await page.locator('#selected-pdf-test .answer-copy').click();assert.equal(await page.evaluate(()=>window.copiedAnswer),'Unique selected earlier answer');
+  assert.match(await page.locator('#selected-pdf-test .answer-action-status').textContent(),/скопирован/);
+  await page.evaluate(()=>waiting(true));assert.equal(await page.locator('#selected-pdf-test .answer-action:disabled').count(),3);await page.evaluate(()=>waiting(false));
+  if(width===390){
+   await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:undefined}));
+   await page.locator('#selected-pdf-test .answer-copy').click();assert.match(await page.locator('#selected-pdf-test .answer-action-status').textContent(),/Буфер обмена недоступен/);
+  }
+  assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),callsBeforeExport,'Selected-answer actions must not call paid AI');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Selected-answer action buttons wrap on narrow screens');
   await page.locator('#jump-compose').click();await page.locator('#question').focus();
   assert.equal(await page.locator('#question').evaluate(n=>n===document.activeElement),true);
  }

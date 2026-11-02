@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
 const html = readFileSync(new URL('../ai-chat.html', import.meta.url), 'utf8');
-const start = html.indexOf('async function downloadDocx()');
+const start = html.indexOf('async function downloadDocx(');
 const end = html.indexOf('function downloadWord()', start);
 const guardStart = html.indexOf('function isCurrentChat(');
 const guardEnd = html.indexOf('function resetChatSession()', guardStart);
@@ -32,14 +32,14 @@ function setup() {
     Packer: { toBlob: () => pendingBlob }
   };
   const context = {
-    sessionEpoch: 0,
+    sessionEpoch: 0,pendingAnswerMessageId:null,
     user: { id: 'synthetic-owner-A' },
     caseData: { title: 'Synthetic confidential report' },
     lastAnswer: 'Synthetic report content',
     working: false,
     window: { docx },
     $: id => nodes[id],
-    docxParagraphs: () => [],
+    docxParagraphs: text => { context.exportedText=text;return []; },
     fileName: () => 'synthetic-report',
     URL: {
       createObjectURL: () => { createdUrls++; return 'blob:synthetic'; },
@@ -72,6 +72,18 @@ test('DOCX download succeeds for the unchanged authenticated session', async () 
   assert.equal(t.createdUrls, 1);
   assert.match(t.nodes['result-status'].textContent, /Скачан настоящий/);
   assert.equal(t.nodes['download-docx'].disabled, false);
+});
+
+test('Word exports the selected earlier reply even if the latest reply changes during generation',async()=>{
+ const t=setup(),running=t.downloadDocx('Selected earlier report');
+ t.context.lastAnswer='A newer report';t.resolveBlob({size:2048});await running;
+ assert.equal(t.context.exportedText,'Selected earlier report');assert.equal(t.downloads.length,1);
+});
+
+test('sidebar click event still exports the latest reply',async()=>{
+ const t=setup(),running=t.downloadDocx({type:'click'});
+ t.resolveBlob({size:2048});await running;
+ assert.equal(t.context.exportedText,'Synthetic report content');
 });
 
 test('sign-out while DOCX generation is pending prevents a private download', async () => {

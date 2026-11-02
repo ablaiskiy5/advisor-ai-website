@@ -21,7 +21,7 @@ try{
    '| LEFT_COLUMN | Instrument | Value USD | RIGHT_COLUMN |\n| --- | --- | --- | --- |\n| LEFT_CELL | SYNTH | 123456.78 | RIGHT_CELL |',
    ...Array.from({length:45},(_,i)=>'Paragraph '+(i+1)+'. Полный текст синтетического отчёта. Проверяем, что начало и конец строки, таблицы и последние разделы попадают в PDF без обрезки. The complete line must remain visible.'),
    '## FINAL_SECTION_MARKER','END_OF_REPORT_MARKER - no truncation.'].join('\n\n');
-  await page.addScriptTag({content:'const caseData={title:"Synthetic report"},lastAnswer='+JSON.stringify(answer)+';let working=false;const $=id=>document.getElementById(id);function fileName(){return "synthetic"}\n'+printable+'\n'+pdf+'\ndocument.getElementById("download-pdf").onclick=()=>downloadPdf();'});
+  await page.addScriptTag({content:'const caseData={title:"Synthetic report"},lastAnswer='+JSON.stringify(answer)+';let working=false;const user={id:"synthetic-owner"},sessionEpoch=0,pendingAnswerMessageId=null;function isCurrentChat(epoch,ownerId){return epoch===sessionEpoch&&ownerId===user.id}const $=id=>document.getElementById(id);function fileName(){return "synthetic"}\n'+printable+'\n'+pdf+'\ndocument.getElementById("download-pdf").onclick=()=>downloadPdf();'});
   await page.evaluate(()=>window.scrollTo(0,1400));
   const download=page.waitForEvent('download');await page.locator('#download-pdf').click();
   const result=await download.catch(async e=>{throw Error((await page.locator('#result-status').textContent())+'; '+e.message)});await result.saveAs(resolve(out,'report-'+width+'.pdf'));
