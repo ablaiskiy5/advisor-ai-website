@@ -3,7 +3,7 @@ import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 const site = 'https://ablaiskiy5.github.io/advisor-ai-website/';
 const pages = ['workspace.html','ai-chat.html','portfolio-report.html','bond-analysis.html','ideas-risk-budget.html','tasks-board.html','tools-health.html'];
-const browser = await chromium.launch();
+const browser = await chromium.launch({executablePath:process.env.ADVISOR_CHROMIUM_PATH||undefined,args:process.env.ADVISOR_CHROMIUM_PATH?['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']:[]});
 const context = await browser.newContext({viewport:{width:1440,height:900}});
 const page = await context.newPage();
 const paidCalls = [];

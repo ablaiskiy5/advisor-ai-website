@@ -60,7 +60,7 @@ for(const relogin of ['owner-b','owner-a']){
   h.app.handleTaskAuthChange('SIGNED_OUT',null);
   assert.ok(h.app.getEpoch()>oldEpoch);
   assert.equal(h.app.getBusy(),false,'Sign-out releases old busy state');
-  assert.equal(h.document.getElementById('organize').disabled,false);
+  assert.equal(h.document.getElementById('organize').disabled,true,'Signed-out controls stay disabled');
   h.app.setUser(relogin);
   h.document.getElementById('brain').value='Synthetic task only';
   const fresh=h.app.organize();
@@ -77,7 +77,7 @@ test('stale batch-save completion cannot clear new AI busy state',async()=>{
  const h=harness(),old=h.app.saveDrafts();
  assert.equal(h.saves.length,1);
  h.app.handleTaskAuthChange('SIGNED_OUT',null);
- assert.equal(h.document.getElementById('save-drafts').disabled,false);
+ assert.equal(h.document.getElementById('save-drafts').disabled,true,'Signed-out save stays disabled');
  h.app.setUser('owner-b');
  h.document.getElementById('brain').value='Synthetic task only';
  const fresh=h.app.organize();

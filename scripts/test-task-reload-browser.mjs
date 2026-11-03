@@ -21,6 +21,7 @@ const fixture=`
   update(v){payload=v;operation='update';return this},delete(){operation='delete';return this},upsert(v){payload=v;operation='upsert';return this},insert(v){payload=v;operation='insert';return this},
   then(done){
    const cloud=read(),rows=cloud[table]||[];let selected=rows.filter(row=>row.user_id===owner&&filters.every(fn=>fn(row)));
+   if(operation==='read'&&table==='advisor_tasks'&&sessionStorage.getItem('fixture-fail-load')){sessionStorage.removeItem('fixture-fail-load');done({error:{message:'Synthetic initial load failure'}});return}
    if(operation==='update'&&sessionStorage.getItem('fixture-fail-cloud')){done({error:{message:'Synthetic cloud offline'}});return}
    if(operation==='read'&&table==='advisor_tasks'&&ids&&sessionStorage.getItem('fixture-lose-ack')){sessionStorage.removeItem('fixture-lose-ack');done({error:{message:'Synthetic acknowledgement loss'}});return}
    if(operation==='update'){selected.forEach(row=>Object.assign(row,payload));}
@@ -49,8 +50,29 @@ try{
   await page.reload();await page.locator('#lane-todo .task').waitFor();assert.equal(await page.locator('#lane-todo .task').count(),1);assert.match(await page.locator('#lane-todo').textContent(),/Edited work task/);
   assert.equal(await page.locator('#review').isVisible(),false);assert.equal(await page.evaluate(()=>sessionStorage.getItem('fixture-ai-count')),'1');
   await page.reload();await page.locator('#lane-todo .task').waitFor();assert.equal(await page.locator('#lane-todo .task').count(),1);
+  await page.locator('#lane-todo .task').getByRole('button',{name:'В календарь',exact:true}).click();
+  await page.locator('#calendar-editor:not(.hidden)').waitFor();await page.locator('#calendar-date').fill('2026-11-05');await page.locator('#calendar-time').fill('09:45');await page.locator('#calendar-duration').selectOption('60');await page.locator('#calendar-reminder').selectOption('30');
+  let calendarUrl=new URL(await page.locator('#calendar-open').getAttribute('href'));assert.equal(calendarUrl.host,'calendar.google.com');assert.equal(calendarUrl.searchParams.get('text'),'Edited work task');
+  for(const provider of ['microsoft365','outlook']){await page.locator('#calendar-provider').selectOption(provider);calendarUrl=new URL(await page.locator('#calendar-open').getAttribute('href'));assert.equal(calendarUrl.searchParams.get('startdt'),'2026-11-05T04:45:00.000Z');assert.equal(calendarUrl.host,provider==='outlook'?'outlook.live.com':'outlook.office.com')}
+  await page.locator('#calendar-provider').selectOption('iphone');assert.equal(await page.locator('#calendar-open').isVisible(),false);
+  const fileReady=page.waitForEvent('download');await page.locator('#calendar-download').click();const exported=await fileReady,calendarFile=await readFile(await exported.path(),'utf8');
+  assert.match(calendarFile,/SUMMARY:Edited work task/);assert.match(calendarFile,/DTSTART:20261105T044500Z/);assert.match(calendarFile,/DTEND:20261105T054500Z/);assert.match(calendarFile,/TRIGGER:-PT30M/);
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('fixture-ai-count')),'1','Calendar handoff never invokes AI');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Calendar form fits mobile');await page.locator('#calendar-close').click();
+  const original=page.locator('#lane-todo .task').filter({hasText:'Edited work task'});
+  await original.getByRole('button',{name:'✓ Готово',exact:true}).click();await page.locator('#scope-filters').getByRole('button',{name:'Готово',exact:true}).click();
+  await page.locator('#lane-done .task').getByRole('button',{name:'Вернуть',exact:true}).click();await page.locator('#scope-filters').getByRole('button',{name:'Активные',exact:true}).click();
+  await original.getByRole('button',{name:'Дата / правка',exact:true}).click();await page.locator('#edit-due').fill('2026-11-06');await page.locator('#edit-description').fill('Updated task details');await page.locator('#edit-form button[type="submit"]').click();await page.locator('#task-editor').waitFor({state:'hidden'});
+  await page.locator('#manual').click();await page.locator('#edit-title').fill('Synthetic manual follow-up');await page.locator('#edit-due').fill('2026-11-07');await page.locator('#edit-form button[type="submit"]').click();await page.locator('#task-editor').waitFor({state:'hidden'});
+  await page.reload();await page.locator('#lane-todo .task').filter({hasText:'Synthetic manual follow-up'}).waitFor();assert.equal(await page.locator('#lane-todo .task').count(),2);assert.match(await page.locator('#lane-todo').textContent(),/Updated task details/);
+  for(const [id,pattern] of [['export-csv',/Synthetic manual follow-up/],['export-calendar',/BEGIN:VEVENT/]]){
+   const ready=page.waitForEvent('download');await page.locator('#'+id).click();const downloaded=await ready,text=await readFile(await downloaded.path(),'utf8');assert.match(text,pattern);
+  }
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('fixture-ai-count')),'1','Task edits, status changes and exports do not invoke AI');
+  await page.evaluate(()=>sessionStorage.setItem('fixture-fail-load','1'));await page.reload();await page.locator('#info').filter({hasText:'Synthetic initial load failure'}).waitFor();
+  await page.locator('#refresh').click();await page.locator('#lane-todo .task').filter({hasText:'Synthetic manual follow-up'}).waitFor();assert.equal(await page.locator('#lane-todo .task').count(),2,'Refresh recovers after initial load failure');
   await page.evaluate(()=>sessionStorage.setItem('fixture-owner','33333333-3333-4333-8333-333333333333'));await page.reload();await page.locator('#brain-mic:not([disabled])').waitFor();
   assert.equal(await page.locator('#lane-todo .task').count(),0);assert.equal(await page.locator('#review').isVisible(),false);assert.deepEqual(errors,[]);await context.close();
  }
- console.log('PASS: task AI review, edits, cloud/local reload recovery, save acknowledgement loss, no duplicates and account separation. Synthetic cloud only.');
+ console.log('PASS: task review/reload, idempotent saves, owner separation, Google/Outlook handoff and timed ICS alarm download. Synthetic cloud; no real provider event is created.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
