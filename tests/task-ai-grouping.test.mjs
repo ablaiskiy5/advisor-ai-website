@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../tasks-board.html',import.meta.url),'utf8');
-const start=source.indexOf('function rankTaskProposals(data)');
+const start=source.indexOf('function validTaskUuid(');
 const end=source.indexOf('function review(data)');
 const rank=new Function('areas','priorities','validDate',source.slice(start,end)+';return rankTaskProposals')(
  {work:'Work',personal:'Personal',study:'Study',health:'Health',sport:'Sport',projects:'Projects',other:'Other'},

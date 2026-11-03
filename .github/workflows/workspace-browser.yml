@@ -1,10 +1,10 @@
 name: Workspace browser UX
 on:
   pull_request:
-    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', 'scripts/test-chat-pdf-browser.mjs', '.github/workflows/workspace-browser.yml']
+    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', 'scripts/test-chat-pdf-browser.mjs', 'scripts/test-task-reload-browser.mjs', '.github/workflows/workspace-browser.yml']
   push:
     branches: [main]
-    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', 'scripts/test-chat-pdf-browser.mjs', '.github/workflows/workspace-browser.yml']
+    paths: ['*.html', 'assets/**', 'scripts/test-workspace-browser.mjs', 'scripts/test-chat-pdf-browser.mjs', 'scripts/test-task-reload-browser.mjs', '.github/workflows/workspace-browser.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,3 +22,4 @@ jobs:
       - run: node scripts/test-workspace-browser.mjs
 
       - run: node scripts/test-chat-pdf-browser.mjs
+      - run: node scripts/test-task-reload-browser.mjs

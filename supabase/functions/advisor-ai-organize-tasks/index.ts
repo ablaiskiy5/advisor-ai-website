@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.10';
 const cors={'Access-Control-Allow-Origin':'https://ablaiskiy5.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Vary':'Origin'};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
 const areas=['work','personal','study','health','sport','projects','other'];
@@ -24,11 +24,20 @@ Deno.serve(async req=>{
  let input;try{input=await req.json()}catch{return json({error:'Неверный запрос'},400)}
  const text=String(input?.text||'').trim();
  if(text.length<3||text.length>10000)return json({error:'Введи от 3 до 10 000 символов'},400);
+ const {data:pendingDraft,error:pendingError}=await db.from('advisor_task_drafts').select('id,revision,tasks').eq('user_id',who.user.id).maybeSingle();
+ if(pendingError)return json({error:'Не удалось проверить сохранённый AI-разбор. AI не запускался.'},503);
+ if(pendingDraft?.tasks?.length)return json({error:'У тебя уже есть сохранённый AI-разбор. Обнови страницу и добавь выбранные карточки на доску. Новый AI-запрос не запускался.'},409);
  const {data:reservation,error:reserveErr}=await admin.rpc('reserve_advisor_task_ai_request',{p_user_id:who.user.id});
  if(reserveErr){console.error('Task quota reservation failed',JSON.stringify({code:reserveErr.code||''}));return json({error:'Не удалось проверить лимит AI'},503)}
  if(reservation==='user_limit')return json({error:'На сегодня доступно не более 12 AI-разборов. Карточки можно добавлять вручную.'},429);
  if(reservation==='global_limit')return json({error:'Общий лимит AI-разборов на сегодня исчерпан. Повтори позже.'},429);
  if(reservation!=='ok')return json({error:'Подтверди email или проверь доступ к аккаунту.'},403);
+ const draftRevision=crypto.randomUUID();
+ const draftQuery=pendingDraft
+  ?db.from('advisor_task_drafts').update({source_text:text,revision:draftRevision}).eq('id',pendingDraft.id).eq('user_id',who.user.id).eq('revision',pendingDraft.revision)
+  :db.from('advisor_task_drafts').insert({user_id:who.user.id,source_text:text,tasks:[],revision:draftRevision});
+ const {data:draft,error:draftError}=await draftQuery.select('id,revision').single();
+ if(draftError||!draft?.id)return json({error:'Не удалось сохранить исходный список. AI не запускался. Обнови страницу.'},503);
  const model=Deno.env.get('OPENAI_MODEL')||'gpt-5-mini';
  const today=new Date(Date.now()+5*3600*1000).toISOString().slice(0,10);
  const prompt='Ты организатор дел. Преврати хаотичную запись в отдельные конкретные исполнимые задачи, максимум 30. Формулируй кратко и без повторов. Категории: work работа и клиенты; personal личное и семья; study учёба и экзамены; health медицина; sport спорт; projects сторонние проекты; other прочее. priority: high, normal, low. Дату due_date YYYY-MM-DD назначай ТОЛЬКО если она однозначно названа пользователем; выражения завтра и сегодня можно вычислить относительно локальной даты Казахстана '+today+' (время города Алматы, UTC+5). Для неопределённых сроков оставь пустую строку. Не выдумывай поручения, даты и обязательства. Не составляй советы, только JSON. Поле description заполняй лишь деталями из сообщения.';
@@ -40,5 +49,9 @@ Deno.serve(async req=>{
  let tasks;try{tasks=JSON.parse(output).tasks}catch{return json({error:'AI не смог вернуть структурированный список. Попробуй разбить текст на части.'},502)}
  if(!Array.isArray(tasks))return json({error:'Некорректный ответ AI'},502);
  tasks=tasks.slice(0,30).filter(x=>x&&typeof x.title==='string'&&x.title.trim()).map(x=>({title:x.title.trim().slice(0,220),area:areas.includes(x.area)?x.area:'other',priority:['high','normal','low'].includes(x.priority)?x.priority:'normal',due_date:/^\d{4}-\d{2}-\d{2}$/.test(x.due_date||'')?x.due_date:null,description:String(x.description||'').slice(0,3000)}));
- return json({tasks});
+ tasks=tasks.map(task=>({...task,id:crypto.randomUUID()}));
+ const savedRevision=crypto.randomUUID();
+ const {data:saved,error:saveError}=await db.from('advisor_task_drafts').update({tasks,revision:savedRevision}).eq('id',draft.id).eq('user_id',who.user.id).eq('revision',draft.revision).select('id,revision').single();
+ if(saveError||saved?.id!==draft.id)return json({error:'AI обработал список, но сохранить разбор не удалось. Исходный текст сохранён в аккаунте. Обнови страницу; не запускай AI повторно несколько раз подряд.'},503);
+ return json({tasks,draft_id:saved.id,draft_revision:saved.revision});
 });

@@ -20,6 +20,7 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [x] Six inline research/markets/Academy workflows with owned history and optional chat (local verification; release status in PROJECT_STATE.md).
 - [ ] Simplify portfolio file review and document generation/export; preserve numeric-editor and task-organizer workflows.
 - [ ] Check AI brain-dump task grouping and priority proposal, user confirmation, long-text handling and account-scoped persistence.
+- [x] Persist AI task reviews before display; recover edits after reload and make approved board writes idempotent (synthetic reload/owner tests; real authenticated E2E remains P0).
 - [ ] Test document/presentation export rendering, structure and readability using non-client fixtures.
 
 ## P2 — Platform and plugin alignment

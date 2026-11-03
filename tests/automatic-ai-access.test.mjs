@@ -1,13 +1,13 @@
-import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync,existsSync,readdirSync}from'node:fs';import{runInNewContext}from'node:vm';
+import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync,existsSync,readdirSync}from'node:fs';import{runInNewContext}from'node:vm';import{randomUUID}from'node:crypto';
 const root=new URL('../',import.meta.url);
 const edge=readFileSync(new URL('supabase/functions/advisor-ai-organize-tasks/index.ts',root),'utf8');
 const pending=new URL('supabase/changes/automatic_verified_user_ai.sql',root);
 const sql=readFileSync(existsSync(pending)?pending:new URL('supabase/migrations/'+readdirSync(new URL('supabase/migrations/',root)).find(n=>n.endsWith('_automatic_verified_user_ai.sql')),root),'utf8');
 function harness({confirmed=true,reservation='ok',rpcError=null,authenticated=true}={}){
- let handler,paid=0;const calls=[];
- const db={auth:{getUser:async()=>({data:{user:authenticated?{id:'synthetic-owner',email:'synthetic@example.invalid',email_confirmed_at:confirmed?'2026-10-28':null}:null}})}};
+ let handler,paid=0,draft=null;const calls=[];
+ const db={from(){let patch=null;return {select(){return this},eq(){return this},maybeSingle(){return this},single(){return this},insert(row){patch={id:randomUUID(),...row};return this},update(row){patch=row;return this},then(resolve){if(patch)draft={...draft,...patch};resolve({data:draft,error:null})}}},auth:{getUser:async()=>({data:{user:authenticated?{id:'synthetic-owner',email:'synthetic@example.invalid',email_confirmed_at:confirmed?'2026-10-28':null}:null}})}};
  const admin={rpc:async(name,args)=>{calls.push(name);return name==='advisor_ai_is_allowed_email'?{data:true,error:null}:{data:reservation,error:rpcError}}};
- const context={createClient:(_,key)=>key==='anon'?db:admin,Deno:{env:{get:k=>({SUPABASE_URL:'https://synthetic.invalid',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',OPENAI_API_KEY:'test-placeholder'})[k]},serve:fn=>handler=fn},Response,console:{error(){}},fetch:async()=>{paid++;return Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({tasks:[{title:'Synthetic task',area:'work',priority:'normal',due_date:'',description:''}]})}]}]})}};
+ const context={crypto:{randomUUID},createClient:(_,key)=>key==='anon'?db:admin,Deno:{env:{get:k=>({SUPABASE_URL:'https://synthetic.invalid',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',OPENAI_API_KEY:'test-placeholder'})[k]},serve:fn=>handler=fn},Response,console:{error(){}},fetch:async()=>{paid++;return Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({tasks:[{title:'Synthetic task',area:'work',priority:'normal',due_date:'',description:''}]})}]}]})}};
  runInNewContext(edge.replace(/^import .*\n/,''),context);
  return{request:()=>handler(new Request('https://synthetic.invalid',{method:'POST',headers:{authorization:'Bearer synthetic'},body:JSON.stringify({text:'Synthetic task'})})),calls,paid:()=>paid};
 }
