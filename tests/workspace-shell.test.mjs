@@ -26,10 +26,10 @@ test('known section deep links survive login while invalid and auth fragments fa
 });
 test('history and document hubs use existing saved cases and escape search text',()=>{
  const start=html.indexOf('function workspaceHub('),end=html.indexOf('function summary(',start);
- const ctx={pageTitle:(a,b)=>a+b,order:xs=>xs,entries:[{title:'Synthetic portfolio',kind:'portfolio',notes:'note'}],needle:'synthetic',section:{portfolio:{label:'Портфели'}},itemRow:x=>'CASE:'+x.title,esc:s=>s.replaceAll('"','&quot;')};
+ const ctx={pageTitle:(a,b)=>a+b,order:xs=>xs,documentCatalog:{owner:'owner-a',state:'ready',cases:new Map([['synthetic','2026-10-28']]),error:''},session:{user:{id:'owner-a'}},entries:[{id:'synthetic',title:'Synthetic portfolio',kind:'portfolio',notes:'note'},{id:'unfinished',title:'Synthetic unfinished',kind:'portfolio',notes:''}],needle:'synthetic',section:{portfolio:{label:'Портфели'}},itemRow:x=>'CASE:'+x.title,fmt:s=>s,esc:s=>s.replaceAll('"','&quot;')};
  const app=runInNewContext(html.slice(start,end)+';({workspaceHub})',ctx);
  assert.match(app.workspaceHub('history'),/CASE:Synthetic portfolio/);
- assert.match(app.workspaceHub('documents'),/Word, PDF или PowerPoint/);
+ assert.match(app.workspaceHub('documents'),/Synthetic portfolio/);assert.doesNotMatch(app.workspaceHub('documents'),/Synthetic unfinished/);assert.match(app.workspaceHub('history'),/CASE:Synthetic unfinished/);
  ctx.needle='unmatched';assert.match(app.workspaceHub('history'),/Ничего не найдено/);
  ctx.needle='"';assert.match(app.workspaceHub('history'),/value="&quot;"/);
 });

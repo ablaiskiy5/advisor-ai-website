@@ -25,7 +25,7 @@ function harness(owner='owner-a'){
  const ctx={
   cloud,session:{user:{id:owner}},authRevision:0,entries:[{id:'old-case',title:'PRIVATE OLD CASE'}],
   snapshotsCache,active:'old-case',newCaseKind:null,page:'portfolio',busy:true,
-  render(){renderCount++},toast:message=>feedback.push(message),saveLocal(){},
+  resetDocumentCatalog(){},render(){renderCount++},toast:message=>feedback.push(message),saveLocal(){},
   setTimeout:fn=>{timers.push(fn)},URLSearchParams,window:{location:{search:''}}
  };
  const app=runInNewContext(production+'\n({refresh,persist,handleWorkspaceAuthChange,isCurrentWorkspaceSession,state:()=>({entries,session,authRevision,active,busy})})',ctx);

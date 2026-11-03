@@ -13,7 +13,7 @@ const offline = inline.replace(/^init\(\)\.catch\(e=>feedback\('Ошибка: '\
 assert.notEqual(offline, inline, 'Disable real Supabase initializer');
 
 function harness() {
-  const info = { textContent: '', value: '', classList: { add() {} } };
+  const info = { textContent: '', value: '', classList: { add() {},remove() {} } };
   const timers = [];
   const app = runInNewContext(offline + `
 render=()=>{};

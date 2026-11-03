@@ -5,6 +5,8 @@ import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+const docxBundle=await readFile('node_modules/docx/dist/index.umd.cjs','utf8');
 const root=process.cwd();
 const server=createServer(async(req,res)=>{try{const path=resolve(root,'.'+new URL(req.url,'http://local').pathname);if(!path.startsWith(root+'/'))throw Error();const data=await readFile(path);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(path)]||'text/plain');res.end(data)}catch{res.writeHead(404).end()}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -15,7 +17,9 @@ try{
  await context.route('https://**/*',route=>route.fulfill({contentType:'text/javascript',body:route.request().url().includes('supabase-js')?`
  const syntheticUser={id:'11111111-1111-4111-8111-111111111111',email:'synthetic@example.invalid'};
  const syntheticCase={id:'22222222-2222-4222-8222-222222222222',kind:'portfolio',user_id:syntheticUser.id,title:'Synthetic portfolio',notes:'',prompt:'Synthetic analysis',status:'Новая',updated_at:'2026-10-27T00:00:00.000Z',chat_url:''};
- const syntheticCases=[syntheticCase],syntheticMessages=[],syntheticAttachments=[];let syntheticClock=0;window.syntheticInvokes=[];window.syntheticUploads=[];
+ const resumed=JSON.parse(sessionStorage.getItem('synthetic-resume-cases')||'null');sessionStorage.removeItem('synthetic-resume-cases');
+ const syntheticCases=resumed?.cases||[syntheticCase],syntheticMessages=resumed?.messages||[],syntheticAttachments=[];let syntheticClock=0;window.syntheticInvokes=[];window.syntheticUploads=[];
+ window.syntheticSnapshotCases=()=>sessionStorage.setItem('synthetic-resume-cases',JSON.stringify({cases:syntheticCases,messages:syntheticMessages}));
  const stamp=()=>new Date(Date.now()+syntheticClock++*10).toISOString();
  const syntheticDb={auth:{getSession:async()=>({data:{session:localStorage.getItem('synthetic-signed-out')?null:{user:syntheticUser}}}),getUser:async()=>({data:{user:localStorage.getItem('synthetic-signed-out')?null:syntheticUser}}),signUp:async()=>({data:{session:null},error:null}),signInWithPassword:async()=>({data:{session:null},error:{code:'invalid_credentials'}}),onAuthStateChange(fn){window.syntheticAuth=fn},signOut:async()=>{window.syntheticAuth('SIGNED_OUT',null);return {}}},functions:{invoke:async(name,options)=>{
   if(options?.method==='GET')return{error:{message:'Synthetic metadata unavailable'}};
@@ -29,7 +33,7 @@ try{
   rows=rows.filter(row=>filters.every(fn=>fn(row))).slice().reverse();resolve({data:single?rows[0]||null:rows,error:null});
  }};return query}};
  window.supabase={createClient:()=>syntheticDb};
- `:''}));
+ `:route.request().url().includes('docx@9.5.1')?docxBundle:''}));
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:900});
@@ -44,6 +48,7 @@ try{
  await page.setViewportSize({width:1440,height:900});
  await page.goto(base+'/workspace.html#history');await page.getByRole('heading',{name:'История и сохранённое',exact:true}).waitFor();
  await page.locator('#shell-sidebar [data-section="documents"]').click();await page.getByRole('heading',{name:'Документы',exact:true}).waitFor();
+ await page.locator('#view .empty').filter({hasText:'Пока нет готовых ответов AI'}).waitFor();assert.equal(await page.locator('#view .item').count(),0,'Documents excludes cases with no AI answer');
  assert.equal(await page.locator('#shell-sidebar [aria-current="page"]').getAttribute('data-section'),'documents');
  await page.locator('#shell-sidebar [data-section="portfolio"]').click();await page.getByRole('heading',{name:'Что сделаем с портфелем?',exact:true}).waitFor();
  await page.emulateMedia({media:'print'});assert.equal(await page.locator('#workspace-shell').isVisible(),false);await page.emulateMedia({media:'screen'});
@@ -166,6 +171,17 @@ try{
    }
   }
  }
+ if((await page.locator('#shell-menu').isVisible()))await page.locator('#shell-menu').click();
+ await page.locator('#shell-sidebar [data-section="documents"]').click();
+ const beforeDocument=await page.evaluate(()=>window.syntheticInvokes.length);await page.locator('[data-action="startflow"][data-kind="documents"]').click();assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),beforeDocument);
+ await page.locator('#wb-subject').fill('Synthetic completed client document');await page.locator('#wb-horizon').fill('Письмо');await page.locator('#wb-form button[type="submit"]').click();await page.locator('#wb-status').filter({hasText:'Результат сохранён'}).waitFor();
+ await page.locator('[data-action="refreshdocuments"]').click();const docRow=page.locator('#view .item').filter({hasText:'Synthetic completed client document'});await docRow.waitFor();
+ await page.evaluate(()=>AdvisorWorkbench.reset());await docRow.locator('[data-action="openresult"]').click();await page.locator('#wb-status').filter({hasText:'без AI-запроса'}).waitFor();assert.equal(await page.evaluate(()=>workspaceCurrentSection()),'documents');
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),beforeDocument+1,'Opening saved document does not regenerate it');
+ await page.evaluate(()=>window.syntheticSnapshotCases());await docRow.locator('a[href*="ai-chat.html"]').click();await page.waitForURL(/ai-chat\.html\?case=/);await page.locator('#latest-answer .answer-docx:not([disabled])').waitFor();
+ const documentDownload=page.waitForEvent('download');await page.locator('#latest-answer .answer-docx').click();const docx=await documentDownload,docxPath=await docx.path();assert.match(docx.suggestedFilename(),/\.docx$/);
+ const xml=execFileSync('unzip',['-p',docxPath,'word/document.xml'],{encoding:'utf8'});assert.match(xml,/Synthetic result/);assert.match(xml,/Synthetic completed client document/);
+ await page.evaluate(()=>window.syntheticSnapshotCases());await page.goto(base+'/workspace.html#history');await page.getByRole('heading',{name:'История и сохранённое',exact:true}).waitFor();
  const requestsBeforeHistory=await page.evaluate(()=>window.syntheticInvokes.length);
  if((await page.locator('#shell-menu').isVisible()))await page.locator('#shell-menu').click();
  await page.locator('#shell-sidebar [data-section="history"]').click();await page.evaluate(()=>AdvisorWorkbench.reset());
@@ -187,5 +203,8 @@ try{
   await page.goto(base+casePath);await page.locator('#question:not([disabled])').waitFor();await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/chat-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.goto(base+'/tasks-board.html');await page.locator('#shell-menu').click();await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/tasks-mobile-menu.png',fullPage:true});
  }
+ await page.evaluate(()=>localStorage.setItem('synthetic-signed-out','1'));
+ await page.goto(base+'/tasks-board.html');await page.locator('#task-login:not(.hidden)').waitFor();
+ for(const id of ['organize','manual','export-calendar','export-csv','refresh'])assert.equal(await page.locator('#'+id).isDisabled(),true,'Signed-out task action is disabled: '+id);
  assert.deepEqual(errors,[]);console.log('PASS: seven pages, desktop/mobile menus, collapse, keyboard, deep links, history/documents, print, six inline workbenches and exam replies, chat/task/portfolio draft recovery, logout purge, signup/error UI. Synthetic auth only.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}

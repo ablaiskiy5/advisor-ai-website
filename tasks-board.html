@@ -40,11 +40,12 @@ label{color:#586f8e;font-size:13px}
 .btn:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #a7c8ff;outline-offset:2px}
 @media(max-width:860px){main{padding:16px 12px 85px}.panel{padding:16px}.panel:has(#brain){padding:17px}.draft{grid-template-columns:1fr 1fr}.board{grid-template-columns:1fr}#brain{min-height:170px}}
 @media(max-width:480px){.draft{grid-template-columns:minmax(0,1fr)}.draft .wide{grid-column:span 1}#organize{width:100%}.panel{padding:14px}h1{font-size:29px}.top .brand{font-size:19px}}
-.brain-microphone{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 6px}.brain-microphone #brain-mic{min-height:44px}.brain-microphone select{min-height:44px;padding:8px 12px;width:auto;border:1px solid #b8c7da;border-radius:9px;background:#fff;color:#193653}.brain-microphone span{flex:1 1 250px;font-size:12px;line-height:1.5;color:#506582}</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/task-review-store.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
+.brain-microphone{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 6px}.brain-microphone #brain-mic{min-height:44px}.brain-microphone select{min-height:44px;padding:8px 12px;width:auto;border:1px solid #b8c7da;border-radius:9px;background:#fff;color:#193653}.brain-microphone span{flex:1 1 250px;font-size:12px;line-height:1.5;color:#506582}</style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/task-review-store.js"></script><script src="./assets/task-calendar.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><div class="top"><div class="brand">◈ Advisor <b>AI</b> / Мои задачи</div><a class="btn main" style="text-decoration:none" href="./workspace.html">⌂ Мой Workspace</a></div>
-<h1>Выгрузи всё из головы</h1><p class="muted">Работа, клиенты, дом, здоровье, спорт, учёба и собственные проекты. Пиши как есть. AI разложит дела на карточки, а ты сможешь двигать их одним нажатием.</p>
-<section class="panel"><h2>Напиши всё как есть — AI наведёт порядок</h2><p class="muted">Не нужно вручную создавать карточки. Просто напиши всё подряд: AI сам предложит сферы, приоритеты и задачи. Результат AI сохраняется в аккаунте автоматически. Проверь карточки и добавь их на доску.</p><textarea id="brain" maxlength="10000" placeholder="Например: позвонить клиенту про ребалансировку; во вторник стоматолог; подготовиться к аттестации; оплатить счета; доделать телеграм-бота; тренировка; проверить неторговые поручения..."></textarea><div class="brain-microphone"><button class="btn" type="button" id="brain-mic" disabled>🎙 Надиктовать список дел</button><select id="brain-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="brain-voice-status" role="status" aria-live="polite">Диктуй как есть. Распознанный текст можно отредактировать перед AI-разбором.</span></div><div class="tools" style="margin-top:12px"><button class="btn main" id="organize">✦ AI: разложить по сферам и приоритетам</button><button class="btn" id="manual">Добавить вручную (необязательно)</button><span id="info" class="status" role="status" aria-live="polite"></span></div><p class="muted" style="font-size:12px">AI предложит не более 30 карточек за один раз. Сверь предложения с исходным списком: если дел больше или часть пропущена, разбей запись на несколько запросов. Перед сохранением проверь названия, детали, сроки и приоритеты. Напоминания не назначаются автоматически.</p></section>
-<section class="panel hidden" id="review"><div class="sectionhead"><h2>Проверь предложенные задачи</h2><button class="btn" id="discard">Скрыть</button></div><p id="draft-status" class="status" role="status" aria-live="polite"></p><div class="drafts" id="drafts"></div><div class="tools" style="margin-top:14px"><button class="btn main" id="save-drafts">Добавить выбранные на доску</button><span class="toast" id="review-note" role="status" aria-live="polite"></span></div></section>
+<div id="task-login" class="notice">Для сохранения задач нужен вход. <a href="./workspace.html">Войти в личный кабинет →</a></div><h1>Выгрузи всё из головы</h1><p class="muted">Работа, клиенты, дом, здоровье, спорт, учёба и собственные проекты. Пиши как есть. AI разложит дела на карточки, а ты сможешь двигать их одним нажатием.</p>
+<section class="panel"><h2>Напиши всё как есть — AI наведёт порядок</h2><p class="muted">Не нужно вручную создавать карточки. Просто напиши всё подряд: AI сам предложит сферы, приоритеты и задачи. Результат AI сохраняется в аккаунте автоматически. Проверь карточки и добавь их на доску.</p><textarea id="brain" maxlength="10000" placeholder="Например: позвонить клиенту про ребалансировку; во вторник стоматолог; подготовиться к аттестации; оплатить счета; доделать телеграм-бота; тренировка; проверить неторговые поручения..."></textarea><div class="brain-microphone"><button class="btn" type="button" id="brain-mic" disabled>🎙 Надиктовать список дел</button><select id="brain-lang" aria-label="Язык диктовки"><option value="ru-RU">Русский</option><option value="kk-KZ">Қазақша</option><option value="en-US">English</option></select><span id="brain-voice-status" role="status" aria-live="polite">Диктуй как есть. Распознанный текст можно отредактировать перед AI-разбором.</span></div><div class="tools" style="margin-top:12px"><button class="btn main" id="organize" disabled>✦ AI: разложить по сферам и приоритетам</button><button class="btn" id="manual" disabled>Добавить вручную (необязательно)</button><span id="info" class="status" role="status" aria-live="polite"></span></div><p class="muted" style="font-size:12px">AI предложит не более 30 карточек за один раз. Сверь предложения с исходным списком: если дел больше или часть пропущена, разбей запись на несколько запросов. Перед сохранением проверь названия, детали, сроки и приоритеты. Напоминания не назначаются автоматически.</p></section>
+<section class="panel hidden" id="review"><div class="sectionhead"><h2>Проверь предложенные задачи</h2><button class="btn" id="discard">Скрыть</button></div><p id="draft-status" class="status" role="status" aria-live="polite"></p><div class="drafts" id="drafts"></div><div class="tools" style="margin-top:14px"><button class="btn main" id="save-drafts" disabled>Добавить выбранные на доску</button><span class="toast" id="review-note" role="status" aria-live="polite"></span></div></section>
+<section class="panel hidden" id="calendar-editor" aria-labelledby="calendar-heading"><div class="sectionhead"><h2 id="calendar-heading">Передать задачу в календарь</h2><button class="btn" id="calendar-close">Закрыть</button></div><p id="calendar-title" class="sub"></p><div class="edit-grid"><label class="wide">Календарь<select id="calendar-provider"><option value="google">Google Calendar</option><option value="microsoft365">Outlook / Microsoft 365</option><option value="outlook">Outlook.com (личный)</option><option value="iphone">iPhone / Apple Calendar (.ics)</option></select></label><label>Дата события<input type="date" id="calendar-date" required></label><label>Время в Казахстане (UTC+5)<input type="time" id="calendar-time" value="09:00" required></label><label>Длительность<select id="calendar-duration"><option value="15">15 минут</option><option value="30" selected>30 минут</option><option value="60">1 час</option><option value="120">2 часа</option></select></label><label>Напоминание в файле .ics<select id="calendar-reminder"><option value="none">Без напоминания</option><option value="0">В момент события</option><option value="5">За 5 минут</option><option value="15" selected>За 15 минут</option><option value="30">За 30 минут</option><option value="60">За 1 час</option><option value="1440">За 1 день</option></select></label><div class="tools wide"><a class="btn main" id="calendar-open" target="_blank" rel="noopener noreferrer">Открыть Google Calendar →</a><button class="btn" id="calendar-download">↓ Событие .ics</button><button class="btn" id="calendar-share">Поделиться файлом</button></div></div><p class="muted">Заверши сохранение события в своём календаре. В Google и Outlook проверь напоминание перед сохранением. Для iPhone открой файл .ics в Календаре; его также можно передать через меню «Поделиться» или Почту. Уведомления зависят от настроек календаря и телефона.</p><p class="status" id="calendar-note" role="status" aria-live="polite"></p></section>
 <section class="panel" id="focus-panel"><div class="sectionhead"><h2>🎯 В фокусе сегодня</h2><span class="muted" style="font-size:12px">До трёх главных дел</span></div><div class="focus" id="today-focus"></div></section>
 <section class="panel hidden" id="task-editor"><div class="sectionhead"><h2 id="edit-heading">Новая задача</h2><button class="btn" id="close-editor">Закрыть</button></div><form id="edit-form" class="edit-grid">
 <label class="wide">Что нужно сделать?<input id="edit-title" maxlength="220" required placeholder="Один конкретный следующий шаг"></label>
@@ -53,14 +54,14 @@ label{color:#586f8e;font-size:13px}
 <label class="wide">Детали (необязательно)<textarea id="edit-description" maxlength="3000" style="min-height:75px"></textarea></label>
 <div class="tools wide"><button type="submit" class="btn main">Сохранить задачу</button><span id="edit-note" class="muted" role="status" aria-live="polite"></span></div>
 </form></section>
-<section class="panel"><div class="sectionhead"><h2>Мои дела</h2><div class="tools"><button class="btn" id="export-calendar" title="Скачать активные задачи со сроком для импорта в календарь">↓ Календарь .ics</button><button class="btn" id="export-csv" title="Скачать таблицу со всеми загруженными задачами">↓ Таблица .csv</button><button class="btn" id="refresh">↻ Обновить</button></div></div><div class="tags" id="filters"></div><div class="scopebar" id="scope-filters"></div><div class="stats" id="stats" style="margin-top:16px"></div><div class="board" style="margin-top:15px"><section class="lane"><h2>● Сделать</h2><div id="lane-todo"></div></section><section class="lane"><h2>◐ В работе</h2><div id="lane-doing"></div></section><section class="lane"><h2>✓ Готово</h2><div id="lane-done"></div></section></div></section>
+<section class="panel"><div class="sectionhead"><h2>Мои дела</h2><div class="tools"><button class="btn" id="export-calendar" disabled title="Скачать активные задачи со сроком для импорта в календарь">↓ Календарь .ics</button><button class="btn" id="export-csv" disabled title="Скачать таблицу со всеми загруженными задачами">↓ Таблица .csv</button><button class="btn" id="refresh" disabled>↻ Обновить</button></div></div><div class="tags" id="filters"></div><div class="scopebar" id="scope-filters"></div><div class="stats" id="stats" style="margin-top:16px"></div><div class="board" style="margin-top:15px"><section class="lane"><h2>● Сделать</h2><div id="lane-todo"></div></section><section class="lane"><h2>◐ В работе</h2><div id="lane-doing"></div></section><section class="lane"><h2>✓ Готово</h2><div id="lane-done"></div></section></div></section>
 </main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.10/dist/umd/supabase.min.js"></script><script>
 'use strict';
 const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
 const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
 let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0,pendingTaskChanges=new Set();
 let taskVoiceEngine=null,taskVoiceAnchor='';
-let taskReviewStore=null,taskReviewSaveTimer=null;
+let taskReviewStore=null,taskReviewSaveTimer=null,calendarTask=null;
 const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
 function stopTaskDictation(abort=false){
  const engine=taskVoiceEngine;taskVoiceEngine=null;
@@ -139,7 +140,7 @@ function render(){
    if(type!=='doing')button('В работу',()=>change(row,{status:'doing'}));
    if(type!=='done')button('✓ Готово',()=>change(row,{status:'done'}));
    if(type==='done')button('Вернуть',()=>change(row,{status:'todo'}));
-   button(row.due_date&&row.due_date>almatyToday()?'Перенести +1 день':'На завтра',()=>change(row,{due_date:postponeDueDate(row.due_date)}));button('Дата / правка',()=>editTask(row));
+   button(row.due_date&&row.due_date>almatyToday()?'Перенести +1 день':'На завтра',()=>change(row,{due_date:postponeDueDate(row.due_date)}));button('Дата / правка',()=>editTask(row));if(type!=='done')button('В календарь',()=>openTaskCalendar(row));
    card.append(actions);el.append(card);
   }
  }
@@ -156,13 +157,13 @@ function renderFocus(list,today){
 }
 function clearTaskSession(message='Сессия завершена. Войди в Workspace заново.'){
  try{sessionStorage.removeItem('advisor_ai_task_brain_dump')}catch{}
- if(taskReviewSaveTimer)clearTimeout(taskReviewSaveTimer);taskReviewStore?.dispose();taskReviewStore=null;
+ if(taskReviewSaveTimer)clearTimeout(taskReviewSaveTimer);taskReviewStore?.dispose();taskReviewStore=null;calendarTask=null;$('calendar-editor').classList.add('hidden');$('calendar-title').textContent='';$('calendar-note').textContent='';$('calendar-open').removeAttribute?.('href');$('calendar-date').value='';$('calendar-time').value='';
  globalThis.AdvisorDrafts?.purge();
  if(typeof taskVoiceEngine!=='undefined'&&taskVoiceEngine)stopTaskDictation(true);
  $('brain-mic').disabled=true;
  $('brain-voice-status').textContent='';
  loadRevision++;authRevision++;user=null;items=[];proposals=[];taskListComplete=false;editingId=null;busy=false;pendingTaskChanges.clear();
-  $('organize').disabled=false;$('save-drafts').disabled=false;
+  setTaskAccess(false);
  $('brain').value='';$('drafts').textContent='';$('edit-title').value='';$('edit-description').value='';
  $('review').classList.add('hidden');$('task-editor').classList.add('hidden');
  render();feedback(message);
@@ -171,7 +172,7 @@ function handleTaskAuthChange(event,session){
  if(event==='SIGNED_OUT'||event==='USER_DELETED'){clearTaskSession();return}
  if(event==='SIGNED_IN'&&session?.user?.id&&session.user.id!==user?.id){
   clearTaskSession('Переключение аккаунта…');
-  const nextUserId=session.user.id;user=session.user;globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);bindTaskReviewStore();
+  const nextUserId=session.user.id;user=session.user;setTaskAccess(true);globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);bindTaskReviewStore();
   setTimeout(()=>{if(user?.id===nextUserId)return load().then(restoreTaskReview).catch(e=>feedback('Ошибка загрузки: '+e.message))},0);
  }
 }
@@ -395,6 +396,51 @@ async function saveDrafts(){
  finally{if(current()){busy=false;$('save-drafts').disabled=false}}
 }
 async function manual(){openTaskEditor(null)}
+function openTaskCalendar(task){
+ if(!user||!items.some(row=>row.id===task.id))return;
+ calendarTask={id:task.id,owner:user.id,epoch:authRevision};
+ $('calendar-title').textContent=task.title;$('calendar-date').value=task.due_date||almatyToday();
+ $('calendar-time').value='09:00';$('calendar-duration').value='30';$('calendar-reminder').value='15';
+ try{$('calendar-provider').value=sessionStorage.getItem('advisor-calendar-provider:'+user.id)||'google'}catch{}
+ $('calendar-editor').classList.remove('hidden');updateTaskCalendar();$('calendar-editor').scrollIntoView?.({behavior:'smooth',block:'start'});$('calendar-provider').focus();
+}
+function calendarEvent(){
+ if(!calendarTask||calendarTask.owner!==user?.id||calendarTask.epoch!==authRevision)throw Error('Сначала войди в аккаунт и открой задачу.');
+ const task=items.find(row=>row.id===calendarTask.id);if(!task)throw Error('Обнови список: задача не найдена.');
+ return globalThis.AdvisorTaskCalendar.event(task,{date:$('calendar-date').value,time:$('calendar-time').value,duration:Number($('calendar-duration').value),reminder:$('calendar-reminder').value==='none'?null:Number($('calendar-reminder').value)});
+}
+function updateTaskCalendar(){
+ $('calendar-open').removeAttribute('href');$('calendar-open').setAttribute('aria-disabled','true');
+ try{
+  const event=calendarEvent(),provider=$('calendar-provider').value;
+  $('calendar-download').disabled=false;$('calendar-share').disabled=false;
+  $('calendar-open').classList.toggle('hidden',provider==='iphone');
+  if(provider!=='iphone'){
+   $('calendar-open').href=globalThis.AdvisorTaskCalendar.link(event,provider);$('calendar-open').removeAttribute('aria-disabled');
+   $('calendar-open').textContent=provider==='google'?'Открыть Google Calendar →':'Открыть Outlook →';
+  }
+  $('calendar-note').textContent=(Date.parse(event.start)<Date.now()?'Выбрано прошедшее время. Измени дату, чтобы получить будущее напоминание. ':'')+'Файл .ics содержит '+(event.reminder===null?'событие без напоминания.':'сигнал '+(event.reminder===0?'в момент события.':'за '+event.reminder+' мин.'))+' Это перенос события; изменения карточки после импорта нужно перенести в календарь отдельно.';
+  try{sessionStorage.setItem('advisor-calendar-provider:'+user.id,provider)}catch{}
+ }catch(e){$('calendar-note').textContent=e.message;const valid=Boolean($('calendar-date').value&&$('calendar-time').value);$('calendar-download').disabled=!valid;$('calendar-share').disabled=!valid}
+}
+function downloadTaskCalendar(){
+ try{const event=calendarEvent();downloadExport('AdvisorAI-task-'+event.id+'.ics',globalThis.AdvisorTaskCalendar.ics(event),'text/calendar;charset=utf-8');$('calendar-note').textContent='Файл события скачан. Открой его в календаре и подтверди добавление. Проверь уведомления на телефоне.'}catch(e){$('calendar-note').textContent=e.message}
+}
+async function shareTaskCalendar(){
+ const owner=user?.id,epoch=authRevision,taskId=calendarTask?.id;const current=()=>Boolean(owner)&&user?.id===owner&&authRevision===epoch&&calendarTask?.id===taskId;
+ try{
+  const event=calendarEvent(),file=new File([globalThis.AdvisorTaskCalendar.ics(event)],'AdvisorAI-task.ics',{type:'text/calendar'});
+  if(!navigator.share||!navigator.canShare?.({files:[file]})){$('calendar-note').textContent='Этот браузер не поддерживает отправку файла. Скачай событие .ics и передай его на телефон.';return}
+  await navigator.share({files:[file],title:event.title});
+  if(current())$('calendar-note').textContent='Файл передан выбранному приложению. Добавление события подтверждается в календаре получателя.';
+ }catch(e){if(current())$('calendar-note').textContent=e.name==='AbortError'?'Передача файла отменена.':'Не удалось передать файл. Используй скачивание .ics.'}
+}
+function bindTaskCalendar(){
+ $('calendar-close').onclick=()=>{$('calendar-editor').classList.add('hidden');calendarTask=null};
+ for(const id of ['calendar-provider','calendar-date','calendar-time','calendar-duration','calendar-reminder'])$(id).addEventListener('input',updateTaskCalendar);
+ $('calendar-open').onclick=event=>{try{calendarEvent();if(!$('calendar-open').getAttribute('href'))event.preventDefault()}catch(e){event.preventDefault();$('calendar-note').textContent=e.message}};
+ $('calendar-download').onclick=downloadTaskCalendar;$('calendar-share').onclick=shareTaskCalendar;
+}
 
 function csvSafe(value){
  let str=String(value??'').replace(/\u0000/g,'');
@@ -477,13 +523,20 @@ function consumeTaskTransfer(ownerId){
   return true;
  }catch{return false}
 }
+function setTaskAccess(active){
+ for(const id of ['organize','manual','save-drafts','export-calendar','export-csv','refresh','brain-mic'])$(id).disabled=!active;
+ $('task-login').classList[active?'add':'remove']('hidden');
+}
+function bindTaskControls(){
+ $('drafts').addEventListener('input',cacheTaskReview);$('drafts').addEventListener('change',cacheTaskReview);
+ bindTaskCalendar();$('brain-mic').onclick=toggleTaskDictation;$('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('export-calendar').onclick=exportCalendar;$('export-csv').onclick=exportCsv;$('edit-form').addEventListener('submit',submitTaskEditor);$('close-editor').onclick=()=>$('task-editor').classList.add('hidden');$('refresh').onclick=async()=>{try{await load();await restoreTaskReview()}catch(e){feedback('Ошибка обновления: '+e.message)}};$('discard').onclick=()=>$('review').classList.add('hidden');
+}
 async function init(){
  if(!window.supabase?.createClient){feedback('Не загрузилась библиотека Supabase');return}
- db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});
+ db=window.supabase.createClient(projectUrl,publicKey,{auth:{persistSession:true,autoRefreshToken:true}});bindTaskControls();
  const {data,error}=await db.auth.getUser();if(error||!data.user){feedback('Сначала войди в Workspace под своим аккаунтом');return}
- user=data.user;globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);bindTaskReviewStore();consumeTaskTransfer(user.id);globalThis.AdvisorDrafts?.capture();$('brain-mic').disabled=false;filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();await restoreTaskReview();
- $('drafts').addEventListener('input',cacheTaskReview);$('drafts').addEventListener('change',cacheTaskReview);
- $('brain-mic').onclick=toggleTaskDictation;$('organize').onclick=organize;$('save-drafts').onclick=saveDrafts;$('manual').onclick=manual;$('export-calendar').onclick=exportCalendar;$('export-csv').onclick=exportCsv;$('edit-form').addEventListener('submit',submitTaskEditor);$('close-editor').onclick=()=>$('task-editor').classList.add('hidden');$('refresh').onclick=load;$('discard').onclick=()=>$('review').classList.add('hidden');
+ user=data.user;setTaskAccess(true);globalThis.AdvisorDrafts?.bind(user.id,'task-brain',['brain']);bindTaskReviewStore();consumeTaskTransfer(user.id);globalThis.AdvisorDrafts?.capture();$('brain-mic').disabled=false;filters();db.auth.onAuthStateChange((event,session)=>handleTaskAuthChange(event,session));await load();await restoreTaskReview();
+
 }
 globalThis.workspaceHasTransientWork=()=>busy||taskReviewStore?.unsafe||(!taskReviewStore&&!$('review').classList.contains('hidden'))||!$('task-editor').classList.contains('hidden');
 init().catch(e=>feedback('Ошибка: '+e.message));

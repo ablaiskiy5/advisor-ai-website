@@ -16,6 +16,13 @@ test('workflow has no paid or database side effects until explicit submit and pr
  const h=harness();assert.equal(h.calls.cases,0);assert.equal(h.calls.invokes,0);h.submit();await h.settle();
  assert.equal(h.calls.cases,1);assert.equal(h.calls.invokes,1);assert.equal(h.calls.messages.length,1);assert.match(h.calls.messages[0].content,/Тема: NVDA/);assert.match(h.calls.messages[0].content,/Горизонт|источники|датами/);assert.match(h.nodes['wb-result'].textContent,/Synthetic answer/);assert.match(h.api.markup('ideas'),/Обсудить в чате/);
 });
+test('document workflow has its own format prompt and resumes in Documents',async()=>{
+ const h=harness();h.api.open('documents','compose');h.api.mount('documents');
+ assert.equal(h.calls.invokes,0);assert.match(h.api.markup('documents'),/Формат документа/);
+ h.nodes['wb-subject'].value='Письмо клиенту';h.nodes['wb-horizon'].value='Письмо';h.submit();await h.settle();
+ assert.equal(h.calls.caseData.kind,'ideas');assert.equal(h.api.kindForCase(h.calls.caseData),'documents');assert.match(h.calls.messages[0].content,/Формат: Письмо/);
+ h.api.reset();await h.api.resume(h.calls.caseData);h.api.mount('documents');assert.match(h.api.markup('documents'),/Открыт сохранённый результат/);assert.equal(h.calls.invokes,1);
+});
 test('case or message acknowledgement failure prevents a paid request',async()=>{
  for(const opts of [{persistResult:false},{messageAck:false}]){const h=harness(opts);h.submit();await h.settle();assert.equal(h.calls.invokes,0);assert.match(h.nodes['wb-error'].textContent,/подтвержден|подтверждена|подтверждено/i)}
 });

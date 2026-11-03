@@ -18,7 +18,10 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [x] Owner-scoped input drafts and unsaved attachment/proposal warnings published in PR #226; synthetic browser/session coverage passed. Real two-user checks remain P0.
 - [ ] Refine portfolio ingestion, concentration/risk/rebalance outputs, explainable assumptions and market-data provenance.
 - [x] Six inline research/markets/Academy workflows with owned history and optional chat (local verification; release status in PROJECT_STATE.md).
-- [ ] Simplify portfolio file review and document generation/export; preserve numeric-editor and task-organizer workflows.
+- [x] Separate Documents creation/ready-material gallery from all-case History; preserve existing Word/PDF and task workflows (synthetic scenario QA; release evidence in PROJECT_STATE.md).
+- [ ] Refine portfolio file review; verify actual document quality and phone/device calendar import.
+- [x] Per-task Google/Outlook creation links and iPhone/shareable ICS with timed alarm (one-time handoff, not automatic account synchronization).
+- [ ] Implement opt-in provider OAuth/calendar connection for automatic synchronization, with least-privilege consent, revocation and conflict handling.
 - [ ] Check AI brain-dump task grouping and priority proposal, user confirmation, long-text handling and account-scoped persistence.
 - [x] Persist AI task reviews before display; recover edits after reload and make approved board writes idempotent (synthetic reload/owner tests; real authenticated E2E remains P0).
 - [ ] Test document/presentation export rendering, structure and readability using non-client fixtures.
