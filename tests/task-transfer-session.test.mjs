@@ -70,7 +70,7 @@ test('oversized handoff cannot consume a paid AI parse request',async()=>{
  let invoked=0;
  const db={functions:{invoke(){invoked++;throw Error('Must not invoke paid AI for invalid input')}}};
  const organize=runInNewContext(board.slice(start,end)+';organize',{
-  busy:false,user:{id:'owner-a'},authRevision:0,db,
+  busy:false,taskReviewStore:null,user:{id:'owner-a'},authRevision:0,db,
   $:id=>{assert.ok(elements[id]);return elements[id]},
   feedback:message=>notices.push(message)
  });
