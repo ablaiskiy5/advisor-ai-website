@@ -31,7 +31,7 @@ Scope: existing GitHub Pages app and its existing authenticated frontend contrac
 | Session/error paths | Logout purge, stale owner results, task initial-read error -> Refresh, signed-out disabled actions/login CTA | Node and synthetic Chromium |
 | Exports | Selected Word, real multi-page PDF desktop/mobile; presentation chunks and truncation guards | Actual DOCX/PDF files; presentation text/structure tests, not full PowerPoint visual QA |
 | Bond calculator | Example, invalid zero price clears stale output/copy, example restores calculated values | Live public browser; deterministic Node tests |
-| Public infrastructure | Page availability and shared mathematical MCP | Public read-only smoke scripts; see release checkpoint for run results |
+| Public infrastructure | Page availability and shared mathematical MCP | PASS: 11 public pages, discovery/four-tool arithmetic/18 rejection checks, seven-page readiness/two unsigned guards; cloud UI all 8 diagnostics pass |
 
 Commands: `node --test tests/*.test.mjs`; `node scripts/test-workspace-browser.mjs`; `node scripts/test-task-reload-browser.mjs`; `node scripts/test-chat-pdf-browser.mjs`; `node scripts/test-docx-export.mjs`; `node scripts/test-presentation-export.mjs`; `node scripts/test-portfolio-custom-stress.mjs`. Browser scripts use pinned CI dependencies, optional ADVISOR_CHROMIUM_PATH locally. 447 Node tests passed; all three synthetic browser scripts and export/stress scripts passed.
 
@@ -44,3 +44,7 @@ For real-device acceptance, create a synthetic task and choose a future time; sa
 ## Remaining verification boundaries
 
 No independently authenticated two-account signup/email/upload/paid-AI journey, actual provider event save, native iPhone import/notification, microphone permission/dictation, full PPTX visual rendering or model-answer quality evaluation was performed. Existing Node/browser tests cover mocked auth/cloud isolation, not live cross-account RLS proof. The terminal-based live public browser hit ERR_EMPTY_RESPONSE in this environment; cloud-browser public navigation/calculator checks worked. Backend/model/limits/RLS/security settings remain unchanged.
+
+## Release checkpoint
+
+Published PR #253; merge a8939599350b83f2c8f887b1fd5017104aea9562. Five applicable PR and five main code checks passed. Pages run 41632308302 succeeded. Live HTTP 200 bodies exactly match all four changed frontend/assets. Post-release cloud browser confirms disabled signed-out task actions and visible login CTA. No real AI/provider event/phone notification acceptance is implied by those deployment checks.
