@@ -8,7 +8,7 @@ Released in PR #255 (174e0046b234dd694f002142da8890d30d6848be). 447 Node tests a
 
 ### Follow-up editing
 
-Communications supports iterative changes under the current draft, including after reopening a saved draft from History. A revision uses the same owned case and existing AI invocation, with the instruction to preserve the original audience, channel and agreed source. The browser screens revision text before sending and screens the returned version before copy/download. Corrected the accidental backspace characters in English/numeric screening patterns.
+Communications supports iterative changes under the current draft, including after reopening a saved draft from History. A revision uses the same owned case and existing AI invocation, with the instruction to preserve the original audience, channel and agreed source. The browser screens revision text before sending and screens the returned version before copy/download. Corrected the accidental backspace characters in English/numeric screening patterns. Released in PR #257 (53b53da3b86fa4f5e8996424cf5cac86e2484cbd). Both PR checks passed, including 447 Node tests and synthetic Chromium covering screened revisions and same-case continuation from History. Pages run 41829658274 succeeded and the live workbench asset matches the tested file. Authenticated AI output was not part of this synthetic verification.
 
 ## Documents, task calendar handoff and scenario audit — 2026-11-03
 
