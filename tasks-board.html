@@ -59,7 +59,7 @@ label{color:#586f8e;font-size:13px}
 'use strict';
 const $=id=>document.getElementById(id),areas={work:'💼 Работа и клиенты',personal:'🏡 Личное и семья',study:'📚 Учёба',health:'🩺 Здоровье',sport:'💪 Спорт',projects:'🚀 Свои проекты',other:'📌 Другое'},priorities={high:'Важно',normal:'Обычно',low:'Не срочно'};
 const projectUrl='https://xhewhzgzzonpgsjznmyl.supabase.co',publicKey='sb_publishable_PdQylK4_0XCjqT_AEkp2Og_bb1UEc9b';
-let db,user,items=[],proposals=[],filter='all',scope='active',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0,pendingTaskChanges=new Set();
+let db,user,items=[],proposals=[],filter='all',scope='all',busy=false,editingId=null,taskListComplete=false,loadRevision=0,authRevision=0,pendingTaskChanges=new Set();
 let taskVoiceEngine=null,taskVoiceAnchor='';
 let taskReviewStore=null,taskReviewSaveTimer=null,calendarTask=null;
 const options=(pairs,selected)=>Object.entries(pairs).map(([v,label])=>'<option value="'+v+'" '+(v===selected?'selected':'')+'>'+label+'</option>').join('');
@@ -121,6 +121,11 @@ function addCalendarDays(date,days){const d=new Date(date+'T00:00:00Z');d.setUTC
 function almatyToday(now=new Date()){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Almaty',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return parts.year+'-'+parts.month+'-'+parts.day}
 function postponeDueDate(date,today=almatyToday()){return addCalendarDays(date&&validDate(date)&&date>today?date:today,1)}
 function render(){
+ for(const button of $('scope-filters').children){
+  const selected=button.dataset.scope===scope;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ }
  const today=almatyToday();
  const week=addCalendarDays(today,6);
  const areaList=items.filter(x=>filter==='all'||x.area===filter);
@@ -204,6 +209,7 @@ async function change(item,fields){
  if(!ownerId)return feedback('Сначала войди в Workspace под своим аккаунтом');
  // One in-flight update per task: overlapping status/date clicks can otherwise race.
  if(pendingTaskChanges.has(item.id))return;
+ const scopeAtClick=scope;
  pendingTaskChanges.add(item.id);render();
  const current=()=>user?.id===ownerId&&authRevision===sessionEpoch;
  try{
@@ -211,6 +217,10 @@ async function change(item,fields){
   if(!current())return;
   if(error||data?.id!==item.id){feedback('Ошибка: '+(error?.message||'Задача не обновлена. Обнови список и повтори.'));return}
   Object.assign(item,fields);
+  if(fields.status==='done'){
+   if(scope===scopeAtClick&&scope!=='done')scope='all';
+   feedback('Задача перемещена в «Готово».');
+  }
  }catch(err){
   if(current())feedback('Ошибка обновления: '+(err?.message||'Проверь соединение и повтори.'));
  }finally{
@@ -508,7 +518,7 @@ function exportCsv(){
 
 function filters(){const el=$('filters');for(const [id,name] of [['all','Все области'],...Object.entries(areas)]){const button=document.createElement('button');button.className='btn';button.textContent=name;button.addEventListener('click',()=>{filter=id;for(const b of el.children)b.style.opacity=b===button?'1':'.55';render()});el.append(button)}el.firstChild.style.opacity='1';
  const scopeEl=$('scope-filters');for(const [id,label] of [['active','Активные'],['today','Сегодня + просрочено'],['week','7 дней'],['done','Готово'],['all','Все']]){
-  const btn=document.createElement('button');btn.className='btn'+(id===scope?' selected':'');btn.textContent=label;btn.onclick=()=>{scope=id;for(const x of scopeEl.children)x.classList.toggle('selected',x===btn);render()};scopeEl.append(btn)
+  const btn=document.createElement('button');btn.className='btn';btn.dataset.scope=id;btn.textContent=label;btn.onclick=()=>{scope=id;render()};scopeEl.append(btn)
  }
 }
 function consumeTaskTransfer(ownerId){

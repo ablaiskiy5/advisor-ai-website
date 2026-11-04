@@ -42,7 +42,7 @@ function harness(response){
    }};
   }};
  }};
- const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',busy:false,taskListComplete:true,pendingTaskChanges:new Set(),
+ const ctx={db,user:{id:'owner-a'},authRevision:1,editingId:'task-1',scope:'active',busy:false,taskListComplete:true,pendingTaskChanges:new Set(),
   $,areas:{work:'Работа'},priorities:{normal:'Обычный'},
   validDate:date=>date===''||/^\d{4}-\d{2}-\d{2}$/.test(date),
   feedback:message=>messages.push(message),render:()=>{renders++},load:async()=>{loads++;if(!ctx.taskListComplete)messages.push('Ошибка загрузки: синтетический сбой')}};
@@ -58,6 +58,7 @@ test('quick action changes UI only after an owner-scoped row is returned',async(
  const h=harness({data:{id:'task-1'},error:null}),task={id:'task-1',status:'todo'};
  await h.api.change(task,{status:'done'});
  assert.equal(task.status,'done');
+ assert.equal(h.ctx.scope,'all');
  assert.equal(h.renders,2);
  assert.deepEqual(h.calls.slice(1).map(c=>Array.from(c)),[
   ['eq','id','task-1'],['eq','user_id','owner-a'],['select','id'],['single']
@@ -69,6 +70,7 @@ test('RLS denial or deleted task cannot appear as a successful quick action',asy
   const h=harness(response),task={id:'task-1',status:'todo'};
   await h.api.change(task,{status:'done'});
   assert.equal(task.status,'todo');
+  assert.equal(h.ctx.scope,'active');
   assert.equal(h.renders,2);
   assert.match(h.messages.at(-1),/Ошибка:/);
  }

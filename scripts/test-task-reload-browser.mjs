@@ -60,7 +60,16 @@ try{
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('fixture-ai-count')),'1','Calendar handoff never invokes AI');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Calendar form fits mobile');await page.locator('#calendar-close').click();
   const original=page.locator('#lane-todo .task').filter({hasText:'Edited work task'});
-  await original.getByRole('button',{name:'✓ Готово',exact:true}).click();await page.locator('#scope-filters').getByRole('button',{name:'Готово',exact:true}).click();
+  await page.locator('#scope-filters').getByRole('button',{name:'Активные',exact:true}).click();
+  await original.getByRole('button',{name:'В работу',exact:true}).click();
+  const inProgress=page.locator('#lane-doing .task').filter({hasText:'Edited work task'});
+  await inProgress.getByRole('button',{name:'✓ Готово',exact:true}).click();
+  const completed=page.locator('#lane-done .task').filter({hasText:'Edited work task'});
+  await completed.waitFor();
+  assert.equal(await inProgress.count(),0);
+  assert.equal(await page.locator('#scope-filters').getByRole('button',{name:'Все',exact:true}).getAttribute('aria-pressed'),'true');
+  await page.reload();await completed.waitFor();
+  await page.locator('#scope-filters').getByRole('button',{name:'Готово',exact:true}).click();
   await page.locator('#lane-done .task').getByRole('button',{name:'Вернуть',exact:true}).click();await page.locator('#scope-filters').getByRole('button',{name:'Активные',exact:true}).click();
   await original.getByRole('button',{name:'Дата / правка',exact:true}).click();await page.locator('#edit-due').fill('2026-11-06');await page.locator('#edit-description').fill('Updated task details');await page.locator('#edit-form button[type="submit"]').click();await page.locator('#task-editor').waitFor({state:'hidden'});
   await page.locator('#manual').click();await page.locator('#edit-title').fill('Synthetic manual follow-up');await page.locator('#edit-due').fill('2026-11-07');await page.locator('#edit-form button[type="submit"]').click();await page.locator('#task-editor').waitFor({state:'hidden'});
