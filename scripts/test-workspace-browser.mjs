@@ -71,12 +71,12 @@ try{
   const space=await page.evaluate(()=>{
    const chat=document.querySelector('.chat').getBoundingClientRect(),main=document.querySelector('main').getBoundingClientRect();
    const nav=innerWidth>900?document.querySelector('#shell-sidebar').getBoundingClientRect().right:0;
-   return {left:chat.left-nav,right:innerWidth-main.right,bottom:innerHeight-chat.bottom,width:chat.width};
+   return {left:chat.left-nav,right:innerWidth-main.right,chatRight:innerWidth-chat.right,bottom:innerHeight-chat.bottom,width:chat.width};
   });
   assert.ok(space.left>=0&&space.left<=13,'Chat uses space beside navigation '+width+' '+JSON.stringify(space));
   assert.ok(space.right>=-1&&space.right<=1,'Main uses full available width '+width);
   assert.ok(space.bottom>=7&&space.bottom<=9,'Chat reaches viewport bottom with a small gutter '+width+' '+JSON.stringify(space));
-  if(width===1024)assert.ok(space.width>740,'Tablet actions move below the chat instead of narrowing it');
+  assert.ok(space.chatRight>=0&&space.chatRight<=13,'Actions leave the dialogue its full width '+width);
   assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Composer must remain in view');
   assert.ok(await page.locator('#send').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Send must remain in view');
   assert.equal(layout.overflow,'auto');
@@ -88,7 +88,8 @@ try{
   assert.ok(await page.locator('#question').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight));
   if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.ADVISOR_QA_DIR,'chat-reading-'+width+'.png')})}
   const callsBeforeExport=await page.evaluate(()=>window.syntheticInvokes.length);
-  await page.evaluate(()=>{window.pdfRequested=null;window.wordRequested=null;window.copiedAnswer=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};window.downloadDocx=async answer=>{window.wordRequested=answer};Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedAnswer=text}}});const selected=bubble('assistant','Unique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
+  await page.evaluate(()=>{window.pdfRequested=null;window.wordRequested=null;window.copiedAnswer=null;window.downloadPdf=async answer=>{window.pdfRequested=answer};window.downloadDocx=async answer=>{window.wordRequested=answer};Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedAnswer=text}}});const selected=bubble('assistant','Внимание: актуальные рыночные данные НЕ подтверждены веб-поиском в этом ответе. Данные и события должны быть проверены отдельно.\n\nUnique selected earlier answer');selected.id='selected-pdf-test';document.getElementById('messages').prepend(selected)});
+  assert.doesNotMatch(await page.locator('#selected-pdf-test .rendered').textContent(),/не подтверждены веб-поиском/i);
   await page.locator('#selected-pdf-test .answer-pdf').click();assert.equal(await page.evaluate(()=>window.pdfRequested),'Unique selected earlier answer');
   await page.locator('#selected-pdf-test .answer-docx').click();assert.equal(await page.evaluate(()=>window.wordRequested),'Unique selected earlier answer');
   await page.locator('#selected-pdf-test .answer-copy').click();assert.equal(await page.evaluate(()=>window.copiedAnswer),'Unique selected earlier answer');
@@ -153,17 +154,19 @@ try{
  // Primary section buttons stay in Workspace and do not call AI before submission.
  for(const width of [1440,390]){
   await page.setViewportSize({width,height:900});
-  for(const [kind,flow]of[['ideas','company'],['ideas','sector'],['markets','review'],['markets','scenario'],['academy','learn'],['academy','exam']]){
+  for(const [kind,flow]of[['ideas','client'],['ideas','company'],['ideas','sector'],['markets','review'],['markets','scenario'],['academy','learn'],['academy','exam']]){
    if(width<=900)await page.locator('#shell-menu').click();
    await page.locator('#shell-sidebar [data-section="'+kind+'"]').click();
    const before=await page.evaluate(()=>window.syntheticInvokes.length);
    await page.locator('[data-action="startflow"][data-flow="'+flow+'"]').click();
    assert.ok(page.url().includes('workspace.html'),'Scenario must not navigate to chat');assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),before);
+   assert.ok(await page.locator('#wb-subject').evaluate(el=>el.clientHeight>=130));
    await page.locator('#wb-subject').fill(kind==='academy'?'Модифицированная дюрация':'Synthetic '+kind+' '+flow);
    await page.locator('#wb-form button[type="submit"]').click();
    await page.locator('#wb-result').waitFor();await page.locator('#wb-status').filter({hasText:'Результат сохранён'}).waitFor();
    assert.equal(await page.locator('#wb-result img,#wb-result script').count(),0);
    assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),before+1);
+   if(flow==='client')assert.match(await page.evaluate(()=>window.syntheticInvokes.at(-1).content),/готовое к отправке клиенту.*Не выдумывай скриншоты/);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Workbench overflow '+kind+' '+width);
    if(flow==='exam'){
     await page.locator('#wb-reply').fill('Это чувствительность цены к изменению доходности.');await page.locator('#wb-reply-form button').click();

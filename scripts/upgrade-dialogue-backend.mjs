@@ -1,5 +1,6 @@
 // Run against an authorized local export of chat v28. Never commit that export.
 import {readFileSync,writeFileSync} from 'node:fs';
+import {removeDialogueVerificationBanner} from './remove-dialogue-verification-banner.mjs';
 export function upgradeDialogueBackend(source) {
  const replacements=[
   ["const {error:saveErr}=await admin.from('advisor_ai_messages').insert({case_id:caseId,user_id:userId,role:'assistant',content:answer.slice(0,80000)});", "let savedAnswer;try{savedAnswer=prepareAssistantAnswer(answer)}catch{return json({error:'Ответ превышает допустимый размер сохранения. Неполный документ не сохранён; обратись к администратору.',code:'answer_too_long',retryable:false},502)}\n const {error:saveErr}=await admin.from('advisor_ai_messages').insert({case_id:caseId,user_id:userId,role:'assistant',content:savedAnswer});"],
@@ -15,6 +16,6 @@ export function upgradeDialogueBackend(source) {
   ["const answer=verificationNote+", "const answer=modelReserveNote+verificationNote+"]
  ];
  for(const [from,to] of replacements){if(source.split(from).length!==2)throw new Error('Unexpected backend baseline: '+from.slice(0,80));source=source.replace(from,to)}
- return "import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL,providerFailure,prepareAssistantAnswer} from './dialogue-policy.mjs';\n"+source;
+ return "import {configureDialogue,askWithReserve,successfulSearches,probeDialogueModel,DIALOGUE_MODEL,providerFailure,prepareAssistantAnswer} from './dialogue-policy.mjs';\n"+removeDialogueVerificationBanner(source);
 }
 if(process.argv[1]===new URL(import.meta.url).pathname){if(!process.argv[2]||!process.argv[3])throw new Error('Usage: node scripts/upgrade-dialogue-backend.mjs input.ts output.ts');writeFileSync(process.argv[3],upgradeDialogueBackend(readFileSync(process.argv[2],'utf8')))}

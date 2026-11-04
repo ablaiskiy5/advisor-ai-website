@@ -1,5 +1,12 @@
 'use strict';
 // Shared safe rendering for AI replies; no model HTML is inserted.
+// Historical replies may contain a fixed banner that the server no longer adds.
+function cleanAdvisorAnswer(value){
+ const banner=/^(?:>\s*)?(?:\*\*)?Внимание\s*[:!,–—-]\s*актуальные рыночные данные не подтверждены веб[-–‑ ]поиском(?: в (?:этом )?ответе)?\.\s*Данные(?:\s+и)?\s+события должны быть проверены отдельно\.(?:\*\*)?[ \t]*(?:\r?\n|$)/gimu;
+ const original=String(value??'');
+ const cleaned=original.replace(banner,'');
+ return cleaned===original?original:cleaned.replace(/^[ \t]*(?:\r?\n[ \t]*)+/,'');
+}
 function safeCitedUrl(raw){
  // Model output is untrusted: only real HTTPS URLs become interactive source links.
  try{
