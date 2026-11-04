@@ -24,7 +24,7 @@ try{
  const syntheticDb={auth:{getSession:async()=>({data:{session:localStorage.getItem('synthetic-signed-out')?null:{user:syntheticUser}}}),getUser:async()=>({data:{user:localStorage.getItem('synthetic-signed-out')?null:syntheticUser}}),signUp:async()=>({data:{session:null},error:null}),signInWithPassword:async()=>({data:{session:null},error:{code:'invalid_credentials'}}),onAuthStateChange(fn){window.syntheticAuth=fn},signOut:async()=>{window.syntheticAuth('SIGNED_OUT',null);return {}}},functions:{invoke:async(name,options)=>{
   if(options?.method==='GET')return{error:{message:'Synthetic metadata unavailable'}};
   const caseId=options.body.case_id,record=syntheticCases.find(x=>x.id===caseId),last=syntheticMessages.filter(x=>x.case_id===caseId).at(-1);window.syntheticInvokes.push({caseId,content:last?.content});
-  const content=record?.prompt.includes('экзаменатор')?(last?.content.startsWith('Мой ответ')?'Оценка: 4/5. Следующий вопрос: как меняется цена облигации при росте ставки?':'Что означает модифицированная дюрация?'):['## Краткий вывод','Synthetic result with **facts**.','- One practical action','<img src=x onerror=alert(1)>'].join('\\n');
+  const content=window.syntheticCommunicationAnswer|| (record?.prompt.includes('экзаменатор')?(last?.content.startsWith('Мой ответ')?'Оценка: 4/5. Следующий вопрос: как меняется цена облигации при росте ставки?':'Что означает модифицированная дюрация?'):['## Краткий вывод','Synthetic result with **facts**.','- One practical action','<img src=x onerror=alert(1)>'].join('\\n'));
   syntheticMessages.push({id:crypto.randomUUID(),case_id:caseId,user_id:syntheticUser.id,role:'assistant',content,created_at:stamp()});if(window.syntheticFailAnswerRead){window.syntheticHistoryFailures=1;window.syntheticFailAnswerRead=false}return{data:{ok:true,tools:{web_search_called:1}},error:null};
  }},storage:{from:()=>({upload:async(path,file)=>{window.syntheticUploads.push({path,name:file.name});return {error:null}}})},from(table){let single=false,insert=null;const filters=[];const query={select(){return this},insert(row){insert=row;return this},eq(k,v){filters.push(row=>row[k]===v);return this},gte(k,v){filters.push(row=>row[k]>=v);return this},order(){return this},limit(){return this},range(){return this},in(k,values){filters.push(row=>values.includes(row[k]));return this},single(){single=true;return this},maybeSingle(){single=true;return this},then(resolve){
   let rows=table==='workspace_items'?syntheticCases:table==='advisor_ai_messages'?syntheticMessages:table==='advisor_ai_attachments'?syntheticAttachments:[];
@@ -39,7 +39,7 @@ try{
   await page.setViewportSize({width,height:900});
   for(const file of ['workspace.html','ai-chat.html?case=22222222-2222-4222-8222-222222222222','tasks-board.html','portfolio-report.html','bond-analysis.html','ideas-risk-budget.html','tools-health.html']){
    await page.goto(base+'/'+file);await page.locator('body.has-workspace-shell').waitFor();
-   assert.equal(await page.locator('#shell-sidebar nav a').count(),10,file);
+   assert.equal(await page.locator('#shell-sidebar nav a').count(),11,file);
    if(width<=900){await page.locator('#shell-menu').click();assert.equal(await page.locator('#shell-menu').getAttribute('aria-expanded'),'true');assert.equal(await page.locator('main').evaluate(n=>n.inert),true);await page.locator('#shell-menu').focus();await page.keyboard.press('Shift+Tab');assert.equal(await page.locator('#shell-sidebar .shell-site').evaluate(n=>n===document.activeElement),true);await page.keyboard.press('Tab');assert.equal(await page.locator('#shell-menu').evaluate(n=>n===document.activeElement),true);await page.keyboard.press('Escape');assert.equal(await page.locator('#shell-menu').getAttribute('aria-expanded'),'false');assert.equal(await page.locator('main').evaluate(n=>n.inert),false)}
    else{assert.equal(await page.locator('#shell-sidebar').isVisible(),true);await page.locator('#shell-collapse').click();assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('shell-collapsed')),true);await page.locator('#shell-collapse').click()}
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Horizontal overflow: '+file+' at '+width);
@@ -187,6 +187,40 @@ try{
  await page.locator('#shell-sidebar [data-section="history"]').click();await page.evaluate(()=>AdvisorWorkbench.reset());
  await page.locator('[data-action="openresult"]').first().click();await page.locator('#wb-result').waitFor();await page.locator('#wb-status').filter({hasText:'без AI-запроса'}).waitFor();
  assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeHistory);
+ if(await page.locator('#shell-menu').isVisible())await page.locator('#shell-menu').click();
+ await page.locator('#shell-sidebar [data-section="communications"]').click();
+ const requestsBeforeCommunication=await page.evaluate(()=>window.syntheticInvokes.length);
+ await page.locator('#comms-channel').selectOption('WhatsApp');
+ await page.locator('#comms-source').fill('Synthetic issuer. Купон 8%.\nБонус сейлзов 777 USD.\nЗаявки до 15:00.');
+ await page.locator('#comms-screen').click();
+ assert.equal(await page.locator('#comms-approved').inputValue(),'Synthetic issuer. Купон 8%.\nЗаявки до 15:00.');
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeCommunication);
+ await page.locator('#comms-approved').fill('Synthetic issuer. Купон 8%.\nЗаявки до 15:00. Алматы.');
+ await page.evaluate(()=>window.syntheticCommunicationAnswer='*Купон 8%*\nЗаявки до 15:00. Алматы.');
+ await page.getByRole('button',{name:'Подготовить черновик',exact:true}).click();
+ await page.locator('#wb-result').waitFor();
+ const communicationRequest=await page.evaluate(()=>window.syntheticInvokes.at(-1).content);
+ assert.match(communicationRequest,/Аудитория: Клиенты[\s\S]*Канал: WhatsApp[\s\S]*Купон 8%[\s\S]*15:00. Алматы/);
+ assert.doesNotMatch(communicationRequest,/777 USD/);
+ assert.equal(await page.locator('#wb-result').textContent(),'*Купон 8%*\nЗаявки до 15:00. Алматы.');
+ assert.equal(await page.evaluate(()=>Object.values(sessionStorage).some(value=>value.includes('777 USD'))),false);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.locator('#comms-audience').selectOption('Коллеги');
+ await page.locator('#comms-channel').selectOption('Telegram');
+ await page.evaluate(()=>window.syntheticCommunicationAnswer='Внутренний бонус 999 USD');
+ await page.getByRole('button',{name:'Подготовить черновик',exact:true}).click();
+ await page.locator('#wb-error').filter({hasText:'Копирование в этом разделе отключено'}).waitFor();
+ assert.equal(await page.locator('#wb-copy,#wb-download,#wb-result').count(),0);
+ assert.match(await page.evaluate(()=>window.syntheticInvokes.at(-1).content),/Аудитория: Коллеги\nКанал: Telegram/);
+ await page.evaluate(()=>{window.syntheticCommunicationAnswer='';AdvisorWorkbench.reset()});
+ if(await page.locator('#shell-menu').isVisible())await page.locator('#shell-menu').click();
+ await page.locator('#shell-sidebar [data-section="history"]').click();
+ const commsRow=page.locator('#view .item').filter({hasText:'WhatsApp · Клиенты'});
+ assert.equal(await commsRow.locator('a[href*="ai-chat.html"]').count(),0);
+ await commsRow.locator('[data-action="openresult"]').click();
+ await page.locator('#wb-result').waitFor();
+ assert.equal(await page.locator('#wb-result').textContent(),'*Купон 8%*\nЗаявки до 15:00. Алматы.');
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeCommunication+2);
  if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/workbench-exam-mobile.png',fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>{window.scrollTo(0,0);document.activeElement?.blur()});await page.locator('#shell-sidebar [data-section="ideas"]').click();await page.evaluate(()=>{window.scrollTo(0,0);document.activeElement?.blur()});await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/workbench-ideas-desktop.png',fullPage:true})}
  await page.evaluate(()=>window.syntheticAuth('SIGNED_OUT',null));
  assert.equal(await page.evaluate(()=>AdvisorWorkbench.markup('ideas')),'');
@@ -206,5 +240,5 @@ try{
  await page.evaluate(()=>localStorage.setItem('synthetic-signed-out','1'));
  await page.goto(base+'/tasks-board.html');await page.locator('#task-login:not(.hidden)').waitFor();
  for(const id of ['organize','manual','export-calendar','export-csv','refresh'])assert.equal(await page.locator('#'+id).isDisabled(),true,'Signed-out task action is disabled: '+id);
- assert.deepEqual(errors,[]);console.log('PASS: seven pages, desktop/mobile menus, collapse, keyboard, deep links, history/documents, print, six inline workbenches and exam replies, chat/task/portfolio draft recovery, logout purge, signup/error UI. Synthetic auth only.');
+ assert.deepEqual(errors,[]);console.log('PASS: seven pages, desktop/mobile menus, collapse, keyboard, deep links, history/documents, communications source screening and output gating, print, six inline workbenches and exam replies, chat/task/portfolio draft recovery, logout purge, signup/error UI. Synthetic auth only.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}

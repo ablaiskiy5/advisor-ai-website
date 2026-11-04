@@ -1,7 +1,7 @@
 /* Shared navigation for the existing static Workspace. No account data is stored here. */
 (() => {
  'use strict';
- const sections=[['home','⌂','Главная'],['assistant','✦','AI Ассистент'],['portfolio','▤','Портфели'],['ideas','✧','Инвестиционные идеи'],['markets','◉','Рынки и макро'],['academy','◈','Академия'],['tasks','☑','Задачи и рутина'],['documents','▧','Документы'],['history','◷','История и сохранённое'],['settings','⚙','Настройки и профиль']];
+ const sections=[['home','⌂','Главная'],['assistant','✦','AI Ассистент'],['portfolio','▤','Портфели'],['ideas','✧','Инвестиционные идеи'],['markets','◉','Рынки и макро'],['academy','◈','Академия'],['tasks','☑','Задачи и рутина'],['communications','✉','Письма и посты'],['documents','▧','Документы'],['history','◷','История и сохранённое'],['settings','⚙','Настройки и профиль']];
  const file=location.pathname.split('/').pop();
  const inWorkspace=file==='workspace.html';
  const routeDefaults={'ai-chat.html':'assistant','tasks-board.html':'tasks','portfolio-report.html':'portfolio','bond-analysis.html':'portfolio','ideas-risk-budget.html':'ideas','tools-health.html':'settings'};

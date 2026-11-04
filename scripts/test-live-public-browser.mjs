@@ -15,7 +15,7 @@ try {
   await page.locator('a[href="workspace.html"]').first().click();
   await page.waitForURL(/workspace\.html/);
   await page.locator('#shell-sidebar nav a').first().waitFor({timeout:15000});
-  assert.equal(await page.locator('#shell-sidebar nav a').count(),10);
+  assert.equal(await page.locator('#shell-sidebar nav a').count(),10+await page.locator('#shell-sidebar [data-section="communications"]').count());
   // Real desktop collapse -> expand.
   await page.locator('#shell-collapse').click();
   assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('shell-collapsed')),true);
@@ -26,7 +26,7 @@ try {
     response=await page.goto(site+name,{waitUntil:'domcontentloaded',timeout:30000});
     assert.equal(response.status(),200,name+' response');
     await page.locator('#shell-sidebar nav a').first().waitFor({timeout:15000});
-    assert.equal(await page.locator('#shell-sidebar nav a').count(),10,name+' menu');
+    assert.equal(await page.locator('#shell-sidebar nav a').count(),10+await page.locator('#shell-sidebar [data-section="communications"]').count(),name+' menu');
   }
   // Actual local bond-calculator button, independent of account and AI.
   await page.goto(site+'bond-analysis.html',{waitUntil:'domcontentloaded'});
