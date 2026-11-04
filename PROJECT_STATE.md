@@ -4,6 +4,8 @@ Removed the fixed market verification banner at the server source. Chat Edge Fun
 
 Workspace and case dialogue share horizontal gutters. The dialogue uses the available width and moves result actions below it. The composer stays below the independently scrolling transcript, and the workbench topic and reply fields use common minimum heights.
 
+Released in PR #261 (7463f0c8c07685e99dffcd9870c958864d5a9ac8). Five PR checks, 447 Node tests, synthetic Chromium at desktop/tablet/phone widths and real desktop/mobile PDF generation passed. Pages run 41860824973 succeeded. All six edited frontend files returned HTTP 200 with bodies matching the reviewed source. Public endpoint guards passed after v33. Client text quality was exercised with a synthetic model response; no authenticated paid request was run.
+
 ## Completed tasks visible on the board — 2026-11-04
 
 The board opened with the Active filter, which hid tasks immediately after a confirmed completion. The board now starts with All, so already completed items are visible in the Done column after reload. Completing a task from an active-only view switches to All once the owner-scoped write is acknowledged, unless the user switched views while the request was in flight. Manual filters remain available and the selected filter is reflected in the UI.
