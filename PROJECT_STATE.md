@@ -1,3 +1,9 @@
+## Wider dialogue and client investment ideas — 2026-11-04
+
+Removed the fixed market verification banner at the server source. Chat Edge Function v33 is active with JWT verification enabled, and a source readback matches the staged files. The change keeps actual citations and specific factual caveats, with a prompt rule against inventing screenshots, TradingView markup or quote provenance. The dedicated Ideas action «Идея для клиента» and chat preset request a send-ready draft with thesis, arguments, horizon and material risk. Client mode omits automatic tool/model notes. The legacy banner is filtered from displayed/copied/exported saved replies without rewriting stored history.
+
+Workspace and case dialogue share horizontal gutters. The dialogue uses the available width and moves result actions below it. The composer stays below the independently scrolling transcript, and the workbench topic and reply fields use common minimum heights.
+
 ## Completed tasks visible on the board — 2026-11-04
 
 The board opened with the Active filter, which hid tasks immediately after a confirmed completion. The board now starts with All, so already completed items are visible in the Done column after reload. Completing a task from an active-only view switches to All once the owner-scoped write is acknowledged, unless the user switched views while the request was in flight. Manual filters remain available and the selected filter is reflected in the UI.

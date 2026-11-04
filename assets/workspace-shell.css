@@ -52,3 +52,11 @@ body.has-workspace-shell.shell-collapsed{--shell-width:76px}
 .answer-depth select{background:#fff;color:#263e61;border:1px solid #cedced;border-radius:8px;padding:8px;font:inherit;width:auto}
 
 @media(max-width:900px){body.has-workspace-shell.shell-menu-open{overflow:hidden}}
+
+body.has-workspace-shell {
+  --workspace-gutter: 12px;
+  --workspace-reply-height: 96px;
+}
+@media (max-width: 900px) {
+  body.has-workspace-shell { --workspace-gutter: 8px; }
+}

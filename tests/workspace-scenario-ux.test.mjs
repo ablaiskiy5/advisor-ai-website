@@ -13,11 +13,12 @@ const section={
 };
 const code=html.slice(start,end);
 const el=runInNewContext(code+';({workspaceJourneys,journeyDefaults,journeyPanel,startWorkspaceFlow})',{section});
-test('each main section offers a distinct pair of work journeys',()=>{
+test('each main section offers distinct work journeys',()=>{
  const entries=Object.entries(el.workspaceJourneys);
  assert.equal(entries.length,4);
- for(const [kind,config] of entries){assert.equal(config.actions.length,2);assert.notEqual(config.actions[0].flow,config.actions[1].flow);assert.match(el.journeyPanel(kind),/data-action="startflow"/);assert.ok(config.actions.every(a=>el.journeyDefaults[kind+':'+a.flow]))}
+ for(const [kind,config] of entries){assert.equal(config.actions.length,kind==='ideas'?3:2);assert.equal(new Set(config.actions.map(a=>a.flow)).size,config.actions.length);assert.match(el.journeyPanel(kind),/data-action="startflow"/);assert.ok(config.actions.every(a=>el.journeyDefaults[kind+':'+a.flow]))}
  assert.match(el.journeyPanel('portfolio'),/скриншот или PDF/);
+ assert.match(el.journeyPanel('ideas'),/Идея для клиента/);
  assert.match(el.journeyPanel('academy'),/Тренировать аттестацию/);
 });
 test('missing workbench script falls back to an owned case and chat',async()=>{

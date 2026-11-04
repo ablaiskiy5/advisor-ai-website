@@ -76,15 +76,15 @@ button{background:#edf2fa;color:#23446e;border:1px solid #ccdaeb}button.primary{
 .bubble.assistant .rendered a{color:#2356a0;text-decoration:underline;text-underline-offset:3px;font-weight:650;overflow-wrap:anywhere}
 .bubble.assistant .rendered a:focus-visible{outline:3px solid #8aaff0;outline-offset:3px}
 /* Keep a large reading pane and composer together within the available viewport. */
-body.has-workspace-shell main{max-width:none;margin:0;padding:12px 12px 8px;min-height:100dvh}
+body.has-workspace-shell main:not(.content){max-width:none;margin:0;padding:12px var(--workspace-gutter,12px) 8px;min-height:100dvh}
 body.has-workspace-shell main>header{margin-bottom:10px}
 body.has-workspace-shell main>header a{padding:7px 10px!important}
 body.has-workspace-shell #case-title{font-size:clamp(24px,2.4vw,32px);margin:6px 0}
 body.has-workspace-shell #case-sub{margin:6px 0 10px}
-.layout{grid-template-columns:minmax(0,1fr) 255px;gap:12px}
-@media(min-width:901px){body.has-workspace-shell main:not(.content){padding-left:12px;padding-right:12px}}
-@media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}.info{order:2}}
-@media(max-width:900px){body.has-workspace-shell main{min-height:calc(100dvh - 64px);padding:8px 8px 8px}}
+.layout{grid-template-columns:minmax(0,1fr);gap:12px}
+
+
+@media(max-width:900px){body.has-workspace-shell main:not(.content){min-height:calc(100dvh - 64px);padding:8px var(--workspace-gutter,8px) 8px}}
 .answer-actions{margin-top:20px;padding-top:12px;border-top:1px solid #e4eaf3;display:flex;flex-wrap:wrap;gap:8px}.answer-actions button{min-height:44px;font-size:14px}.answer-action-status{flex-basis:100%;font-size:12px;line-height:1.5;color:#526c8e}.answer-action-status:empty{display:none}
 .reading-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
 .reading-nav button{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border:1px solid #d4e0ef;border-radius:10px;text-decoration:none;font-weight:650;background:#f3f7fd}
@@ -97,10 +97,10 @@ body.has-workspace-shell #case-sub{margin:6px 0 10px}
 .composer-tools>summary{padding:8px 10px;cursor:pointer;font-weight:650}
 .composer-tools[open]{max-height:180px;overflow:auto;padding:0 10px 8px}
 .chat .composer{padding-top:10px;background:#fff;flex-direction:row;align-items:stretch}
-.chat textarea{min-height:72px;max-height:120px;resize:none}.chat #send{min-width:100px}
+.chat textarea{min-height:var(--workspace-reply-height,96px);max-height:160px;resize:vertical}.chat #send{min-width:100px}
 #error:empty,#file-status:empty{display:none}
 @media(max-width:900px){body.has-workspace-shell main>header,body.has-workspace-shell main>.crumb{display:none}#case-sub{font-size:13px;margin:6px 0 12px}#case-title{font-size:27px}}
-@media(max-width:500px){.chat{padding:10px}.chat #send{min-width:76px;padding:8px}.chat textarea{min-height:74px}.reading-nav button{font-size:12px}}
+@media(max-width:500px){.chat{padding:10px}.chat #send{min-width:76px;padding:8px}.reading-nav button{font-size:12px}}
 @media print{.reading-nav,.composer-tools,.composer{display:none}}
 </style><link rel="stylesheet" href="./assets/workspace-shell.css"><script defer src="./assets/workspace-shell.js"></script><script src="./assets/workspace-drafts.js"></script><script src="./assets/answer-renderer.js"></script></head><body><a href="./workspace.html" class="workspace-dock" aria-label="Вернуться в мой Workspace">⌂ Мой Workspace</a>
 <main><header><div class="brand">◈ Advisor <span>AI</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="./workspace.html" style="display:inline-block;padding:12px 16px;border:1px solid #6887c9;border-radius:10px;background:#253d69;color:white;font-weight:750;text-decoration:none">⌂ Мой Workspace</a><a id="return-case" href="./workspace.html" aria-label="В карточку кейса">← Карточка кейса</a></div></header>
@@ -178,6 +178,7 @@ function safeExternalChatLink(value){
  return 'https://chatgpt.com/';
 }
 function bubble(role,content){
+ if(role==='assistant'&&typeof cleanAdvisorAnswer==='function')content=cleanAdvisorAnswer(content);
  const el=document.createElement('div');el.className='bubble '+(role==='user'?'user':'assistant');
  const who=document.createElement('div');who.className='sender';who.textContent=role==='user'?'Вы':'Advisor AI';
  const node=document.createElement('div');if(role==='assistant'){node.className='rendered';if(typeof renderAnswerSafe==='function')renderAnswerSafe(node,content);else node.textContent=content}else node.textContent=content;
@@ -319,6 +320,7 @@ async function history(){if(!db||!caseData||!user)return false;const requestSeq=
  }
  if(!isCurrentChat(epoch,ownerId)||requestSeq!==historyRequestSeq)return false;
  lastAnswer=(data||[]).find(m=>m.role==='assistant')?.content||'';
+ if(typeof cleanAdvisorAnswer==='function')lastAnswer=cleanAdvisorAnswer(lastAnswer);
  latestUserMessageId=(data||[]).find(m=>m.role==='user')?.id||null;waiting(working);const list=$('messages');list.textContent='';
  if(pendingAnswerMessageId){const pendingQuestionIndex=(data||[]).findIndex(m=>m.id===pendingAnswerMessageId&&m.role==='user');if(pendingQuestionIndex>0&&data.slice(0,pendingQuestionIndex).some(m=>m.role==='assistant'))pendingAnswerMessageId=null}
  $('reload-answer').classList.toggle('hidden',!pendingAnswerMessageId);
@@ -473,7 +475,7 @@ async function send(){
 
 const quickOptions={
  portfolio:[['Анализ рисков','Проанализируй структуру портфеля, концентрации, облигации, ликвидность и рыночные риски. Отдели факты от догадок.'],['Ребалансировка','Подготовь варианты ребалансировки: оставить, сократить, заменить, целевые веса, риски и сравнение до/после.'],['Бриф к встрече','Подготовь краткий документ к встрече с клиентом: рынок, портфель, проблемы, конкретные предложения и аргументы.']],
- ideas:[['Актуальные идеи','Найди актуальные идеи с проверкой текущих цен, даты, источников, катализаторов и отчётности. Распредели только ВНУТРИ общего бюджета спекуляций.'],['Торговый план','Сформируй конкретный торговый план: бюджет, размеры позиций, проверенные катализаторы, волатильность, риск и выход.'],['Глубокий анализ','Проведи глубокий фундаментальный анализ бизнеса, оценки, конкурентов, событий, драйверов и рисков с источниками.']],
+ ideas:[['Идея для клиента','Подготовь инвестиционную идею для клиента по инструменту и фактам из этого диалога. Дай готовый текст без внутренних комментариев. Если инструмент не указан, уточни тикер.'],['Актуальные идеи','Найди актуальные идеи с проверкой текущих цен, даты, источников, катализаторов и отчётности. Распредели только ВНУТРИ общего бюджета спекуляций.'],['Торговый план','Сформируй конкретный торговый план: бюджет, размеры позиций, проверенные катализаторы, волатильность, риск и выход.'],['Глубокий анализ','Проведи глубокий фундаментальный анализ бизнеса, оценки, конкурентов, событий, драйверов и рисков с источниками.']],
  academy:[['Объясни с нуля','Объясни тему простым языком: механизм, математическая логика, примеры и исключения.'],['Устная аттестация','Проведи одну тренировочную задачу для финансового советника, дождись ответа и разбери ошибки.']],
  markets:[['Рынок сейчас','Разбери актуальные ставки, ФРС, инфляцию, нефть, UST, доллар, Nasdaq, золото и тенге с датами и источниками.'],['Макросценарии','Покажи причинные связи макрошока и сценарии для классов активов, отделяя факты от гипотез.']],
  tasks:[['Разложи хаос','Раздели все упомянутые дела по сферам жизни, срокам, приоритетам и ближайшим действиям, не выдумывая дат.'],['План дня','Подготовь реалистичный план на сегодня из доступных дел, выдели три главных приоритета.']]

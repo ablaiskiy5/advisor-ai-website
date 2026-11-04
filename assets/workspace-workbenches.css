@@ -3,3 +3,13 @@
 .wb-new{border:1px solid #d8e5f4;border-radius:12px;padding:0 16px;background:#f8fbff;margin:16px 0}.wb-new summary{cursor:pointer;color:#365b8c;font-size:14px;font-weight:650;padding:14px 0}.wb-new[open] form{padding-bottom:10px}
 
 .comms-result { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+
+body.has-workspace-shell main.content {
+  max-width: none !important;
+  margin: 0;
+  padding-inline: var(--workspace-gutter, 12px) !important;
+}
+.workbench #wb-subject { min-height: 132px; }
+.workbench #wb-reply { min-height: var(--workspace-reply-height, 96px); }
+.workbench #comms-source,
+.workbench #comms-approved { min-height: 132px; }
