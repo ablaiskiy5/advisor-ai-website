@@ -6,6 +6,10 @@ The response uses the selected channel's plain-text formatting. The workbench bl
 
 Released in PR #255 (174e0046b234dd694f002142da8890d30d6848be). 447 Node tests and the synthetic Chromium walkthrough passed, including compensation exclusion, exact reviewed request, WhatsApp markup, output gating and History reopening. All four applicable PR and main checks passed. GitHub Pages deployment 41786342164 succeeded. Live HTTP 200 bodies for Workspace, shared navigation and both workbench assets match the tested release. Real underwriter materials and authenticated paid AI were not used for verification.
 
+### Follow-up editing
+
+Communications supports iterative changes under the current draft, including after reopening a saved draft from History. A revision uses the same owned case and existing AI invocation, with the instruction to preserve the original audience, channel and agreed source. The browser screens revision text before sending and screens the returned version before copy/download. Corrected the accidental backspace characters in English/numeric screening patterns.
+
 ## Documents, task calendar handoff and scenario audit — 2026-11-03
 
 Prepared a separate Documents workbench for letters, briefs, reports and presentation text. Its gallery reads only owned assistant-response metadata (latest 500 responses), groups by case and opens actual saved materials for Word/PDF. History remains all cases, including unfinished work and notes. Document cases retain the existing database kind with a logical Documents label and no misleading trading-budget shortcut. Fixed the new gallery link after browser QA exposed that the old `chat` action opens external ChatGPT; it now opens the internal saved dialogue. External ChatGPT is explicitly labelled.
