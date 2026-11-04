@@ -2,6 +2,8 @@
 
 The board opened with the Active filter, which hid tasks immediately after a confirmed completion. The board now starts with All, so already completed items are visible in the Done column after reload. Completing a task from an active-only view switches to All once the owner-scoped write is acknowledged, unless the user switched views while the request was in flight. Manual filters remain available and the selected filter is reflected in the UI.
 
+Released in PR #259 (3f3b263850926d3debfcaca44842b7a1ec885d6b). All three PR checks passed, including 447 Node tests and synthetic desktop/mobile Chromium from In progress to Done, reload and restore. Pages deployment 41834938642 succeeded. The published task board returned HTTP 200 and matched the tested file. No real account data was modified for verification.
+
 ## Communications workbench — 2026-11-04
 
 Workspace has a dedicated «Письма и посты» section for pasted announcements and other source materials. Users choose clients or colleagues and email, WhatsApp or Telegram. The browser proposes a filtered source, omitting recognizable internal lines and labelled blocks. The user edits and reviews the exact text before generation. Only that reviewed version is sent through the existing owned case/message pipeline. The original is held in page memory and excluded from browser draft storage. The prompt asks to preserve verified issue terms, deadlines, currencies and indicative status, use only the approved facts, and avoid promises of returns or allocation.
