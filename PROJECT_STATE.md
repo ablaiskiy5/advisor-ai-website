@@ -1,3 +1,9 @@
+## Communications workbench — 2026-11-04
+
+Workspace has a dedicated «Письма и посты» section for pasted announcements and other source materials. Users choose clients or colleagues and email, WhatsApp or Telegram. The browser proposes a filtered source, omitting recognizable internal lines and labelled blocks. The user edits and reviews the exact text before generation. Only that reviewed version is sent through the existing owned case/message pipeline. The original is held in page memory and excluded from browser draft storage. The prompt asks to preserve verified issue terms, deadlines, currencies and indicative status, use only the approved facts, and avoid promises of returns or allocation.
+
+The response uses the selected channel's plain-text formatting. The workbench blocks display and copy/download for output containing recognized internal terms. The existing backend still saves the assistant response in the private case before this browser check. This pattern-based filter requires review of both the submitted source and the client draft. No recipient accounts or outbound publishing are involved. Drafts reopen through owned History without a new AI call. No schema, Auth, provider or quota changes.
+
 ## Documents, task calendar handoff and scenario audit — 2026-11-03
 
 Prepared a separate Documents workbench for letters, briefs, reports and presentation text. Its gallery reads only owned assistant-response metadata (latest 500 responses), groups by case and opens actual saved materials for Word/PDF. History remains all cases, including unfinished work and notes. Document cases retain the existing database kind with a logical Documents label and no misleading trading-budget shortcut. Fixed the new gallery link after browser QA exposed that the old `chat` action opens external ChatGPT; it now opens the internal saved dialogue. External ChatGPT is explicitly labelled.

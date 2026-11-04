@@ -10,6 +10,7 @@ This roadmap tracks priorities rather than asserting completion. Cross-check the
 - [ ] Validate the recently changed light chat, case navigation, AI short-response quality and source links with real user flows.
 
 ## P1 — Advisor workflows and usability
+- [x] Dedicated client/colleague communications editor with reviewed input, internal-term screening and channel-specific drafts.
 - [x] Large chat reading pane with visible composer and per-answer PDF export with isolated capture; synthetic browser/PDF validation (release evidence in PROJECT_STATE.md).
 - [x] Word/PDF and exact-text copy directly under the selected reply; synthetic selection/mobile checks and asynchronous export session guards (release evidence in PROJECT_STATE.md).
 - [x] Automatic AI eligibility for confirmed self-registration without per-email manual approval; task quotas use a service-only atomic reservation (2026-10-28).
