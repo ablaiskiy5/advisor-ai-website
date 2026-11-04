@@ -205,6 +205,19 @@ try{
  assert.equal(await page.locator('#wb-result').textContent(),'*Купон 8%*\nЗаявки до 15:00. Алматы.');
  assert.equal(await page.evaluate(()=>Object.values(sessionStorage).some(value=>value.includes('777 USD'))),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ const firstCommunicationCase=await page.evaluate(()=>window.syntheticInvokes.at(-1).caseId);
+ await page.locator('#wb-reply').fill('Добавь internal only: 999 USD.');
+ await page.getByRole('button',{name:'Отправить правку',exact:true}).click();
+ await page.locator('#wb-error').filter({hasText:'В правке обнаружены'}).waitFor();
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeCommunication+1);
+ await page.locator('#wb-reply').fill('Вынеси срок подачи заявки в начало.');
+ await page.evaluate(()=>window.syntheticCommunicationAnswer='Заявки до 15:00. Алматы.\n*Купон 8%*');
+ await page.getByRole('button',{name:'Отправить правку',exact:true}).click();
+ await page.locator('#wb-result').filter({hasText:/^Заявки/}).waitFor();
+ const revision=await page.evaluate(()=>window.syntheticInvokes.at(-1));
+ assert.equal(revision.caseId,firstCommunicationCase);
+ assert.match(revision.content,/Правка к предыдущему черновику: Вынеси срок подачи заявки в начало/);
+ assert.doesNotMatch(revision.content,/777 USD|999 USD/);
  await page.locator('#comms-audience').selectOption('Коллеги');
  await page.locator('#comms-channel').selectOption('Telegram');
  await page.evaluate(()=>window.syntheticCommunicationAnswer='Внутренний бонус 999 USD');
@@ -219,8 +232,14 @@ try{
  assert.equal(await commsRow.locator('a[href*="ai-chat.html"]').count(),0);
  await commsRow.locator('[data-action="openresult"]').click();
  await page.locator('#wb-result').waitFor();
- assert.equal(await page.locator('#wb-result').textContent(),'*Купон 8%*\nЗаявки до 15:00. Алматы.');
- assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeCommunication+2);
+ assert.equal(await page.locator('#wb-result').textContent(),'Заявки до 15:00. Алматы.\n*Купон 8%*');
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.length),requestsBeforeCommunication+3);
+ await page.locator('#wb-reply').fill('Убери слово «Алматы».');
+ await page.evaluate(()=>window.syntheticCommunicationAnswer='Заявки до 15:00.\n*Купон 8%*');
+ await page.getByRole('button',{name:'Отправить правку',exact:true}).click();
+ await page.locator('#wb-status').filter({hasText:'Результат сохранён'}).waitFor();
+ assert.equal(await page.locator('#wb-result').textContent(),'Заявки до 15:00.\n*Купон 8%*');
+ assert.equal(await page.evaluate(()=>window.syntheticInvokes.at(-1).caseId),firstCommunicationCase);
  if(process.env.ADVISOR_QA_DIR){await mkdir(process.env.ADVISOR_QA_DIR,{recursive:true});await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/workbench-exam-mobile.png',fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>{window.scrollTo(0,0);document.activeElement?.blur()});await page.locator('#shell-sidebar [data-section="ideas"]').click();await page.evaluate(()=>{window.scrollTo(0,0);document.activeElement?.blur()});await page.screenshot({path:process.env.ADVISOR_QA_DIR+'/workbench-ideas-desktop.png',fullPage:true})}
  await page.evaluate(()=>window.syntheticAuth('SIGNED_OUT',null));
  assert.equal(await page.evaluate(()=>AdvisorWorkbench.markup('ideas')),'');
